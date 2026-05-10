@@ -10,64 +10,65 @@ output_dir = './results'
 os.makedirs(output_dir, exist_ok=True)
 
 # --- PARAMÈTRE GLOBAL ---
-ANNEE_TEST = 2025  # Change cette valeur pour tester 2024, 2023, etc.
+ANNEE_TEST = 2025  
 
 # 1. Chargement des données
 filepath = './ready-data/EURUSD_Master_ML_Ready.csv'
 df = pd.read_csv(filepath, index_col='Time', parse_dates=True)
 
-# 2. Séparation chronologique stricte (Évite l'apprentissage sur le futur)
+# 2. Séparation chronologique stricte
 split_date_start = pd.to_datetime(f'{ANNEE_TEST}-01-01')
 split_date_end = pd.to_datetime(f'{ANNEE_TEST + 1}-01-01')
-purge_window = timedelta(hours=24) # Purge pour la Triple Barrière
+purge_window = timedelta(hours=24) 
 
-# L'entraînement se fait UNIQUEMENT sur le passé
-train_data = df[df.index < (split_date_start - purge_window)]
-# Le test se fait UNIQUEMENT sur l'année ciblée
-test_data = df[(df.index >= split_date_start) & (df.index < split_date_end)]
+train_data = df[df.index < (split_date_start - purge_window)].copy()
+test_data = df[(df.index >= split_date_start) & (df.index < split_date_end)].copy()
 
 if test_data.empty:
-    raise ValueError(f"Aucune donnée trouvée pour l'année {ANNEE_TEST}.")
+    raise ValueError(f"⚠️ Aucune donnée trouvée pour l'année {ANNEE_TEST}. Vérifie ton fichier CSV.")
 
-colonnes_a_exclure = ['Target', 'Spread'] 
+# --- SÉCURITÉ : ORDRE DES COLONNES ---
+# On définit explicitement les features pour éviter tout décalage
+colonnes_a_exclure = ['Target', 'Spread']
+X_cols = [c for c in df.columns if c not in colonnes_a_exclure]
 
-X_train = train_data.drop(columns=colonnes_a_exclure)
+X_train = train_data[X_cols]
 y_train = train_data['Target']
 
-X_test = test_data.drop(columns=colonnes_a_exclure)
+X_test = test_data[X_cols]
 y_test = test_data['Target']
 
-print(f"Taille de l'entraînement (Avant {ANNEE_TEST}) : {len(X_train)} bougies")
-print(f"Taille du test ({ANNEE_TEST}) : {len(X_test)} bougies\n")
+print(f"📊 Taille de l'entraînement (Données avant {ANNEE_TEST}) : {len(X_train)} bougies")
+print(f"📊 Taille du test ({ANNEE_TEST}) : {len(X_test)} bougies\n")
 
 # 3. Entraînement du modèle
+# J'augmente légèrement min_samples_leaf pour éviter le surapprentissage sur le bruit
 model = RandomForestClassifier(
     n_estimators=200, 
     max_depth=12, 
+    min_samples_leaf=5, # Sécurité supplémentaire contre l'overfitting
     random_state=42, 
     n_jobs=-1,
     class_weight='balanced'
 )
 
-print("Entraînement en cours (Classification Multiclasse : -1, 0, 1)...")
+print(f"🤖 Entraînement du modèle pour l'année {ANNEE_TEST}...")
 model.fit(X_train, y_train)
 
 # 4. Importance des Features
 importances = model.feature_importances_
-feature_names = X_train.columns
-
 fi_df = pd.DataFrame({
-    'Indicateur': feature_names, 
-    'Importance_Environ_%': np.round(importances * 100, 2)
-}).sort_values(by='Importance_Environ_%', ascending=False)
+    'Indicateur': X_cols, 
+    'Importance_%': np.round(importances * 100, 2)
+}).sort_values(by='Importance_%', ascending=False)
 
 print("\n=== IMPORTANCE DES INDICATEURS ===")
 print(fi_df.to_string(index=False))
 
 plt.figure(figsize=(10, 8))
-plt.barh(fi_df['Indicateur'][::-1], fi_df['Importance_Environ_%'][::-1])
-plt.title(f"Importance des variables (Test {ANNEE_TEST})")
-plt.xlabel("Impact en % sur la décision")
+plt.barh(fi_df['Indicateur'][::-1], fi_df['Importance_%'][::-1], color='skyblue')
+plt.title(f"Importance des variables - Test {ANNEE_TEST}")
+plt.xlabel("Impact en %")
 plt.tight_layout()
 plt.savefig(f'{output_dir}/Feature_Importance_{ANNEE_TEST}.png')
 
@@ -75,16 +76,14 @@ plt.savefig(f'{output_dir}/Feature_Importance_{ANNEE_TEST}.png')
 predictions = model.predict(X_test)
 probas = model.predict_proba(X_test)
 
-idx_short = np.where(model.classes_ == -1)[0][0]
-idx_neutre = np.where(model.classes_ == 0)[0][0] 
-idx_long = np.where(model.classes_ == 1)[0][0]
-
-proba_baisse = probas[:, idx_short]
-proba_neutre = probas[:, idx_neutre] 
-proba_hausse = probas[:, idx_long]
+# Mapping dynamique des classes
+class_map = {cls: idx for idx, cls in enumerate(model.classes_)}
+proba_baisse = probas[:, class_map[-1.0]]
+proba_neutre = probas[:, class_map[0.0]]
+proba_hausse = probas[:, class_map[1.0]]
 
 print(f"\n=== RÉSULTATS SUR {ANNEE_TEST} ===")
-print(f"Précision globale (Accuracy) : {accuracy_score(y_test, predictions):.2f}\n")
+print(f"✅ Précision globale (Accuracy) : {accuracy_score(y_test, predictions):.2f}\n")
 print(classification_report(y_test, predictions))
 
 # 6. Sauvegarde pour le Backtest
@@ -99,4 +98,4 @@ results = pd.DataFrame({
 
 output_path = f'{output_dir}/Predictions_{ANNEE_TEST}_TripleBarrier.csv'
 results.to_csv(output_path)
-print(f"\nPrédictions détaillées sauvegardées dans : {output_path}")
+print(f"💾 Fichier de prédictions généré : {output_path}")
