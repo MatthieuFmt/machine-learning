@@ -7,11 +7,11 @@
 ## 📊 Statistiques Globales
 | Métrique | Valeur |
 | :--- | :--- |
-| **Nombre de Trades** | 74 |
-| **Taux de Réussite (Win Rate)** | 56.76% |
+| **Nombre de Trades** | 798 |
+| **Taux de Réussite (Win Rate)** | 80.20% |
 | **Résultat Net** | **-40.1 Pips** |
-| **Espérance par trade** | -0.54 pips / trade |
-| **Confiance Moyenne du Bot** | 64.1% |
+| **Espérance par trade** | -0.05 pips / trade |
+| **Confiance Moyenne du Bot** | 67.2% |
 
 ---
 
