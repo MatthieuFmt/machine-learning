@@ -1,94 +1,133 @@
-import pandas as pd
-import numpy as np
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, accuracy_score
-import matplotlib.pyplot as plt
+"""Entraîne un modèle unique sur data ≤ TRAIN_END_YEAR (avec embargo PURGE_HOURS),
+puis génère des prédictions OOS pour chaque année listée dans EVAL_YEARS.
+
+Conforme à l'audit I5 : VAL_YEAR et TEST_YEAR proviennent du MÊME modèle qui
+n'a jamais vu ces deux années en entraînement → split 3-étages strict.
+"""
 import os
+import random
 from datetime import timedelta
 
-output_dir = './results'
-os.makedirs(output_dir, exist_ok=True)
+import numpy as np
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.inspection import permutation_importance
+from sklearn.metrics import accuracy_score, classification_report
 
-# --- PARAMÈTRE GLOBAL ---
-ANNEE_TEST = 2023   # je change sur 2026 parfois pour analyser les résultats sur une année différente, mais 2025 est ma cible principale pour le backtest final.
+from config import (
+    DIR_RESULTS,
+    EVAL_YEARS,
+    FEATURES_DROPPED,
+    FILE_ML_READY,
+    PURGE_HOURS,
+    RANDOM_SEED,
+    RF_PARAMS,
+    TRAIN_END_YEAR,
+    VAL_YEAR,
+)
+
+random.seed(RANDOM_SEED)
+np.random.seed(RANDOM_SEED)
+
+os.makedirs(DIR_RESULTS, exist_ok=True)
 
 # 1. Chargement des données
-filepath = './ready-data/EURUSD_Master_ML_Ready.csv'
-df = pd.read_csv(filepath, index_col='Time', parse_dates=True)
+df = pd.read_csv(FILE_ML_READY, index_col='Time', parse_dates=True)
 
-# 2. Séparation chronologique stricte
-split_date_start = pd.to_datetime(f'{ANNEE_TEST}-01-01')
-split_date_end = pd.to_datetime(f'{ANNEE_TEST + 1}-01-01')
-purge_window = timedelta(hours=24) 
+# 2. Coupe d'entraînement : tout ce qui est strictement avant (TRAIN_END_YEAR + 1) - PURGE_HOURS.
+train_cutoff = pd.to_datetime(f'{TRAIN_END_YEAR + 1}-01-01') - timedelta(hours=PURGE_HOURS)
+train_data = df[df.index < train_cutoff].copy()
 
-train_data = df[df.index < (split_date_start - purge_window)].copy()
-test_data = df[(df.index >= split_date_start) & (df.index < split_date_end)].copy()
+if train_data.empty:
+    raise ValueError(f"⚠️ Aucune donnée d'entraînement avant {train_cutoff}.")
 
-if test_data.empty:
-    raise ValueError(f"⚠️ Aucune donnée trouvée pour l'année {ANNEE_TEST}. Vérifie ton fichier CSV.")
-
-# --- SÉCURITÉ : ORDRE DES COLONNES ---
-# On définit explicitement les features pour éviter tout décalage
-colonnes_a_exclure = ['Target', 'Spread']
+colonnes_a_exclure = ['Target', 'Spread'] + list(FEATURES_DROPPED)
 X_cols = [c for c in df.columns if c not in colonnes_a_exclure]
 
 X_train = train_data[X_cols]
 y_train = train_data['Target']
 
-X_test = test_data[X_cols]
-y_test = test_data['Target']
+print(f"📊 Cutoff entraînement (purge {PURGE_HOURS}h) : {train_cutoff}")
+print(f"📊 Taille entraînement : {len(X_train)} bougies")
+print(f"📊 Années d'évaluation OOS : {EVAL_YEARS}")
+if FEATURES_DROPPED:
+    print(f"🚫 Features écartées (cf. config.FEATURES_DROPPED) : {FEATURES_DROPPED}")
+print(f"✅ Features utilisées ({len(X_cols)}) : {X_cols}\n")
 
-print(f"📊 Taille de l'entraînement (Données avant {ANNEE_TEST}) : {len(X_train)} bougies")
-print(f"📊 Taille du test ({ANNEE_TEST}) : {len(X_test)} bougies\n")
-
-# 3. Entraînement du modèle
-# J'augmente légèrement min_samples_leaf pour éviter le surapprentissage sur le bruit
-model = RandomForestClassifier(
-    n_estimators=200, 
-    max_depth=12, 
-    min_samples_leaf=5, # Sécurité supplémentaire contre l'overfitting
-    random_state=42, 
-    n_jobs=-1,
-    class_weight='balanced'
-)
-
-print(f"🤖 Entraînement du modèle pour l'année {ANNEE_TEST}...")
+# 3. Entraînement (UNE SEULE FOIS, partagé par toutes les EVAL_YEARS)
+model = RandomForestClassifier(**RF_PARAMS)
+print(f"🤖 Entraînement du modèle (train ≤ {TRAIN_END_YEAR})...")
 model.fit(X_train, y_train)
 
-# 4. Importance des Features
+# 4. Importance des Features (impurity-based + permutation sur VAL_YEAR)
+val_start = pd.to_datetime(f'{VAL_YEAR}-01-01')
+val_end = pd.to_datetime(f'{VAL_YEAR + 1}-01-01')
+val_slice = df[(df.index >= val_start) & (df.index < val_end)]
+
 importances = model.feature_importances_
-fi_df = pd.DataFrame({
-    'Indicateur': X_cols, 
-    'Importance_%': np.round(importances * 100, 2)
-}).sort_values(by='Importance_%', ascending=False)
+
+if val_slice.empty:
+    print(f"\n⚠️ Pas de données pour VAL_YEAR={VAL_YEAR}, permutation importance ignorée.")
+    fi_df = pd.DataFrame({
+        'Indicateur': X_cols,
+        'Impurity_%': np.round(importances * 100, 2),
+    }).sort_values(by='Impurity_%', ascending=False)
+else:
+    print(f"\n🔁 Calcul de la permutation importance sur {VAL_YEAR} (peut prendre une minute)...")
+    perm = permutation_importance(
+        model, val_slice[X_cols], val_slice['Target'],
+        n_repeats=10, random_state=RANDOM_SEED, n_jobs=-1,
+    )
+    fi_df = pd.DataFrame({
+        'Indicateur': X_cols,
+        'Impurity_%': np.round(importances * 100, 2),
+        'Permutation_mean': np.round(perm.importances_mean, 5),
+        'Permutation_std': np.round(perm.importances_std, 5),
+    }).sort_values(by='Permutation_mean', ascending=False)
 
 print("\n=== IMPORTANCE DES INDICATEURS ===")
 print(fi_df.to_string(index=False))
 
-# 5. Prédictions et Probabilités
-predictions = model.predict(X_test)
-probas = model.predict_proba(X_test)
+fi_path = f'{DIR_RESULTS}/Feature_Importance_train{TRAIN_END_YEAR}.csv'
+fi_df.to_csv(fi_path, index=False)
+print(f"💾 Importances sauvegardées : {fi_path}")
 
-# Mapping dynamique des classes
-class_map = {cls: idx for idx, cls in enumerate(model.classes_)}
-proba_baisse = probas[:, class_map[-1.0]]
-proba_neutre = probas[:, class_map[0.0]]
-proba_hausse = probas[:, class_map[1.0]]
+# 5. Prédictions OOS pour chaque EVAL_YEAR
+class_map = None
+for eval_year in EVAL_YEARS:
+    eval_start = pd.to_datetime(f'{eval_year}-01-01')
+    eval_end = pd.to_datetime(f'{eval_year + 1}-01-01')
+    test_data = df[(df.index >= eval_start) & (df.index < eval_end)].copy()
 
-print(f"\n=== RÉSULTATS SUR {ANNEE_TEST} ===")
-print(f"✅ Précision globale (Accuracy) : {accuracy_score(y_test, predictions):.2f}\n")
-print(classification_report(y_test, predictions))
+    if test_data.empty:
+        print(f"\n⚠️ Aucune donnée pour {eval_year}, on saute.")
+        continue
 
-# 6. Sauvegarde pour le Backtest
-results = pd.DataFrame({
-    'Close_Reel_Direction': y_test,
-    'Prediction_Modele': predictions,
-    'Confiance_Baisse_%': np.round(proba_baisse * 100, 2),
-    'Confiance_Neutre_%': np.round(proba_neutre * 100, 2), 
-    'Confiance_Hausse_%': np.round(proba_hausse * 100, 2),
-    'Spread': test_data['Spread']
-}, index=y_test.index)
+    X_test = test_data[X_cols]
+    y_test = test_data['Target']
 
-output_path = f'{output_dir}/Predictions_{ANNEE_TEST}_TripleBarrier.csv'
-results.to_csv(output_path)
-print(f"💾 Fichier de prédictions généré : {output_path}")
+    predictions = model.predict(X_test)
+    probas = model.predict_proba(X_test)
+
+    if class_map is None:
+        class_map = {cls: idx for idx, cls in enumerate(model.classes_)}
+    proba_baisse = probas[:, class_map[-1.0]]
+    proba_neutre = probas[:, class_map[0.0]]
+    proba_hausse = probas[:, class_map[1.0]]
+
+    print(f"\n=== RÉSULTATS SUR {eval_year} ({len(X_test)} bougies) ===")
+    print(f"✅ Accuracy : {accuracy_score(y_test, predictions):.3f}")
+    print(classification_report(y_test, predictions))
+
+    out_df = pd.DataFrame({
+        'Close_Reel_Direction': y_test,
+        'Prediction_Modele': predictions,
+        'Confiance_Baisse_%': np.round(proba_baisse * 100, 2),
+        'Confiance_Neutre_%': np.round(proba_neutre * 100, 2),
+        'Confiance_Hausse_%': np.round(proba_hausse * 100, 2),
+        'Spread': test_data['Spread'],
+    }, index=y_test.index)
+
+    output_path = f'{DIR_RESULTS}/Predictions_{eval_year}_TripleBarrier.csv'
+    out_df.to_csv(output_path)
+    print(f"💾 Prédictions sauvegardées : {output_path}")

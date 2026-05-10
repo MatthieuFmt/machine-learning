@@ -64,7 +64,7 @@ for filepath in fichiers_csv:
 
         print(f"   ✅ Succès : {len(df)} lignes sauvegardées ({df.index.min().date()} -> {df.index.max().date()})\n")
 
-    except Exception as e:
-        print(f"   ❌ Erreur avec le fichier {nom_fichier} : {e}\n")
+    except (ValueError, OSError, pd.errors.ParserError, pd.errors.EmptyDataError) as e:
+        print(f"   ❌ Erreur avec le fichier {nom_fichier} : {type(e).__name__}: {e}\n")
 
 print("🎉 Nettoyage de tous les fichiers terminé !")

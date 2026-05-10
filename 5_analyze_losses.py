@@ -1,8 +1,9 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-ANNEE_TEST = 2025
-df = pd.read_csv(f'./results/Trades_Detailed_{ANNEE_TEST}.csv', index_col='Time', parse_dates=True)
+from config import DIR_RESULTS, TEST_YEAR
+
+df = pd.read_csv(f'{DIR_RESULTS}/Trades_Detailed_{TEST_YEAR}.csv', index_col='Time', parse_dates=True)
 
 losses = df[df['Pips_Nets'] < 0]
 wins   = df[df['Pips_Nets'] > 0]
@@ -12,7 +13,10 @@ print(f"Total trades : {len(df)} | Pertes : {len(losses)} | Win rate : {len(wins
 print(f"Pertes SL : {(losses['result']=='loss_sl').sum()} | Pertes Timeout : {(losses['result']=='loss_timeout').sum()}")
 
 # Top 5 features où les moyennes diffèrent le plus
-features = [c for c in df.columns if c not in ('Signal','Pips_Nets','result','proba_hausse','proba_neutre','proba_baisse')]
+features = [c for c in df.columns if c not in (
+    'Signal', 'Pips_Nets', 'Pips_Bruts', 'Weight', 'result',
+    'proba_hausse', 'proba_neutre', 'proba_baisse'
+)]
 diff = {f: abs(wins[f].mean() - losses[f].mean()) for f in features}
 top5 = sorted(diff, key=diff.get, reverse=True)[:5]
 
@@ -26,4 +30,7 @@ ax = df.boxplot(column='proba_max', by='result')
 ax.set_title('Probabilité max par résultat')
 ax.set_ylabel('proba_max')
 plt.suptitle('')
-plt.show()
+fig_path = f'{DIR_RESULTS}/Loss_Analysis_{TEST_YEAR}.png'
+plt.savefig(fig_path, dpi=120, bbox_inches='tight')
+plt.close()
+print(f"\n💾 Boxplot sauvegardé : {fig_path}")

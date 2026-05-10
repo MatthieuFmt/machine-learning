@@ -1,10 +1,31 @@
-import pandas as pd
-import numpy as np
-import pandas_ta as ta
 import os
+import random
+
+import numpy as np
+import pandas as pd
+import pandas_ta as ta
+
+from backtest_utils import log_row_loss
+from config import (
+    DIR_READY,
+    FILE_EURUSD_D1_CLEAN,
+    FILE_EURUSD_H1_CLEAN,
+    FILE_EURUSD_H4_CLEAN,
+    FILE_USDCHF_H1_CLEAN,
+    FILE_XAUUSD_H1_CLEAN,
+    PIP_SIZE,
+    RANDOM_SEED,
+    SL_PIPS,
+    TP_PIPS,
+    WINDOW_HOURS,
+)
+
+random.seed(RANDOM_SEED)
+np.random.seed(RANDOM_SEED)
+
 
 # --- FONCTION : LA TRIPLE BARRIÈRE (Bidirectionnelle) ---
-def apply_triple_barrier(df, tp_pips=20, sl_pips=10, window=24, pip_size=0.0001):
+def apply_triple_barrier(df, tp_pips=TP_PIPS, sl_pips=SL_PIPS, window=WINDOW_HOURS, pip_size=PIP_SIZE):
     print(f"🎯 Calcul de la Target (TP: {tp_pips} pips | SL: {sl_pips} pips | Délai max: {window}h)...")
     targets = np.full(len(df), np.nan)
     tp_dist = tp_pips * pip_size
@@ -47,14 +68,14 @@ def calc_base_features(df, prefix=''):
 
 # 1. Chargement des données EURUSD
 print("Chargement des données EURUSD (H1, H4, D1)...")
-h1 = pd.read_csv('./cleaned-data/EURUSD_H1_cleaned.csv', index_col='Time', parse_dates=True)
-h4 = pd.read_csv('./cleaned-data/EURUSD_H4_cleaned.csv', index_col='Time', parse_dates=True)
-d1 = pd.read_csv('./cleaned-data/EURUSD_D1_cleaned.csv', index_col='Time', parse_dates=True)
+h1 = pd.read_csv(FILE_EURUSD_H1_CLEAN, index_col='Time', parse_dates=True)
+h4 = pd.read_csv(FILE_EURUSD_H4_CLEAN, index_col='Time', parse_dates=True)
+d1 = pd.read_csv(FILE_EURUSD_D1_CLEAN, index_col='Time', parse_dates=True)
 
 # 1.bis Chargement des données Macro (XAUUSD, USDCHF)
 print("Chargement des données Macro (XAUUSD, USDCHF)...")
-xau_h1 = pd.read_csv('./cleaned-data/XAUUSD_H1_cleaned.csv', index_col='Time', parse_dates=True)
-chf_h1 = pd.read_csv('./cleaned-data/USDCHF_H1_cleaned.csv', index_col='Time', parse_dates=True)
+xau_h1 = pd.read_csv(FILE_XAUUSD_H1_CLEAN, index_col='Time', parse_dates=True)
+chf_h1 = pd.read_csv(FILE_USDCHF_H1_CLEAN, index_col='Time', parse_dates=True)
 
 # Préparation des rendements Macro (calculés sur leurs index respectifs)
 xau_feat = pd.DataFrame(index=xau_h1.index)
@@ -64,8 +85,10 @@ chf_feat = pd.DataFrame(index=chf_h1.index)
 chf_feat['CHF_Return'] = np.log(chf_h1['Close'] / chf_h1['Close'].shift(1))
 
 # 2. APPLICATION DE LA TARGET (Sur EURUSD H1)
-h1['Target'] = apply_triple_barrier(h1, tp_pips=20, sl_pips=10, window=24)
+n_before_target = len(h1)
+h1['Target'] = apply_triple_barrier(h1)
 h1.dropna(subset=['Target'], inplace=True)
+log_row_loss("dropna Target (triple barrier)", n_before_target, len(h1))
 
 # 3. Calcul des Features techniques EURUSD
 print("Calcul des indicateurs techniques...")
@@ -100,16 +123,30 @@ feat_d1 = feat_d1.sort_index().reset_index()
 xau_feat = xau_feat.sort_index().reset_index()
 chf_feat = chf_feat.sort_index().reset_index()
 
+def _log_merge_nan(label, combined, probe_col):
+    n_total = len(combined)
+    n_nan = int(combined[probe_col].isna().sum())
+    pct = n_nan / n_total * 100 if n_total else 0
+    flag = " ⚠️" if pct > 5 else ""
+    print(f"  merge {label}: {n_total} rows, {n_nan} NaN dans {probe_col} ({pct:.2f}%){flag}")
+
+
 # Fusion Multi-Timeframe
 combined = pd.merge_asof(h1, feat_h4, on='Time', direction='backward')
+_log_merge_nan("feat_h4", combined, 'RSI_14_H4')
 combined = pd.merge_asof(combined, feat_d1, on='Time', direction='backward')
+_log_merge_nan("feat_d1", combined, 'RSI_14_D1')
 
 # Fusion Macro (Or et Franc Suisse)
 combined = pd.merge_asof(combined, xau_feat, on='Time', direction='backward')
+_log_merge_nan("xau_feat", combined, 'XAU_Return')
 combined = pd.merge_asof(combined, chf_feat, on='Time', direction='backward')
+_log_merge_nan("chf_feat", combined, 'CHF_Return')
 
 combined.set_index('Time', inplace=True)
+n_before_dropna = len(combined)
 combined.dropna(inplace=True)
+log_row_loss("dropna final (toutes features)", n_before_dropna, len(combined))
 
 # 5. Sélection et Sauvegarde
 colonnes_finales = [
@@ -124,9 +161,8 @@ colonnes_finales = [
 
 dataset_ml = combined[colonnes_finales]
 
-output_dir = './ready-data'
-os.makedirs(output_dir, exist_ok=True)
-output_path = f"{output_dir}/EURUSD_Master_ML_Ready.csv"
+os.makedirs(DIR_READY, exist_ok=True)
+output_path = f"{DIR_READY}/EURUSD_Master_ML_Ready.csv"
 dataset_ml.to_csv(output_path)
 
 print(f"✅ Dataset ML généré avec succès : {output_path}")

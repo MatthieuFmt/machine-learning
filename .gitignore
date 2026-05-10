@@ -1,2 +1,24 @@
+# Données brutes et intermédiaires
 data/
 data-future/
+cleaned-data/
+ready-data/
+
+# Artefacts générés (prédictions, importances, trades détaillés)
+results/
+
+# Python
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+
+# OS / IDE
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
