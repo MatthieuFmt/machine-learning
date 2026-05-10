@@ -5,213 +5,191 @@ import os
 
 os.makedirs('./results', exist_ok=True)
 
-# --- PARAMÈTRE GLOBAL ---
-ANNEE_TEST = 2025
+# ======================= FONCTIONS DE POIDS =======================
+def identity(proba, seuil=0.45):
+    """Poids fixe = 1 (pas de sizing)"""
+    return np.ones_like(proba)
 
-# 1. Chargement des données
-filepath = f'./results/Predictions_{ANNEE_TEST}_TripleBarrier.csv'
-preds = pd.read_csv(filepath, index_col='Time', parse_dates=True)
-prices = pd.read_csv('./cleaned-data/EURUSD_H1_cleaned.csv', index_col='Time', parse_dates=True)
+def linear_0_5_1_5(proba, seuil=0.45):
+    excess = (proba - seuil) / 0.15
+    excess = np.clip(excess, 0, 1)
+    return 0.5 + excess
 
-# Charger le dataset maître pour récupérer les features et les colonnes
-dataset_ml = pd.read_csv('./ready-data/EURUSD_Master_ML_Ready.csv', index_col='Time', parse_dates=True)
-X_cols = [c for c in dataset_ml.columns if c not in ['Target', 'Spread']]
+def linear_0_8_1_2(proba, seuil=0.45):
+    excess = (proba - seuil) / 0.10
+    excess = np.clip(excess, 0, 1)
+    return 0.8 + 0.4 * excess
 
-# Fusion pour avoir les High/Low futurs ET les features
-df = preds.join(prices[['High', 'Low', 'Close']], how='inner')
-df = df.join(dataset_ml[X_cols], how='inner')
+def exp_0_5_1_5(proba, seuil=0.45):
+    z = (proba - seuil) / 0.15
+    z = np.clip(z, 0, 1)
+    return 0.5 + z ** 2
 
-# 2. Paramètres
-TP_PIPS = 20.0
-SL_PIPS = 10.0
-SEUIL_CONFIANCE = 45.0      # en pourcentage
-WINDOW = 24
-PIP_SIZE = 0.0001
+def step(proba, seuil=0.45):
+    w = np.zeros_like(proba)
+    w[proba < 0.50] = 0.5
+    w[(proba >= 0.50) & (proba < 0.55)] = 1.0
+    w[proba >= 0.55] = 1.5
+    return w
 
-# 3. Génération des signaux + poids dynamique
-df['proba_max'] = df[['Confiance_Hausse_%', 'Confiance_Neutre_%', 'Confiance_Baisse_%']].max(axis=1) / 100.0
-df['Signal'] = 0
-df['Weight'] = 0.0
+WEIGHT_FUNCTIONS = {
+    'Fixe 1.0': identity,
+    'Linéaire 0.5-1.5': linear_0_5_1_5,
+    'Linéaire 0.8-1.2': linear_0_8_1_2,
+    'Exponentiel 0.5-1.5': exp_0_5_1_5,
+    'Paliers 0.5/1.0/1.5': step
+}
 
-mask_long = (df['Prediction_Modele'] == 1) & (df['Confiance_Hausse_%'] / 100 >= SEUIL_CONFIANCE / 100)
-mask_short = (df['Prediction_Modele'] == -1) & (df['Confiance_Baisse_%'] / 100 >= SEUIL_CONFIANCE / 100)
+# ======================= FONCTION DE BACKTEST =======================
+def backtest_year(annee, weight_func, seuil_conf=45.0):
+    file_pred = f'./results/Predictions_{annee}_TripleBarrier.csv'
+    if not os.path.exists(file_pred):
+        raise FileNotFoundError(f"Fichier de prédictions manquant : {file_pred}")
+    
+    preds = pd.read_csv(file_pred, index_col='Time', parse_dates=True)
+    prices = pd.read_csv('./cleaned-data/EURUSD_H1_cleaned.csv', index_col='Time', parse_dates=True)
+    dataset_ml = pd.read_csv('./ready-data/EURUSD_Master_ML_Ready.csv', index_col='Time', parse_dates=True)
+    X_cols = [c for c in dataset_ml.columns if c not in ['Target', 'Spread']]
 
-df.loc[mask_long, 'Signal'] = 1
-df.loc[mask_short, 'Signal'] = -1
+    df = preds.join(prices[['High','Low','Close']], how='inner')
+    df = df.join(dataset_ml[X_cols], how='inner')
 
-# Poids entre 0.5 et 1.5, proportionnel à l'excédent de confiance au-dessus du seuil
-excess = (df['proba_max'] - SEUIL_CONFIANCE / 100) / 0.15
-excess = excess.clip(0, 1)
-df.loc[df['Signal'] != 0, 'Weight'] = 0.5 + excess
+    TP_PIPS=20.0; SL_PIPS=10.0; WINDOW=24; PIP_SIZE=0.0001
+    df['proba_max'] = df[['Confiance_Hausse_%','Confiance_Neutre_%','Confiance_Baisse_%']].max(axis=1)/100
+    df['Signal'] = 0
+    df['Weight'] = 0.0
 
-# 4. Simulation Stateful
-dates = df.index
-highs = df['High'].values
-lows = df['Low'].values
-closes = df['Close'].values
-signals = df['Signal'].values
-weights = df['Weight'].values
-spreads = df['Spread'].values
+    mask_long = (df['Prediction_Modele']==1) & (df['Confiance_Hausse_%']/100 >= seuil_conf/100)
+    mask_short = (df['Prediction_Modele']==-1) & (df['Confiance_Baisse_%']/100 >= seuil_conf/100)
+    df.loc[mask_long,'Signal'] = 1
+    df.loc[mask_short,'Signal'] = -1
 
-features_arr = df[X_cols].values
-proba_hausse_arr = df['Confiance_Hausse_%'].values / 100.0
-proba_neutre_arr = df['Confiance_Neutre_%'].values / 100.0
-proba_baisse_arr = df['Confiance_Baisse_%'].values / 100.0
+    # Appliquer la fonction de poids
+    signal_mask = df['Signal'] != 0
+    df.loc[signal_mask, 'Weight'] = weight_func(df.loc[signal_mask, 'proba_max'])
 
-trade_records = []
-i = 0
+    # Simulation stateful
+    dates = df.index
+    highs = df['High'].values
+    lows = df['Low'].values
+    closes = df['Close'].values
+    signals = df['Signal'].values
+    weights = df['Weight'].values
+    spreads = df['Spread'].values
 
-print(f"Simulation Stateful en cours pour {ANNEE_TEST} (Recherche des exits exacts)...")
-
-while i < len(df):
-    if signals[i] != 0:
-        entry_time = dates[i]
-        entry_price = closes[i]
-        signal = signals[i]
-        spread_cost = spreads[i] / 10.0
-        weight = weights[i]
-
-        entry_features = dict(zip(X_cols, features_arr[i]))
-        entry_probas = {
-            'proba_hausse': proba_hausse_arr[i],
-            'proba_neutre': proba_neutre_arr[i],
-            'proba_baisse': proba_baisse_arr[i]
-        }
-
-        if signal == 1:
-            tp_price = entry_price + (TP_PIPS * PIP_SIZE)
-            sl_price = entry_price - (SL_PIPS * PIP_SIZE)
-        else:
-            tp_price = entry_price - (TP_PIPS * PIP_SIZE)
-            sl_price = entry_price + (SL_PIPS * PIP_SIZE)
-
-        pips_bruts = -SL_PIPS - spread_cost   # par défaut perte max
-        result_type = 'loss_sl'
-
-        for j in range(1, WINDOW + 1):
-            if i + j >= len(df):
-                i = len(df)
-                break
-
-            curr_high = highs[i + j]
-            curr_low = lows[i + j]
+    trade_records = []
+    i = 0
+    while i < len(df):
+        if signals[i] != 0:
+            entry_time = dates[i]
+            entry_price = closes[i]
+            signal = signals[i]
+            spread_cost = spreads[i] / 10.0
+            weight = weights[i]
 
             if signal == 1:
-                if curr_low <= sl_price:
-                    pips_bruts = -SL_PIPS - spread_cost
-                    result_type = 'loss_sl'
-                    i = i + j
-                    break
-                elif curr_high >= tp_price:
-                    pips_bruts = TP_PIPS - spread_cost
-                    result_type = 'win'
-                    i = i + j
-                    break
+                tp = entry_price + TP_PIPS * PIP_SIZE
+                sl = entry_price - SL_PIPS * PIP_SIZE
             else:
-                if curr_high >= sl_price:
-                    pips_bruts = -SL_PIPS - spread_cost
-                    result_type = 'loss_sl'
-                    i = i + j
+                tp = entry_price - TP_PIPS * PIP_SIZE
+                sl = entry_price + SL_PIPS * PIP_SIZE
+
+            pips_brut = -SL_PIPS - spread_cost
+            result_type = 'loss_sl'
+
+            for j in range(1, WINDOW+1):
+                if i+j >= len(df):
+                    i = len(df)
                     break
-                elif curr_low <= tp_price:
-                    pips_bruts = TP_PIPS - spread_cost
-                    result_type = 'win'
-                    i = i + j
-                    break
-        else:
-            i = i + WINDOW
-            result_type = 'loss_timeout'
+                curr_high = highs[i+j]
+                curr_low = lows[i+j]
+                if signal == 1:
+                    if curr_low <= sl:
+                        pips_brut = -SL_PIPS - spread_cost
+                        result_type = 'loss_sl'
+                        i = i+j
+                        break
+                    elif curr_high >= tp:
+                        pips_brut = TP_PIPS - spread_cost
+                        result_type = 'win'
+                        i = i+j
+                        break
+                else:
+                    if curr_high >= sl:
+                        pips_brut = -SL_PIPS - spread_cost
+                        result_type = 'loss_sl'
+                        i = i+j
+                        break
+                    elif curr_low <= tp:
+                        pips_brut = TP_PIPS - spread_cost
+                        result_type = 'win'
+                        i = i+j
+                        break
+            else:
+                i = i + WINDOW
+                result_type = 'loss_timeout'
 
-        # Résultat pondéré
-        pips_ponderes = pips_bruts * weight
+            pips_pond = pips_brut * weight
+            trade_records.append({
+                'Time': entry_time,
+                'Pips_Nets': pips_pond,
+                'Pips_Bruts': pips_brut,
+                'Weight': weight,
+                'result': result_type
+            })
+            continue
+        i += 1
 
-        trade_records.append({
-            'Time': entry_time,
-            'Signal': signal,
-            'Pips_Nets': pips_ponderes,        # pour les métriques de performance
-            'Pips_Bruts': pips_bruts,          # pour analyse
-            'Weight': weight,
-            'result': result_type,
-            **entry_features,
-            **entry_probas
-        })
-        continue
-
-    i += 1
-
-# 5. Calcul des métriques finales
-trades_df = pd.DataFrame(trade_records)
-
-if not trades_df.empty:
+    trades_df = pd.DataFrame(trade_records)
+    if trades_df.empty:
+        return {'profit_net': 0, 'dd': 0, 'trades': 0, 'win_rate': 0, 'sharpe': 0}
+    
     trades_df.set_index('Time', inplace=True)
-    trades_df.to_csv(f'./results/Trades_Detailed_{ANNEE_TEST}.csv')
-    print(f"💾 Trades détaillés sauvegardés dans ./results/Trades_Detailed_{ANNEE_TEST}.csv")
+    win_rate = (trades_df['Pips_Bruts'] > 0).mean() * 100
+    total_pips = trades_df['Pips_Nets'].sum()
+    trades_df['Cum'] = trades_df['Pips_Nets'].cumsum()
+    trades_df['DD'] = trades_df['Cum'] - trades_df['Cum'].cummax()
+    max_dd = trades_df['DD'].min()
+    daily = trades_df.resample('D')['Pips_Nets'].sum().dropna()
+    if len(daily) > 1 and daily.std() != 0:
+        sharpe = (daily.mean() / daily.std()) * np.sqrt(252)
+    else:
+        sharpe = 0
 
-    nb_trades = len(trades_df)
-    # Win rate basé sur les pips bruts pour rester comparable à l'ancienne version
-    trades_gagnants = trades_df[trades_df['Pips_Bruts'] > 0]
-    win_rate = (len(trades_gagnants) / nb_trades) * 100
+    return {
+        'profit_net': total_pips,
+        'dd': max_dd,
+        'trades': len(trades_df),
+        'win_rate': win_rate,
+        'sharpe': sharpe
+    }
 
-    total_pips = trades_df['Pips_Nets'].sum()          # somme des pips pondérés
-    expectancy = total_pips / nb_trades
+# ======================= OPTIMISATION SUR 2024 =======================
+ANNEE_VAL = 2024
+print(f"Optimisation des fonctions de sizing sur {ANNEE_VAL}...\n")
+results_val = {}
+for name, func in WEIGHT_FUNCTIONS.items():
+    res = backtest_year(ANNEE_VAL, func)
+    results_val[name] = res
+    print(f"{name:25s} | Profit={res['profit_net']:8.1f} pips | DD={res['dd']:6.1f} pips | WR={res['win_rate']:5.1f}% | Trades={res['trades']}")
 
-    trades_df['Cumulative_Pips'] = trades_df['Pips_Nets'].cumsum()
-    trades_df['High_Water_Mark'] = trades_df['Cumulative_Pips'].cummax()
-    trades_df['Drawdown'] = trades_df['Cumulative_Pips'] - trades_df['High_Water_Mark']
-    max_drawdown = trades_df['Drawdown'].min()
+best_name = max(results_val, key=lambda x: results_val[x]['profit_net'])
+print(f"\n>>> Meilleure fonction sur {ANNEE_VAL} : {best_name} (Profit={results_val[best_name]['profit_net']:.1f} pips)")
 
-    # Ratio de Sharpe approximatif (quotidien) – optionnel, mais utile pour comparer
-    daily_pnl = trades_df.resample('D')['Pips_Nets'].sum().dropna()
-    sharpe_ratio = (daily_pnl.mean() / daily_pnl.std()) * np.sqrt(252) if len(daily_pnl) > 1 and daily_pnl.std() != 0 else 0
+# ======================= APPLICATION SUR 2025 =======================
+ANNEE_TEST = 2025
+print(f"\nApplication sur {ANNEE_TEST} avec '{best_name}'...")
+best_func = WEIGHT_FUNCTIONS[best_name]
+final_res = backtest_year(ANNEE_TEST, best_func)
 
-    print("\n" + "="*60)
-    print(f" 📊 BACKTEST FINANCIER - STATEFUL ({ANNEE_TEST}) 📊")
-    print("="*60)
-    print(f"Stratégie            : TP {TP_PIPS} pips | SL {SL_PIPS} pips")
-    print(f"Filtre Confiance     : > {SEUIL_CONFIANCE}%")
-    print(f"Position sizing      : dynamique (0.5x → 1.5x)")
-    print(f"Nombre de Trades     : {nb_trades}")
-    print(f"Taux de réussite     : {win_rate:.2f}% (sur pips bruts)")
-    print(f"Espérance / trade    : {expectancy:.2f} pips (pondéré)")
-    print(f"Max Drawdown         : {max_drawdown:.1f} Pips")
-    print(f"RÉSULTAT NET         : {total_pips:.1f} Pips (pondéré)")
-    print(f"Ratio de Sharpe      : {sharpe_ratio:.2f}")
-    print("="*60)
-
-    # Graphique
-    plt.figure(figsize=(12, 6))
-    plt.plot(trades_df.index, trades_df['Cumulative_Pips'], color='blue', label='Capital (Pips pondérés)')
-    plt.fill_between(trades_df.index, trades_df['Cumulative_Pips'], trades_df['High_Water_Mark'],
-                     color='red', alpha=0.3, label='Drawdown')
-    plt.title(f"Courbe d'équité - Sizing dynamique - {nb_trades} Trades (Seuil {SEUIL_CONFIANCE}%) - {ANNEE_TEST}")
-    plt.ylabel('Pips Cumulés')
-    plt.xlabel('Date')
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.tight_layout()
-    plt.savefig(f'./results/Equity_Curve_Dynamic_{ANNEE_TEST}.png')
-
-    # Rapport markdown
-    md_content = f"""# 📈 Rapport de Performance Réel (Stateful)
-**Version :** Triple Barrière V3 + Sizing dynamique
-**Période :** {ANNEE_TEST}
-
----
-
-## 📊 Statistiques Globales
-| Métrique | Valeur |
-| :--- | :--- |
-| **Nombre de Trades** | {nb_trades} |
-| **Taux de Réussite** | {win_rate:.2f}% (brut) |
-| **Résultat Net (pondéré)** | **{total_pips:.1f} Pips** |
-| **Max Drawdown** | {max_drawdown:.1f} Pips |
-| **Espérance / trade** | {expectancy:.2f} pips (pondéré) |
-| **Ratio de Sharpe** | {sharpe_ratio:.2f} |
-
----
-*Généré par le backtester Stateful - Zéro Pyramidation autorisée.*
-"""
-    with open(f'./results/Rapport_Performance_Dynamic_{ANNEE_TEST}.md', 'w', encoding='utf-8') as f:
-        f.write(md_content)
-else:
-    print(f"Aucun trade pris avec un seuil de confiance de {SEUIL_CONFIANCE}% sur l'année {ANNEE_TEST}.")
+print("\n" + "="*60)
+print(f" 📊 RÉSULTAT FINAL SUR {ANNEE_TEST} – Sizing '{best_name}'")
+print("="*60)
+print(f"Stratégie            : TP 20 | SL 10 | Filtre >45%")
+print(f"Fonction de sizing   : {best_name}")
+print(f"Nombre de Trades     : {final_res['trades']}")
+print(f"Taux de réussite     : {final_res['win_rate']:.2f}% (brut)")
+print(f"RÉSULTAT NET         : {final_res['profit_net']:.1f} Pips (pondéré)")
+print(f"Max Drawdown         : {final_res['dd']:.1f} Pips")
+print(f"Ratio de Sharpe      : {final_res['sharpe']:.2f}")
+print("="*60)

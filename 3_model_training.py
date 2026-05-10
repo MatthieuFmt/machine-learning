@@ -10,7 +10,7 @@ output_dir = './results'
 os.makedirs(output_dir, exist_ok=True)
 
 # --- PARAMÈTRE GLOBAL ---
-ANNEE_TEST = 2025   # je change sur 2026 parfois pour analyser les résultats sur une année différente, mais 2025 est ma cible principale pour le backtest final.
+ANNEE_TEST = 2026   # je change sur 2026 parfois pour analyser les résultats sur une année différente, mais 2025 est ma cible principale pour le backtest final.
 
 # 1. Chargement des données
 filepath = './ready-data/EURUSD_Master_ML_Ready.csv'
