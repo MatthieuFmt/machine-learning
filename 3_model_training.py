@@ -10,7 +10,7 @@ output_dir = './results'
 os.makedirs(output_dir, exist_ok=True)
 
 # --- PARAMÈTRE GLOBAL ---
-ANNEE_TEST = 2026   # je change sur 2026 parfois pour analyser les résultats sur une année différente, mais 2025 est ma cible principale pour le backtest final.
+ANNEE_TEST = 2023   # je change sur 2026 parfois pour analyser les résultats sur une année différente, mais 2025 est ma cible principale pour le backtest final.
 
 # 1. Chargement des données
 filepath = './ready-data/EURUSD_Master_ML_Ready.csv'
@@ -64,13 +64,6 @@ fi_df = pd.DataFrame({
 
 print("\n=== IMPORTANCE DES INDICATEURS ===")
 print(fi_df.to_string(index=False))
-
-plt.figure(figsize=(10, 8))
-plt.barh(fi_df['Indicateur'][::-1], fi_df['Importance_%'][::-1], color='skyblue')
-plt.title(f"Importance des variables - Test {ANNEE_TEST}")
-plt.xlabel("Impact en %")
-plt.tight_layout()
-plt.savefig(f'{output_dir}/Feature_Importance_{ANNEE_TEST}.png')
 
 # 5. Prédictions et Probabilités
 predictions = model.predict(X_test)

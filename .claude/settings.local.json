@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"d:\\\\Documents\\\\learning-machine-learning\\\\\" -File | Select-Object Name | Sort-Object Name)",
+      "Bash(grep -E \"\\\\.\\(py|txt|md|gitignore|toml|yaml|yml\\)$\")",
+      "Bash(python3 -c ' *)",
+      "Bash(python3)"
+    ]
+  }
+}
