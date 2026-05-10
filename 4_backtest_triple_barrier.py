@@ -13,8 +13,13 @@ filepath = f'./results/Predictions_{ANNEE_TEST}_TripleBarrier.csv'
 preds = pd.read_csv(filepath, index_col='Time', parse_dates=True)
 prices = pd.read_csv('./cleaned-data/EURUSD_H1_cleaned.csv', index_col='Time', parse_dates=True)
 
-# Fusion pour avoir les High/Low futurs
+# MODIF : charger le dataset maître pour récupérer les features et les colonnes
+dataset_ml = pd.read_csv('./ready-data/EURUSD_Master_ML_Ready.csv', index_col='Time', parse_dates=True)
+X_cols = [c for c in dataset_ml.columns if c not in ['Target', 'Spread']]
+
+# Fusion pour avoir les High/Low futurs ET les features
 df = preds.join(prices[['High', 'Low', 'Close']], how='inner')
+df = df.join(dataset_ml[X_cols], how='inner')   # MODIF : ajout des features
 
 # 2. Paramètres
 TP_PIPS = 20.0
@@ -35,6 +40,11 @@ lows = df['Low'].values
 closes = df['Close'].values
 signals = df['Signal'].values
 spreads = df['Spread'].values
+# MODIF : on convertit aussi les features et probas en arrays pour accès rapide
+features_arr = df[X_cols].values
+proba_hausse_arr = df['Confiance_Hausse_%'].values / 100.0
+proba_neutre_arr = df['Confiance_Neutre_%'].values / 100.0
+proba_baisse_arr = df['Confiance_Baisse_%'].values / 100.0
 
 trade_records = []
 i = 0
@@ -47,6 +57,14 @@ while i < len(df):
         entry_price = closes[i]
         signal = signals[i]
         spread_cost = spreads[i] / 10.0
+
+        # MODIF : capturer les features et probas à l'instant d'entrée
+        entry_features = dict(zip(X_cols, features_arr[i]))
+        entry_probas = {
+            'proba_hausse': proba_hausse_arr[i],
+            'proba_neutre': proba_neutre_arr[i],
+            'proba_baisse': proba_baisse_arr[i]
+        }
         
         if signal == 1:
             tp_price = entry_price + (TP_PIPS * PIP_SIZE)
@@ -56,6 +74,7 @@ while i < len(df):
             sl_price = entry_price + (SL_PIPS * PIP_SIZE)
             
         pips_nets = -SL_PIPS - spread_cost 
+        result_type = 'loss_sl'  # par défaut, sauf si timeout ou win
         
         for j in range(1, WINDOW + 1):
             if i + j >= len(df):
@@ -68,25 +87,41 @@ while i < len(df):
             if signal == 1: 
                 if curr_low <= sl_price:
                     pips_nets = -SL_PIPS - spread_cost
+                    result_type = 'loss_sl'
                     i = i + j 
                     break
                 elif curr_high >= tp_price:
                     pips_nets = TP_PIPS - spread_cost
+                    result_type = 'win'
                     i = i + j
                     break
             else: 
                 if curr_high >= sl_price:
                     pips_nets = -SL_PIPS - spread_cost
+                    result_type = 'loss_sl'
                     i = i + j
                     break
                 elif curr_low <= tp_price:
                     pips_nets = TP_PIPS - spread_cost
+                    result_type = 'win'
                     i = i + j
                     break
         else:
+            # timeout
             i = i + WINDOW
-            
-        trade_records.append({'Time': entry_time, 'Pips_Nets': pips_nets})
+            result_type = 'loss_timeout'
+            # pips_nets reste à -SL_PIPS (pire cas) – tu peux aussi calculer le P&L réel à la bougie i+WINDOW
+            # Pour l'analyse on garde la valeur actuelle
+
+        # MODIF : enregistrement complet
+        trade_records.append({
+            'Time': entry_time,
+            'Signal': signal,
+            'Pips_Nets': pips_nets,
+            'result': result_type,
+            **entry_features,
+            **entry_probas
+        })
         continue 
         
     i += 1
@@ -96,6 +131,10 @@ trades_df = pd.DataFrame(trade_records)
 
 if not trades_df.empty:
     trades_df.set_index('Time', inplace=True)
+    # MODIF : Sauvegarde détaillée pour l'analyse des pertes
+    trades_df.to_csv(f'./results/Trades_Detailed_{ANNEE_TEST}.csv')
+    print(f"💾 Trades détaillés sauvegardés dans ./results/Trades_Detailed_{ANNEE_TEST}.csv")
+    
     nb_trades = len(trades_df)
     trades_gagnants = trades_df[trades_df['Pips_Nets'] > 0]
     win_rate = (len(trades_gagnants) / nb_trades) * 100
