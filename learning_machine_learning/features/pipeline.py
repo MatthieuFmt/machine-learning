@@ -162,6 +162,15 @@ def build_ml_ready(
 
     # Ne garder que les colonnes presentes
     colonnes_finales = [c for c in colonnes_finales if c in combined.columns]
+
+    # Appliquer le filtrage features_dropped (R4 fix — etait defini mais jamais applique)
+    n_avant_drop = len(colonnes_finales)
+    colonnes_finales = [c for c in colonnes_finales if c not in features_dropped]
+    logger.info(
+        "Filtrage features_dropped : %d -> %d colonnes (%d exclues)",
+        n_avant_drop, len(colonnes_finales), n_avant_drop - len(colonnes_finales),
+    )
+
     dataset_ml = combined[colonnes_finales]
 
     logger.info(

@@ -10,15 +10,6 @@ Act as a Senior Quant ML Engineer. Your task is to iteratively improve a trading
 
 5. **ACTION – IMPLEMENT VIA SEARCH-AND-REPLACE**: Output all code modifications using the token‑saving search-and-replace syntax exactly as follows:
 
-```
-FILE: <path/to/file.py>
-<<<<<<< SEARCH
-<exact original code block (lines to be replaced)>
-=======
-<exact new code block>
->>>>>>> REPLACE
-```
-
 For each new or modified function/class, enforce:
    * Full type hints on all signatures and local variables.
    * Robust error handling: every I/O or external call inside `try-except`, logging the full exception context with `logging.ERROR` and raising only if recovery is impossible.

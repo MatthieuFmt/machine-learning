@@ -73,6 +73,7 @@ class EurUsdConfig(InstrumentConfig):
         "Dist_SMA200_D1",
         "ATR_Norm",
         "Volatilite_Realisee_24h",
+        "Range_ATR_ratio",
     )
 
 
