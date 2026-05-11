@@ -371,6 +371,7 @@ def save_trades_detailed(trades_df, annee, df=None, output_dir=DIR_RESULTS):
             )
         ]
         enrich_cols = feature_cols + proba_cols + ['Filter_Rejected']
+        enrich_cols = [c for c in enrich_cols if c in df.columns]
         enrich = df.loc[df.index.intersection(out.index), enrich_cols].copy()
         enrich = enrich.rename(columns={
             'Confiance_Hausse_%': 'proba_hausse',

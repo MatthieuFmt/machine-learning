@@ -1,0 +1,23 @@
+# Environnement Python
+.venv/
+venv/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Données et Logs (Très important pour le trading)
+*.log
+*.csv
+*.json
+*.parquet
+data/
+outputs/
+temp/
+
+# IDE et Système
+.vscode/
+.idea/
+.git/
+.DS_Store
+Thumbs.db

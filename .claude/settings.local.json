@@ -5,7 +5,8 @@
       "Bash(grep -E \"\\\\.\\(py|txt|md|gitignore|toml|yaml|yml\\)$\")",
       "Bash(python3 -c ' *)",
       "Bash(python3)",
-      "Bash(rtk .venv/Scripts/python.exe -m pip freeze)"
+      "Bash(rtk .venv/Scripts/python.exe -m pip freeze)",
+      "PowerShell(Get-ChildItem -Path \"d:\\\\Documents\\\\learning-machine-learning\\\\results\" -File | ForEach-Object { $_.Name })"
     ]
   }
 }
