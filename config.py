@@ -34,7 +34,11 @@ PURGE_HOURS = 48
 # ----- Backtest -----
 # Priorité 3 : seuil abaissé de 0.45→0.38 (en 2025 proba_max≥0.45 ne couvre que 1.6% des barres).
 # La plage utile identifiée par l'analyse : 0.36-0.42. 0.38 est le point médian testé sur 2024.
-SEUIL_CONFIANCE = 0.38
+#
+# Pass 5 (2026-05-11) : après nettoyage des features pourries, proba_max OOS
+# s'effondre (4 trades 2024, 2 trades 2025 au seuil 0.38). Baissé à 0.35 pour
+# tester si l'edge tient avec plus de trades (objectif : 20-30 trades/an OOS).
+SEUIL_CONFIANCE = 0.35
 COMMISSION_PIPS = 0.5   # audit I4 — commission broker aller-retour standard EURUSD
 SLIPPAGE_PIPS = 1.0     # slippage réaliste H1 (entrée au Close, exécution non garantie)
 
@@ -78,6 +82,15 @@ FEATURES_DROPPED = [
     # === Pass 3 (Priorité 2) : features H4 non discriminantes ===
     'RSI_14_H4',      # permutation_mean=0.00125 std=0.00151 — bruit pur
     'Dist_EMA_20_H4', # permutation_mean=0.00341 std=0.00253 — bruit pur
+    # === Pass 4 (2026-05-11) : features de régime nuisibles au modèle ===
+    # Ces features restent calculées dans le CSV — les FILTRES de régime
+    # (USE_TREND_FILTER, USE_VOL_FILTER) en ont besoin — mais elles sont
+    # exclues du training car leur permutation_importance est nettement
+    # négative : le RF les utilise beaucoup (impurity ~11-15%) mais apprend
+    # des règles contre-productives qui se retournent en OOS.
+    'Dist_SMA200_D1',         # perm=-0.02240 std=0.00307 — feature de filtre uniquement
+    'ATR_Norm',               # perm=-0.00282 std=0.00496 — feature de filtre uniquement
+    'Volatilite_Realisee_24h',# perm=-0.00051 std=0.00436 — bruit pur (std > |mean|)
 ]
 
 
@@ -100,7 +113,8 @@ USE_VOL_FILTER = True        # Ignore signaux si ATR_Norm > 2× médiane glissan
 USE_SESSION_FILTER = True    # Ignore signaux entre 22h-01h GMT (faible liquidité)
 
 # Paramètres des filtres
-SMA200_LOOKBACK = 200               # fenêtre de la SMA pour le filtre de tendance
+# Note : la SMA200 pour le filtre de tendance est désormais calculée sur D1
+# directement dans 2_master_feature_engineering.py (feature Dist_SMA200_D1).
 VOL_FILTER_WINDOW = 168             # fenêtre médiane ATR_Norm (1 semaine)
 VOL_FILTER_MULTIPLIER = 2.0         # seuil = multiplier × médiane
 SESSION_EXCLUDE_START = 22          # heure GMT début exclusion (22h)

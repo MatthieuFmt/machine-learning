@@ -1,24 +1,24 @@
 # 📈 Rapport de Performance — EURUSD H1
 **Année testée :** 2022
-**Configuration :** TP=20p / SL=10p / Window=24h / Seuil confiance=0.38 / Commission=0.5p / Capital ref=10000€ / FiltreTrend=ON / FiltreVol=ON / FiltreSession=ON
+**Configuration :** TP=20p / SL=10p / Window=24h / Seuil confiance=0.35 / Commission=0.5p / Capital ref=10000€ / FiltreTrend=ON / FiltreVol=ON / FiltreSession=ON
 
 ## 📊 Stratégie
 | Métrique | Valeur |
 | :--- | :--- |
-| Nombre de Trades | 1728 |
-| Win Rate | 53.99% |
-| Résultat Net | **8289.9 pips** (+82.90%) |
-| Max Drawdown | -183.4 pips (-1.83%) |
-| Espérance par trade | 4.80 pips/trade |
-| Sharpe (returns annualisés) | 10.15 |
-| Pips Sharpe (cf. audit I2) | 10.15 |
-| Sharpe per-trade | 12.70 |
-| Signaux générés / trades exécutés | 3210 / 1728 (×1.86) |
+| Nombre de Trades | 1187 |
+| Win Rate | 51.14% |
+| Résultat Net | **4743.4 pips** (+47.43%) |
+| Max Drawdown | -167.8 pips (-1.68%) |
+| Espérance par trade | 4.00 pips/trade |
+| Sharpe (returns annualisés) | 7.55 |
+| Pips Sharpe (cf. audit I2) | 7.55 |
+| Sharpe per-trade | 8.63 |
+| Signaux générés / trades exécutés | 2166 / 1187 (×1.82) |
 
 ## 📊 Benchmark Buy & Hold
 | Métrique | Valeur |
 | :--- | :--- |
 | Buy & Hold Net | -670.3 pips (-6.70%) |
-| Alpha (stratégie − B&H) | **+8960.2 pips (+89.60%)** |
+| Alpha (stratégie − B&H) | **+5413.7 pips (+54.14%)** |
 
 *Généré automatiquement par backtest_utils.save_report_md*

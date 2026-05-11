@@ -22,7 +22,6 @@ from config import (
     SEUIL_CONFIANCE,
     SL_PIPS,
     SLIPPAGE_PIPS,
-    SMA200_LOOKBACK,
     SESSION_EXCLUDE_END,
     SESSION_EXCLUDE_START,
     TP_PIPS,
@@ -95,7 +94,6 @@ def simulate_trades(
     use_trend_filter=USE_TREND_FILTER,
     use_vol_filter=USE_VOL_FILTER,
     use_session_filter=USE_SESSION_FILTER,
-    sma200_lookback=SMA200_LOOKBACK,
     vol_filter_window=VOL_FILTER_WINDOW,
     vol_filter_multiplier=VOL_FILTER_MULTIPLIER,
     session_exclude_start=SESSION_EXCLUDE_START,
@@ -131,10 +129,15 @@ def simulate_trades(
     mask_long = (df['Prediction_Modele'] == 1) & (df['Confiance_Hausse_%'] / 100 >= seuil)
     mask_short = (df['Prediction_Modele'] == -1) & (df['Confiance_Baisse_%'] / 100 >= seuil)
 
-    # --- Filtre de tendance : SMA200 ---
-    if use_trend_filter and 'Dist_SMA200' in df.columns:
-        trend_mask_long = df['Dist_SMA200'] > 0   # Close > SMA200 → tendance haussière
-        trend_mask_short = df['Dist_SMA200'] < 0  # Close < SMA200 → tendance baissière
+    # --- Filtre de tendance : SMA200 D1 (multi-TF, tendance macro ~9 mois) ---
+    if use_trend_filter:
+        if 'Dist_SMA200_D1' not in df.columns:
+            raise ValueError(
+                "USE_TREND_FILTER=True mais 'Dist_SMA200_D1' absente du DataFrame. "
+                "Relancer 2_master_feature_engineering.py pour régénérer le CSV ML."
+            )
+        trend_mask_long = df['Dist_SMA200_D1'] > 0   # Close > SMA200_D1 → tendance haussière
+        trend_mask_short = df['Dist_SMA200_D1'] < 0  # Close < SMA200_D1 → tendance baissière
         rejected_trend_long = mask_long & ~trend_mask_long
         rejected_trend_short = mask_short & ~trend_mask_short
         df.loc[rejected_trend_long, 'Filter_Rejected'] = 'trend'
@@ -144,7 +147,11 @@ def simulate_trades(
         mask_short = mask_short & trend_mask_short
 
     # --- Filtre de volatilité : ATR_Norm ---
-    if use_vol_filter and 'ATR_Norm' in df.columns:
+    if use_vol_filter:
+        if 'ATR_Norm' not in df.columns:
+            raise ValueError(
+                "USE_VOL_FILTER=True mais 'ATR_Norm' absente du DataFrame."
+            )
         atr_median = df['ATR_Norm'].rolling(window=vol_filter_window, min_periods=1).median()
         vol_threshold = atr_median * vol_filter_multiplier
         high_vol = df['ATR_Norm'] > vol_threshold

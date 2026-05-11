@@ -105,8 +105,8 @@ h1['ATR_Norm'] = ta.atr(h1['High'], h1['Low'], h1['Close'], length=14) / h1['Clo
 h1['Volatilite_Realisee_24h'] = h1['Log_Return'].rolling(window=24).std()
 # Ratio range/ATR : détecte expansion (>1) vs contraction (<1)
 h1['Range_ATR_ratio'] = (h1['High'] - h1['Low']) / (ta.atr(h1['High'], h1['Low'], h1['Close'], length=14) + 1e-10)
-# Distance à la SMA 200 : tendance long-terme (filtre de régime)
-h1['Dist_SMA200'] = (h1['Close'] - ta.sma(h1['Close'], length=200)) / h1['Close']
+# Note : Dist_SMA200 est désormais calculée sur D1 (cf. section D1 plus bas)
+# pour capturer la tendance macro ~9 mois plutôt que la SMA200 H1 (~8 jours, trop bruitée).
 
 # BBands avec sélection robuste des colonnes
 bbands = ta.bbands(h1['Close'], length=20, std=2)
@@ -127,6 +127,13 @@ d1['RSI_14_raw'] = ta.rsi(d1['Close'], length=14)
 d1['RSI_D1_delta'] = d1['RSI_14_raw'].diff(3)  # variation sur 3 jours
 # On ajoute cette feature au DataFrame feat_d1 pour le merge asof
 feat_d1['RSI_D1_delta'] = d1['RSI_D1_delta']
+
+# Distance à la SMA200 D1 : vraie tendance long-terme (~9 mois).
+# Sert au filtre de régime macro dans backtest_utils.simulate_trades.
+# Le merge_asof D1 (avec décalage +1j plus bas) projette cette valeur sur chaque
+# barre H1 sans look-ahead.
+d1['Dist_SMA200_D1'] = (d1['Close'] - ta.sma(d1['Close'], length=200)) / d1['Close']
+feat_d1['Dist_SMA200_D1'] = d1['Dist_SMA200_D1']
 
 # 4. FUSION GLOBALE (Merge_asof)
 print("Fusion de toutes les sources de données...")
@@ -182,7 +189,9 @@ colonnes_finales = [
     'RSI_14_D1', 'Dist_EMA_20_D1', 'Dist_EMA_50_D1',
     'XAU_Return', 'CHF_Return', # Les nouvelles colonnes macro
     # Features de régime (Priorité 2)
-    'Volatilite_Realisee_24h', 'Range_ATR_ratio', 'Dist_SMA200', 'RSI_D1_delta',
+    'Volatilite_Realisee_24h', 'Range_ATR_ratio', 'RSI_D1_delta',
+    # Filtre de régime macro (SMA200 D1, multi-TF)
+    'Dist_SMA200_D1',
 ]
 
 dataset_ml = combined[colonnes_finales]
