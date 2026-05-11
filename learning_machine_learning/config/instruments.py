@@ -70,7 +70,7 @@ class EurUsdConfig(InstrumentConfig):
         "Hour_Sin",
         "RSI_14_H4",
         "Dist_EMA_20_H4",
-        "Dist_SMA200_D1",
+        "Dist_EMA_50_H4",
         "ATR_Norm",
         "Volatilite_Realisee_24h",
         "Range_ATR_ratio",
