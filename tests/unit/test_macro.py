@@ -39,7 +39,8 @@ class TestCalcMacroReturn:
     def test_negative_prices(self) -> None:
         """Negative prices would produce NaN due to log, but function doesn't guard."""
         close = pd.Series([-1.0, 1.0, 2.0])
-        result = calc_macro_return(close, name="BAD_Return")
+        with np.errstate(invalid="ignore"):
+            result = calc_macro_return(close, name="BAD_Return")
         # log of negative → NaN, log of 1/-1 = log(-1) = NaN
         assert pd.isna(result["BAD_Return"].iloc[1])
 

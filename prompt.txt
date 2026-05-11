@@ -1,53 +1,39 @@
-J'ai une stratégie ML de trading EURUSD H1 (triple barrier TP=20p / SL=10p / 
-window=24h) dans /d:/Documents/learning-machine-learning. Le pipeline a 4 
-scripts (1_clean_data → 2_master_feature_engineering → 3_model_training → 
-4_backtest_triple_barrier), un modèle RandomForest train ≤ 2023 avec embargo 
-48h, split 3-étages strict (2024 VAL, 2025 TEST).
+Act as a Senior Quant ML Engineer. Your task is to iteratively improve a trading prediction pipeline, one point at a time, strictly adhering to the engineering protocol below. Use Python, NumPy, Pandas, and CCXT. All output must be in precise search-and-replace format to save tokens.
 
-DIAGNOSTIC ACTUEL : après audit complet, le modèle n'a pas d'edge prédictif 
-réel en OOS. Sur 600+ trades cumulés 2024-2025, le WR est ~25% dans LES DEUX 
-directions LONG et SHORT, alors que le breakeven WR (TP=20/SL=10/friction 1.5p) 
-est 38.3%. WR LONG 2025 = 25.8% dans un marché qui monte de +14% = pire que 
-random. Les Sharpe in-sample 7-9 sur 2022-2023 étaient du surapprentissage 
-massif révélé une fois les bugs corrigés.
+1. **ANALYZE**: Examine the latest prediction results and the current codebase. Identify critical weaknesses: overfitting, data leakage, poor volatility handling, or incorrect labeling (e.g., Triple Barrier Method vs. simple returns). Output a concise technical diagnosis with evidence.
 
-Pistes cosmétiques épuisées : filtres trend/vol/session fonctionnels (filtre 
-tendance était silencieusement désactivé, maintenant fixé avec Dist_SMA200_D1 
-+ raise si feature absente), features pourries droppées (Dist_SMA200_D1, 
-ATR_Norm, Volatilite_Realisee_24h gardées comme features-filtre mais exclues 
-du training), 3 variantes TP/SL testées (toutes perdent), 2 seuils testés 
-(0.38 → 4 trades, 0.35 → 350 trades, mêmes conclusions).
+2. **READ HISTORY**: Load the file `ml_evolution.md`. Review all previous modifications and their impact on tracked metrics (Sharpe ratio, max drawdown, precision). Summarize the relevant historical context.
 
-DEUX PISTES RESTANTES À TRANCHER :
+3. **DIAGNOSE & SELECT**: Based on the analysis and history, choose the single most impactful improvement. Justify why this specific change (e.g., new feature, hyperparameter tuning, meta-labeling, scaling fix, bias correction) is the highest priority.
 
-Piste B — Walk-forward retraining : réentraîner glissant tous les 3-6 mois. 
-Probabilité de succès ~30%. Coût 1 jour. Argument contre : même 2024 (proche 
-du cutoff train) perd à 25% WR, donc la non-stationnarité n'est probablement 
-pas la cause.
+4. **THINK STEP-BY-STEP (Architecture)**: Before writing code, reason through the solution architecture. Describe the modular design (functions/classes), data flow, and how you will prevent data leakage. Plan low-latency strategies: vectorized NumPy/Pandas operations, pre-allocation, and avoidance of slow iterators. Ensure every component will include type hints, error handling, and structured logging.
 
-Piste C — Cible binaire + meta-labeling (López de Prado, Advances in 
-Financial Machine Learning ch.3) : modèle 1 = direction simple (ex SMA cross 
-ou momentum), modèle 2 = classifieur binaire "ce trade va-t-il gagner". Le 
-seuil opère sur le 2ème modèle. Probabilité de succès ~50%. Coût 2-3 jours. 
-Conçu exactement pour les signaux faibles comme le mien.
+5. **ACTION – IMPLEMENT VIA SEARCH-AND-REPLACE**: Output all code modifications using the token‑saving search-and-replace syntax exactly as follows:
 
-TÂCHE : commence par lire predictions/Analyse_et_Pistes_Amelioration.md + les 
-rapports Rapport_Performance_2024.md et 2025.md pour valider le diagnostic 
-ci-dessus. Puis recommande B ou C avec un argument décisif et propose un plan 
-d'implémentation. Ne lance pas python, ne commit pas — j'exécute moi-même.
+```
+FILE: <path/to/file.py>
+<<<<<<< SEARCH
+<exact original code block (lines to be replaced)>
+=======
+<exact new code block>
+>>>>>>> REPLACE
+```
 
-MES PRÉFÉRENCES :
-- Style concis + contexte (pas de gras sur tout, pas de section vide)
-- Jamais lancer python automatiquement
-- Jamais commit sans accord explicite
-- Suggérer améliorations hors-scope sans les coder
-- Ne pas lire /data, /ready-data, /cleaned-data (interdits)
-- TodoWrite au feeling, pas systématique
-- Je suis apprenant ML, donc explique les choix non-évidents
+For each new or modified function/class, enforce:
+   * Full type hints on all signatures and local variables.
+   * Robust error handling: every I/O or external call inside `try-except`, logging the full exception context with `logging.ERROR` and raising only if recovery is impossible.
+   * Logging at key points: `logger.info(...)` for flow, `logger.debug(...)` for variable states, `logger.error(...)` with stack traces.
+   * Code optimized for low latency: use vectorised NumPy/Pandas, avoid `DataFrame.iterrows()`/`apply()`, leverage inplace operations where safe, and pre-allocate arrays.
+   * Strict modularity: each function has a single responsibility, and classes encapsulate state and related behavior.
+   * No data leakage: ensure future information is never used during training; use `pd.merge`/`join` with correct look-ahead windows and robust time‑based splitting.
 
-FICHIERS UTILES :
-- config.py : tout est centralisé (RF_PARAMS, FEATURES_DROPPED, splits, filtres)
-- backtest_utils.py : simulate_trades + compute_metrics
-- results/Trades_Detailed_2024.csv et _2025.csv : tous les trades avec features
-- results/Predictions_2024_TripleBarrier.csv et _2025.csv : prédictions modèle
-- _diag_direction.py : audit standalone direction par année
+6. **UPDATE LOG**: After the code changes, immediately append a new entry to `ml_evolution.md` in this exact format:
+
+```
+## Date/Version: [X]
+- **Modification**: [Concise technical description]
+- **Hypothesis**: [Why this is expected to improve the model]
+- **Target Metrics**: [Metrics to monitor in the next evaluation]
+```
+
+Now, execute the full protocol: analyze the current state, read the log, select the one improvement, explain your architecture step-by-step, output the search‑and‑replace blocks, and write the log update.
