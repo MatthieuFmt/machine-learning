@@ -22,7 +22,7 @@ def run_backtest(annee, weight_func):
     df = load_backtest_inputs(annee)
     if df is None:
         return None
-    trades_df, n_signaux = simulate_trades(df, weight_func)
+    trades_df, n_signaux, _ = simulate_trades(df, weight_func)
     metrics = compute_metrics(trades_df, annee=annee, df=df)
     metrics['n_signaux'] = n_signaux
     return metrics

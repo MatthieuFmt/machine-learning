@@ -12,10 +12,14 @@ PIP_SIZE = 0.0001
 
 # ----- Modèle -----
 RANDOM_SEED = 42
+# Priorité 1 : réduction overfitting — arbres moins profonds, plus nombreux, splits robustes.
+# depth 12→6   : empêche d'apprendre des patterns de bruit.
+# leaf 5→50    : chaque split doit couvrir au moins 50 barres.
+# n 200→500    : stabilise la forêt avec plus d'arbres simples.
 RF_PARAMS = {
-    'n_estimators': 200,
-    'max_depth': 12,
-    'min_samples_leaf': 5,
+    'n_estimators': 500,
+    'max_depth': 6,
+    'min_samples_leaf': 50,
     'class_weight': 'balanced',
     'n_jobs': -1,
     'random_state': RANDOM_SEED,
@@ -28,8 +32,11 @@ RF_PARAMS = {
 PURGE_HOURS = 48
 
 # ----- Backtest -----
-SEUIL_CONFIANCE = 0.45  # exprimé en fraction (0.45 = 45%)
-COMMISSION_PIPS = 0.0   # audit I4 — à calibrer si on intègre une commission broker
+# Priorité 3 : seuil abaissé de 0.45→0.38 (en 2025 proba_max≥0.45 ne couvre que 1.6% des barres).
+# La plage utile identifiée par l'analyse : 0.36-0.42. 0.38 est le point médian testé sur 2024.
+SEUIL_CONFIANCE = 0.38
+COMMISSION_PIPS = 0.5   # audit I4 — commission broker aller-retour standard EURUSD
+SLIPPAGE_PIPS = 1.0     # slippage réaliste H1 (entrée au Close, exécution non garantie)
 
 # Référence capital pour exprimer les pips en returns % (audit I2).
 # Hypothèse : 1 lot = 10 000 € notionnel, 1 pip sur EURUSD ≈ 1 € sur ce notionnel.
@@ -46,6 +53,10 @@ PIP_VALUE_EUR = 1.0
 #
 # Pass 2 (après pass 1, model à 12 features) : nouvelles features suspectes
 # révélées une fois le bruit de pass 1 retiré.
+#
+# Pass 3 (Priorité 2, analyse 2025-05-10) : RSI_14_H4 et Dist_EMA_20_H4 sont
+# confirmées comme bruit pur (permutation_mean < 0.004, std comparable).
+# Le modèle n'utilise que les features D1 + ADX_14 de façon significative.
 #
 # Ces colonnes restent calculées dans le CSV ML — elles sont seulement masquées
 # au moment de bâtir X_train / X_test. Vider la liste = comportement d'origine.
@@ -64,6 +75,9 @@ FEATURES_DROPPED = [
     # Ce couple n'a de sens que pris ensemble — drop les deux pour cohérence.
     'Hour_Cos',       # pass1: mean=0.00070 std=0.00097 — std > mean
     'Hour_Sin',       # pass2: mean=0.00026 std=0.00089 (sans Hour_Cos l'encodage est cassé)
+    # === Pass 3 (Priorité 2) : features H4 non discriminantes ===
+    'RSI_14_H4',      # permutation_mean=0.00125 std=0.00151 — bruit pur
+    'Dist_EMA_20_H4', # permutation_mean=0.00341 std=0.00253 — bruit pur
 ]
 
 
@@ -78,6 +92,29 @@ TRAIN_END_YEAR = 2023
 VAL_YEAR = 2024
 TEST_YEAR = 2025
 EVAL_YEARS = [VAL_YEAR, TEST_YEAR]
+
+# ----- Filtres de régime (Priorité 4) -----
+# Active/désactive chaque filtre individuellement pour tests d'ablation.
+USE_TREND_FILTER = True      # Close > SMA200 → LONG only ; Close < SMA200 → SHORT only
+USE_VOL_FILTER = True        # Ignore signaux si ATR_Norm > 2× médiane glissante 168h
+USE_SESSION_FILTER = True    # Ignore signaux entre 22h-01h GMT (faible liquidité)
+
+# Paramètres des filtres
+SMA200_LOOKBACK = 200               # fenêtre de la SMA pour le filtre de tendance
+VOL_FILTER_WINDOW = 168             # fenêtre médiane ATR_Norm (1 semaine)
+VOL_FILTER_MULTIPLIER = 2.0         # seuil = multiplier × médiane
+SESSION_EXCLUDE_START = 22          # heure GMT début exclusion (22h)
+SESSION_EXCLUDE_END = 1             # heure GMT fin exclusion (1h le lendemain)
+
+# ----- Variantes TP/SL à tester (Priorité 5) -----
+TP_SL_VARIANTS = {
+    'baseline':     (20.0, 10.0),   # actuel — ratio 2:1
+    'ratio_1_1':    (20.0, 20.0),   # plus facile à gagner, WR devrait monter
+    'ratio_3_1':    (30.0, 10.0),   # payoff asymétrique si features discriminantes
+}
+
+# Seuils alternatifs à tester avec le sizing optimisé
+SEUILS_ALTERNATIFS = [0.36, 0.38, 0.40, 0.42]
 
 # ----- Chemins -----
 DIR_RAW = './data'

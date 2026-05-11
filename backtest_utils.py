@@ -21,7 +21,16 @@ from config import (
     PIP_VALUE_EUR,
     SEUIL_CONFIANCE,
     SL_PIPS,
+    SLIPPAGE_PIPS,
+    SMA200_LOOKBACK,
+    SESSION_EXCLUDE_END,
+    SESSION_EXCLUDE_START,
     TP_PIPS,
+    USE_SESSION_FILTER,
+    USE_TREND_FILTER,
+    USE_VOL_FILTER,
+    VOL_FILTER_MULTIPLIER,
+    VOL_FILTER_WINDOW,
     WINDOW_HOURS,
 )
 
@@ -82,16 +91,31 @@ def simulate_trades(
     pip_size=PIP_SIZE,
     seuil_confiance=SEUIL_CONFIANCE,
     commission_pips=COMMISSION_PIPS,
+    slippage_pips=SLIPPAGE_PIPS,
+    use_trend_filter=USE_TREND_FILTER,
+    use_vol_filter=USE_VOL_FILTER,
+    use_session_filter=USE_SESSION_FILTER,
+    sma200_lookback=SMA200_LOOKBACK,
+    vol_filter_window=VOL_FILTER_WINDOW,
+    vol_filter_multiplier=VOL_FILTER_MULTIPLIER,
+    session_exclude_start=SESSION_EXCLUDE_START,
+    session_exclude_end=SESSION_EXCLUDE_END,
 ):
     """Simule la stratégie en mode stateful (un trade à la fois).
 
     `weight_func(proba_max_array)` -> array de poids par trade (multiplie pips_brut).
 
-    Retourne un tuple (trades_df, n_signaux) :
-    - trades_df indexé par Time d'entrée, colonnes Pips_Nets, Pips_Bruts, Weight, result.
+    Filtres de régime (Priorité 4) :
+    - Trend : Close > SMA200 → LONG only ; Close < SMA200 → SHORT only
+    - Volatilité : ignorer signaux si ATR_Norm > multiplier × médiane glissante
+    - Session : ignorer signaux entre session_exclude_start et session_exclude_end (GMT)
+
+    Retourne un tuple (trades_df, n_signaux, n_filtres_appliques) :
+    - trades_df indexé par Time d'entrée, colonnes Pips_Nets, Pips_Bruts, Weight, result, filter_rejected.
     - n_signaux = nombre total de barres avec un signal franchissant le seuil
       (avant filtrage stateful). Le ratio n_signaux / len(trades_df) mesure
       l'effet de la logique "un trade à la fois" (audit I6).
+    - n_filtres_appliques = dict {filtre: nombre de signaux rejetés}
     """
     df = df.copy()
     df['proba_max'] = df[
@@ -99,10 +123,58 @@ def simulate_trades(
     ].max(axis=1) / 100
     df['Signal'] = 0
     df['Weight'] = 0.0
+    df['Filter_Rejected'] = ''  # trace le filtre qui a rejeté le signal
+
+    n_filtres_appliques = {'trend': 0, 'vol': 0, 'session': 0}
 
     seuil = _normalize_seuil(seuil_confiance)
     mask_long = (df['Prediction_Modele'] == 1) & (df['Confiance_Hausse_%'] / 100 >= seuil)
     mask_short = (df['Prediction_Modele'] == -1) & (df['Confiance_Baisse_%'] / 100 >= seuil)
+
+    # --- Filtre de tendance : SMA200 ---
+    if use_trend_filter and 'Dist_SMA200' in df.columns:
+        trend_mask_long = df['Dist_SMA200'] > 0   # Close > SMA200 → tendance haussière
+        trend_mask_short = df['Dist_SMA200'] < 0  # Close < SMA200 → tendance baissière
+        rejected_trend_long = mask_long & ~trend_mask_long
+        rejected_trend_short = mask_short & ~trend_mask_short
+        df.loc[rejected_trend_long, 'Filter_Rejected'] = 'trend'
+        df.loc[rejected_trend_short, 'Filter_Rejected'] = 'trend'
+        n_filtres_appliques['trend'] = int((rejected_trend_long | rejected_trend_short).sum())
+        mask_long = mask_long & trend_mask_long
+        mask_short = mask_short & trend_mask_short
+
+    # --- Filtre de volatilité : ATR_Norm ---
+    if use_vol_filter and 'ATR_Norm' in df.columns:
+        atr_median = df['ATR_Norm'].rolling(window=vol_filter_window, min_periods=1).median()
+        vol_threshold = atr_median * vol_filter_multiplier
+        high_vol = df['ATR_Norm'] > vol_threshold
+        rejected_vol_long = mask_long & high_vol
+        rejected_vol_short = mask_short & high_vol
+        df.loc[rejected_vol_long, 'Filter_Rejected'] = df.loc[rejected_vol_long, 'Filter_Rejected'] + ';vol'
+        df.loc[rejected_vol_short, 'Filter_Rejected'] = df.loc[rejected_vol_short, 'Filter_Rejected'] + ';vol'
+        n_filtres_appliques['vol'] = int((rejected_vol_long | rejected_vol_short).sum())
+        mask_long = mask_long & ~high_vol
+        mask_short = mask_short & ~high_vol
+
+    # --- Filtre de session : liquidité faible ---
+    if use_session_filter:
+        hours_gmt = df.index.hour
+        if session_exclude_start > session_exclude_end:
+            # Plage qui traverse minuit (ex: 22h → 1h)
+            session_mask = (hours_gmt >= session_exclude_start) | (hours_gmt < session_exclude_end)
+        else:
+            session_mask = (hours_gmt >= session_exclude_start) & (hours_gmt < session_exclude_end)
+        rejected_session_long = mask_long & session_mask
+        rejected_session_short = mask_short & session_mask
+        df.loc[rejected_session_long, 'Filter_Rejected'] = df.loc[rejected_session_long, 'Filter_Rejected'] + ';session'
+        df.loc[rejected_session_short, 'Filter_Rejected'] = df.loc[rejected_session_short, 'Filter_Rejected'] + ';session'
+        n_filtres_appliques['session'] = int((rejected_session_long | rejected_session_short).sum())
+        mask_long = mask_long & ~session_mask
+        mask_short = mask_short & ~session_mask
+
+    # Nettoyer les ';' initiaux dans Filter_Rejected
+    df['Filter_Rejected'] = df['Filter_Rejected'].str.strip(';')
+
     df.loc[mask_long, 'Signal'] = 1
     df.loc[mask_short, 'Signal'] = -1
 
@@ -117,6 +189,7 @@ def simulate_trades(
     signals = df['Signal'].values
     weights = df['Weight'].values
     spreads = df['Spread'].values
+    filter_rejected = df['Filter_Rejected'].values
 
     trades = []
     i = 0
@@ -125,8 +198,9 @@ def simulate_trades(
             entry_time = dates[i]
             entry_price = closes[i]
             signal = signals[i]
-            spread_cost = spreads[i] / 10.0 + commission_pips
+            spread_cost = spreads[i] / 10.0 + commission_pips + slippage_pips
             weight = weights[i]
+            filter_info = filter_rejected[i]
 
             if signal == 1:
                 tp = entry_price + tp_pips * pip_size
@@ -171,15 +245,16 @@ def simulate_trades(
                 'Pips_Bruts': pips_brut,
                 'Weight': weight,
                 'result': result_type,
+                'filter_rejected': filter_info,
             })
             continue
         i += 1
 
     if not trades:
-        empty = pd.DataFrame(columns=['Time', 'Pips_Nets', 'Pips_Bruts', 'Weight', 'result'])
-        return empty.set_index('Time'), n_signaux
+        empty = pd.DataFrame(columns=['Time', 'Pips_Nets', 'Pips_Bruts', 'Weight', 'result', 'filter_rejected'])
+        return empty.set_index('Time'), n_signaux, n_filtres_appliques
 
-    return pd.DataFrame(trades).set_index('Time'), n_signaux
+    return pd.DataFrame(trades).set_index('Time'), n_signaux, n_filtres_appliques
 
 
 def _buy_and_hold_pips(df):
@@ -211,6 +286,7 @@ def compute_metrics(trades_df, annee=None, df=None):
         'win_rate': 0.0,
         'sharpe': 0.0,
         'pips_sharpe': 0.0,
+        'sharpe_per_trade': 0.0,
         'total_return_pct': 0.0,
         'max_dd_pct': 0.0,
         'bh_pips': 0.0,
@@ -226,6 +302,8 @@ def compute_metrics(trades_df, annee=None, df=None):
     cum = trades_df['Pips_Nets'].cumsum()
     dd = (cum - cum.cummax()).min()
 
+    n_trades = len(trades_df)
+
     daily_pips = trades_df['Pips_Nets'].resample('D').sum().dropna()
     daily_returns = _pips_to_return(daily_pips)
 
@@ -236,6 +314,16 @@ def compute_metrics(trades_df, annee=None, df=None):
     sharpe = (
         (daily_returns.mean() / daily_returns.std()) * np.sqrt(252)
         if (len(daily_returns) > 1 and daily_returns.std() != 0) else 0.0
+    )
+
+    # Sharpe per-trade : neutralise l'effet de lissage par diversification intraday.
+    # Avec beaucoup de trades par jour (ex: 4+), le resample('D').sum() écrase la
+    # volatilité réelle car les trades se compensent dans la même journée.
+    # Le Sharpe per-trade mesure le résultat de chaque décision indépendante.
+    trade_returns = _pips_to_return(trades_df['Pips_Nets'])
+    sharpe_per_trade = (
+        (trade_returns.mean() / trade_returns.std()) * np.sqrt(n_trades)
+        if (n_trades > 1 and trade_returns.std() != 0) else 0.0
     )
 
     total_return_pct = _pips_to_return(profit_net) * 100
@@ -254,6 +342,7 @@ def compute_metrics(trades_df, annee=None, df=None):
         'win_rate': win_rate,
         'sharpe': sharpe,
         'pips_sharpe': pips_sharpe,
+        'sharpe_per_trade': sharpe_per_trade,
         'total_return_pct': total_return_pct,
         'max_dd_pct': max_dd_pct,
         'bh_pips': bh_pips,
@@ -278,10 +367,11 @@ def save_trades_detailed(trades_df, annee, df=None, output_dir=DIR_RESULTS):
             c for c in df.columns
             if c not in (
                 ['High', 'Low', 'Close', 'Spread', 'Signal', 'Weight', 'proba_max',
-                 'Prediction_Modele', 'Close_Reel_Direction'] + proba_cols
+                 'Prediction_Modele', 'Close_Reel_Direction', 'Filter_Rejected'] + proba_cols
             )
         ]
-        enrich = df.loc[df.index.intersection(out.index), feature_cols + proba_cols].copy()
+        enrich_cols = feature_cols + proba_cols + ['Filter_Rejected']
+        enrich = df.loc[df.index.intersection(out.index), enrich_cols].copy()
         enrich = enrich.rename(columns={
             'Confiance_Hausse_%': 'proba_hausse',
             'Confiance_Neutre_%': 'proba_neutre',
@@ -312,6 +402,7 @@ def save_report_md(metrics, annee, output_dir=DIR_PREDICTIONS, version=None,
     dd = metrics.get('dd', 0.0)
     sharpe = metrics.get('sharpe', 0.0)
     pips_sharpe = metrics.get('pips_sharpe', 0.0)
+    sharpe_per_trade = metrics.get('sharpe_per_trade', 0.0)
     total_return_pct = metrics.get('total_return_pct', 0.0)
     max_dd_pct = metrics.get('max_dd_pct', 0.0)
     bh_pips = metrics.get('bh_pips', 0.0)
@@ -324,6 +415,9 @@ def save_report_md(metrics, annee, output_dir=DIR_PREDICTIONS, version=None,
         f"TP={TP_PIPS:g}p / SL={SL_PIPS:g}p / Window={WINDOW_HOURS}h / "
         f"Seuil confiance={SEUIL_CONFIANCE:g} / Commission={COMMISSION_PIPS:g}p / "
         f"Capital ref={INITIAL_CAPITAL:g}€"
+        f"{' / FiltreTrend=ON' if USE_TREND_FILTER else ''}"
+        f"{' / FiltreVol=ON' if USE_VOL_FILTER else ''}"
+        f"{' / FiltreSession=ON' if USE_SESSION_FILTER else ''}"
     )
 
     lines = [
@@ -345,6 +439,7 @@ def save_report_md(metrics, annee, output_dir=DIR_PREDICTIONS, version=None,
         f"| Espérance par trade | {esperance:.2f} pips/trade |",
         f"| Sharpe (returns annualisés) | {sharpe:.2f} |",
         f"| Pips Sharpe (cf. audit I2) | {pips_sharpe:.2f} |",
+        f"| Sharpe per-trade | {sharpe_per_trade:.2f} |",
     ]
     if n_signaux is not None:
         ratio = n_signaux / n_trades if n_trades else 0

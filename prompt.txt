@@ -1,0 +1,96 @@
+Prompt — Investigation Sharpe anormalement élevé
+
+Contexte : pipeline ML/trading EURUSD H1 basé sur triple barrier (López de Prado) + RandomForest.
+Le backtest produit un Sharpe annualisé de 11-13 sur 2024 et 2025, ce qui est irréaliste pour une
+stratégie intraday sur forex. L'objectif de cette conversation est d'identifier la ou les causes
+et de corriger le code.
+
+## Architecture du backtest
+
+La logique centrale est dans backtest_utils.py, fonction simulate_trades() :
+
+- Stateful : un seul trade ouvert à la fois.
+- Chaque trade démarre sur un signal (Prediction_Modele == 1 ou -1 avec confiance ≥ 0.45).
+- Le résultat du trade (pips_brut) est calculé ainsi :
+
+    spread_cost = spreads[i] / 10.0 + commission_pips   # ligne ~128 de backtest_utils.py
+    pips_brut = -sl_pips - spread_cost        # valeur par défaut (SL hit)
+    # si TP hit :
+    pips_brut = tp_pips - spread_cost
+
+- Le Sharpe est calculé dans compute_metrics() sur les returns journaliers :
+
+    daily_pips = trades_df['Pips_Nets'].resample('D').sum().dropna()
+    daily_returns = daily_pips * PIP_VALUE_EUR / INITIAL_CAPITAL   # PIP_VALUE_EUR=1, CAPITAL=10000
+    sharpe = (daily_returns.mean() / daily_returns.std()) * sqrt(252)
+
+- COMMISSION_PIPS = 0 (aucune commission broker)
+- Pas de slippage modélisé (entrée au Close de la bougie signal)
+
+## Paramètres clés (config.py)
+
+TP_PIPS = 20, SL_PIPS = 10, WINDOW_HOURS = 24, PIP_SIZE = 0.0001
+PIP_VALUE_EUR = 1.0, INITIAL_CAPITAL = 10_000
+
+## Hypothèse principale à vérifier en priorité
+
+La colonne Spread dans le CSV MetaTrader 5 est exprimée en **points** (1 pip = 10 points sur EURUSD),
+soit typiquement spread brut ≈ 10-15 pour ~1.0-1.5 pips réels.
+
+Le code fait spreads[i] / 10.0, ce qui donne spread_cost ≈ 1.0-1.5 pips — correct si la colonne
+est en points.
+
+MAIS : si le clean_data (1_clean_data.py) divise déjà par 10 à la lecture, ou si la plateforme
+exporte directement en pips, alors la colonne Spread vaut déjà ~1.0-1.5 et le / 10.0 la ramène
+à 0.1-0.15 pips — sous-estimation d'un facteur 10.
+
+À vérifier :
+1. Lire les premières lignes de cleaned-data/EURUSD_H1_cleaned.csv et noter la valeur de Spread.
+2. Vérifier si 1_clean_data.py applique une transformation à la colonne Spread (a priori non —
+   le nettoyage ne modifie pas les valeurs numériques, juste les dates et doublons).
+3. La valeur brute d'origine dans data/EURUSD_H1.csv : comparer avec cleaned pour confirmer.
+
+Si Spread cleaned ≈ 1-2 → déjà en pips → bug : supprimer le / 10.0 (ou utiliser / 1.0).
+Si Spread cleaned ≈ 10-20 → en points → le / 10.0 est correct.
+
+## Autres facteurs à quantifier (après vérification du spread)
+
+1. **Slippage absent** : entrée au Close est optimiste. Sur H1, 1-2 pips de slippage est réaliste.
+   Ajouter un paramètre slippage_pips (ex. 1.0) déduit de pips_brut comme commission_pips.
+
+2. **COMMISSION_PIPS = 0** : un broker standard EURUSD facture 0.5-1.5 pip round-trip.
+   Tester avec COMMISSION_PIPS = 0.5 et 1.0 dans config.py.
+
+3. **Win rate 97% sur 2025** : anormal. Un WR aussi élevé avec TP=20/SL=10 (ratio 2:1)
+   implique que presque aucun trade ne touche le SL. Vérifier :
+   - combien de trades terminent en loss_sl vs loss_timeout vs win dans Trades_Detailed_2025.csv
+   - si loss_sl est quasi-nul → le SL est peut-être rarement touché parce que la logique
+     SL/TP dans la boucle a un bug de priorité (SL et TP sur la même bougie, ordre de vérification)
+
+4. **Sanity check Sharpe** : calculer le Sharpe B&H sur la même période et comparer.
+   Si B&H Sharpe ≈ 0.3-0.8 et stratégie Sharpe ≈ 12, l'écart de ×15-40 est suspect même pour
+   un bon modèle. Un Sharpe > 3 sur données réelles intraday avec friction réaliste est exceptionnel.
+
+## Code à modifier
+
+Fichier : backtest_utils.py, fonction simulate_trades()
+Ligne ~128 :
+    spread_cost = spreads[i] / 10.0 + commission_pips
+
+Corrections possibles selon le diagnostic :
+- Si Spread est déjà en pips : spread_cost = spreads[i] + commission_pips
+- Ajouter slippage : spread_cost = spreads[i] [/ 10.0] + commission_pips + slippage_pips
+
+## Critère de succès
+
+Après correction, un backtest sain devrait afficher :
+- Sharpe ∈ [0.5, 3.0] — au-delà de 3 sur données réelles est suspect
+- Win rate ∈ [50%, 70%] — un WR de 97% est un signal d'alerte
+- Résultat net positif avec spread + commission + slippage réalistes
+
+
+### Bug identifié : look-ahead sur les features D1
+
+Dans `2_master_feature_engineering.py`, le `merge_asof(backward)` fusionne les barres D1 (timestamp = `2024-06-15 00:00:00`) avec les barres H1. Une barre H1 à __13h le 15 juin__ reçoit la D1 __du 15 juin__ — alors que cette D1 n'est pas encore close (son Close/High/Low est celui de 23:59).
+
+__C'est un look-ahead bias pur__ : le modèle voit les features D1 du jour en cours, ce qui lui donne une information future. Les corrélations D1 → forward return (0.27) sont artificiellement gonflées par cette fuite.

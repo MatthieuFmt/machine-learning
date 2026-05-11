@@ -100,6 +100,14 @@ h1['RSI_14'] = ta.rsi(h1['Close'], length=14)
 h1['ADX_14'] = ta.adx(h1['High'], h1['Low'], h1['Close'], length=14)['ADX_14']
 h1['ATR_Norm'] = ta.atr(h1['High'], h1['Low'], h1['Close'], length=14) / h1['Close']
 
+# --- Features de régime (Priorité 2) ---
+# Volatilité réalisée sur 24h : écart-type des returns H1 sur 24 barres
+h1['Volatilite_Realisee_24h'] = h1['Log_Return'].rolling(window=24).std()
+# Ratio range/ATR : détecte expansion (>1) vs contraction (<1)
+h1['Range_ATR_ratio'] = (h1['High'] - h1['Low']) / (ta.atr(h1['High'], h1['Low'], h1['Close'], length=14) + 1e-10)
+# Distance à la SMA 200 : tendance long-terme (filtre de régime)
+h1['Dist_SMA200'] = (h1['Close'] - ta.sma(h1['Close'], length=200)) / h1['Close']
+
 # BBands avec sélection robuste des colonnes
 bbands = ta.bbands(h1['Close'], length=20, std=2)
 col_upper = [c for c in bbands.columns if 'BBU' in c][0]
@@ -113,6 +121,12 @@ h1['Hour_Cos'] = np.cos(h1.index.hour * (2. * np.pi / 24))
 # Extraction des features H4 et D1
 feat_h4 = calc_base_features(h4, '_H4')
 feat_d1 = calc_base_features(d1, '_D1')
+
+# RSI D1 delta : variation du RSI D1 sur 3 jours (momentum macro)
+d1['RSI_14_raw'] = ta.rsi(d1['Close'], length=14)
+d1['RSI_D1_delta'] = d1['RSI_14_raw'].diff(3)  # variation sur 3 jours
+# On ajoute cette feature au DataFrame feat_d1 pour le merge asof
+feat_d1['RSI_D1_delta'] = d1['RSI_D1_delta']
 
 # 4. FUSION GLOBALE (Merge_asof)
 print("Fusion de toutes les sources de données...")
@@ -132,8 +146,18 @@ def _log_merge_nan(label, combined, probe_col):
 
 
 # Fusion Multi-Timeframe
+# Correction look-ahead H4 (audit 2025-10-10) :
+# Une barre H4 2024-01-01 04:00:00 n'est close qu'à 04:00. Une H1 à 01:00
+# ne peut pas connaître cette H4. Décalage de 4h pour ne merger que les barres closes.
+feat_h4["Time"] = feat_h4["Time"] + pd.Timedelta(hours=4)
 combined = pd.merge_asof(h1, feat_h4, on='Time', direction='backward')
 _log_merge_nan("feat_h4", combined, 'RSI_14_H4')
+
+# Correction look-ahead D1 (audit 2025-10-10) :
+# Les timestamps D1 sont des dates pures (00:00:00). Sans décalage, une barre H1
+# à 13h le 15 juin reçoit la D1 du 15 juin — qui n'est pas encore close.
+# En décalant d'un jour, seule la D1 de la veille est disponible.
+feat_d1["Time"] = feat_d1["Time"] + pd.Timedelta(days=1)
 combined = pd.merge_asof(combined, feat_d1, on='Time', direction='backward')
 _log_merge_nan("feat_d1", combined, 'RSI_14_D1')
 
@@ -150,13 +174,15 @@ log_row_loss("dropna final (toutes features)", n_before_dropna, len(combined))
 
 # 5. Sélection et Sauvegarde
 colonnes_finales = [
-    'Target', 'Spread', 'Log_Return', 
-    'Dist_EMA_9', 'Dist_EMA_21', 'Dist_EMA_50', 
-    'RSI_14', 'ADX_14', 'ATR_Norm', 'BB_Width', 
+    'Target', 'Spread', 'Log_Return',
+    'Dist_EMA_9', 'Dist_EMA_21', 'Dist_EMA_50',
+    'RSI_14', 'ADX_14', 'ATR_Norm', 'BB_Width',
     'Hour_Sin', 'Hour_Cos',
     'RSI_14_H4', 'Dist_EMA_20_H4', 'Dist_EMA_50_H4',
     'RSI_14_D1', 'Dist_EMA_20_D1', 'Dist_EMA_50_D1',
-    'XAU_Return', 'CHF_Return' # Les nouvelles colonnes macro
+    'XAU_Return', 'CHF_Return', # Les nouvelles colonnes macro
+    # Features de régime (Priorité 2)
+    'Volatilite_Realisee_24h', 'Range_ATR_ratio', 'Dist_SMA200', 'RSI_D1_delta',
 ]
 
 dataset_ml = combined[colonnes_finales]
