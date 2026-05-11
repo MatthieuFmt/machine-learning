@@ -9,9 +9,9 @@ __pycache__/
 # Données et Logs (Très important pour le trading)
 *.log
 *.csv
-*.json
+<!-- *.json -->
 *.parquet
-data/
+<!-- data/ -->
 outputs/
 temp/
 
@@ -21,3 +21,5 @@ temp/
 .git/
 .DS_Store
 Thumbs.db
+
+prompt.txt
