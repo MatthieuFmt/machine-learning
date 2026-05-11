@@ -49,9 +49,16 @@ def predict_oos(
     if class_map is None:
         class_map = {float(cls): int(idx) for idx, cls in enumerate(model.classes_)}
 
-    proba_baisse = probas[:, class_map[-1.0]]
-    proba_neutre = probas[:, class_map[0.0]]
-    proba_hausse = probas[:, class_map[1.0]]
+    def _get_col(class_key: float) -> np.ndarray:
+        """Extraction robuste : zéros si la classe est absente du modèle (B3 fix)."""
+        if class_key in class_map:
+            return probas[:, class_map[class_key]]
+        logger.warning("Classe %.1f absente du modèle (classes=%s), colonne à zéro.", class_key, list(class_map.keys()))
+        return np.zeros(len(probas), dtype=np.float64)
+
+    proba_baisse = _get_col(-1.0)
+    proba_neutre = _get_col(0.0)
+    proba_hausse = _get_col(1.0)
 
     out = pd.DataFrame(
         {

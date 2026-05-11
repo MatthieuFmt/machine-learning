@@ -88,6 +88,27 @@ class TestTripleBarrier:
         # SHORT: entry 1.1000, TP=1.0980, SL=1.1010. High=1.1030 → SL touché → short_win=False
         assert targets[0] == 1.0
 
+    def test_sl_touche_puis_tp_reste_perdant(self):
+        """B1: SL LONG touché en premier → long_dead. SHORT gagne ensuite → -1.
+
+        Scénario:
+        - Entrée=1.1000, SL_LONG=1.0990, TP_SHORT=1.0970, SL_SHORT=1.1010
+        - Barre 1: Low=1.0980 → touche SL_LONG (1.0980 <= 1.0990) → long_dead
+        - Barre 2: Low=1.0965 → touche TP_SHORT (1.0965 <= 1.0970) → short_win
+        - Résultat: long_dead + short_win → -1.0 (SHORT gagne, LONG déjà mort)
+        
+        Sans le flag long_dead, l'ancien code aurait vu TP touché et marqué win (+1).
+        """
+        tp_pips = 30  # TP = 0.0030 → TP_SHORT = 1.1000 - 0.0030 = 1.0970
+        sl_pips = 10  # SL = 0.0010 → SL_LONG = 1.0990
+        df = self._make_ohlcv(
+            prices=[1.1000, 1.0995, 1.0975, 1.0990, 1.1000],
+            highs=[1.1000, 1.1005, 1.0985, 1.1000, 1.1010],
+            lows=[1.1000, 1.0980, 1.0965, 1.0980, 1.0995],
+        )
+        targets = apply_triple_barrier(df, tp_pips=tp_pips, sl_pips=sl_pips, window=3, pip_size=0.0001)
+        assert targets[0] == -1.0, f"Attendu -1.0 (SL LONG mortel puis SHORT gagne), obtenu {targets[0]}"
+
     def test_last_bars_are_nan(self):
         """Les `window` dernières barres doivent être NaN (pas assez de forward)."""
         df = self._make_ohlcv(prices=[1.1000] * 30)
@@ -102,6 +123,54 @@ class TestTripleBarrier:
         df = pd.DataFrame({"A": [1, 2, 3]})
         with pytest.raises(ValueError, match="Colonnes requises manquantes"):
             apply_triple_barrier(df)
+
+    def test_short_dead_long_win(self):
+        """B1 symétrique : SL SHORT touché en premier → short_dead. LONG gagne ensuite → +1.
+
+        Scénario:
+        - Entrée=1.1000, SL_SHORT=1.1010, TP_LONG=1.1030, SL_LONG=1.0990
+        - Barre 1: High=1.1015, Low=1.0995 → seul SL_SHORT touché (1.1015 >= 1.1010),
+          SL_LONG non touché (1.0995 > 1.0990) → short_dead
+        - Barre 2: High=1.1040 → TP_LONG touché (1.1040 >= 1.1030) → long_win
+        - Résultat: long_win + short_dead → 1.0 (LONG gagne, SHORT déjà mort)
+        """
+        tp_pips = 30  # TP = 0.0030 → TP_LONG = 1.1000 + 0.0030 = 1.1030
+        sl_pips = 10  # SL = 0.0010 → SL_SHORT = 1.1000 + 0.0010 = 1.1010
+        df = self._make_ohlcv(
+            prices=[1.1000, 1.0998, 1.1025, 1.0990, 1.1000],
+            highs=[1.1000, 1.1015, 1.1040, 1.1000, 1.1010],
+            lows=[1.1000, 1.0995, 1.1010, 1.0980, 1.0995],
+        )
+        targets = apply_triple_barrier(df, tp_pips=tp_pips, sl_pips=sl_pips, window=3, pip_size=0.0001)
+        assert targets[0] == 1.0, f"Attendu 1.0 (SL SHORT mortel puis LONG gagne), obtenu {targets[0]}"
+
+    def test_both_dead(self):
+        """Les deux SL sont touchés → label 0 (aucune direction ne gagne)."""
+        tp_pips = 30  # TP inatteignable (0.0030)
+        sl_pips = 5   # SL proche (0.0005)
+        # SL_LONG = 1.0995, SL_SHORT = 1.1005
+        df = self._make_ohlcv(
+            prices=[1.1000, 1.0990, 1.1010, 1.1000, 1.1000],
+            highs=[1.1000, 1.0995, 1.1020, 1.1010, 1.1010],
+            lows=[1.1000, 1.0980, 1.1000, 1.0990, 1.0990],
+        )
+        targets = apply_triple_barrier(df, tp_pips=tp_pips, sl_pips=sl_pips, window=3, pip_size=0.0001)
+        assert targets[0] == 0.0, f"Attendu 0.0 (les deux SL touchés), obtenu {targets[0]}"
+
+    def test_both_win(self):
+        """Les deux TP sont touchés → label 0 (ambigu)."""
+        tp_pips = 10  # TP proche (0.0010)
+        sl_pips = 30  # SL inatteignable (0.0030)
+        # TP_LONG = 1.1010, TP_SHORT = 1.0990, SL_LONG = 1.0970, SL_SHORT = 1.1030
+        # Barre 1 large : high>=1.1010 (TP LONG) ET low<=1.0990 (TP SHORT)
+        # sans toucher SL_LONG (1.0970) ni SL_SHORT (1.1030)
+        df = self._make_ohlcv(
+            prices=[1.1000, 1.1000, 1.1000, 1.1000, 1.1000],
+            highs=[1.1000, 1.1020, 1.1000, 1.1000, 1.1000],
+            lows=[1.1000, 1.0980, 1.1000, 1.1000, 1.1000],
+        )
+        targets = apply_triple_barrier(df, tp_pips=tp_pips, sl_pips=sl_pips, window=3, pip_size=0.0001)
+        assert targets[0] == 0.0, f"Attendu 0.0 (les deux TP touchés = ambigu), obtenu {targets[0]}"
 
     def test_numpy_output_shape(self):
         """La sortie a la même longueur que l'entrée."""

@@ -56,8 +56,8 @@ def log_row_loss(
 
 def merge_features(
     h1: pd.DataFrame,
-    feat_h4: pd.DataFrame,
-    feat_d1: pd.DataFrame,
+    feat_h4: pd.DataFrame | None = None,
+    feat_d1: pd.DataFrame | None = None,
     macro_frames: list[pd.DataFrame] | None = None,
     h4_offset: pd.Timedelta | None = None,
     d1_offset: pd.Timedelta | None = None,
@@ -84,29 +84,33 @@ def merge_features(
 
     # Preparation : reset_index pour merge_asof
     h1 = h1.sort_index().reset_index()
-    feat_h4 = feat_h4.sort_index().reset_index()
-    feat_d1 = feat_d1.sort_index().reset_index()
-
-    # Normalisation resolution datetime (pandas >= 3.0 peut produire us/ns mix)
     h1["Time"] = h1["Time"].astype("datetime64[ns]")
-    feat_h4["Time"] = feat_h4["Time"].astype("datetime64[ns]")
-    feat_d1["Time"] = feat_d1["Time"].astype("datetime64[ns]")
 
-    # Correction look-ahead
-    feat_h4["Time"] = feat_h4["Time"] + h4_offset
-    feat_d1["Time"] = feat_d1["Time"] + d1_offset
+    combined = h1
 
-    # Merge H4
-    combined = pd.merge_asof(h1, feat_h4, on="Time", direction="backward")
-    probe_h4 = [c for c in feat_h4.columns if c != "Time"]
-    if probe_h4:
-        _log_merge_nan("feat_h4", combined, probe_h4[0])
+    # Merge H4 (skip si DataFrame vide — R3 fix)
+    if feat_h4 is not None and not feat_h4.empty:
+        feat_h4 = feat_h4.sort_index().reset_index()
+        feat_h4["Time"] = feat_h4["Time"].astype("datetime64[ns]")
+        feat_h4["Time"] = feat_h4["Time"] + h4_offset
+        combined = pd.merge_asof(combined, feat_h4, on="Time", direction="backward")
+        probe_h4 = [c for c in feat_h4.columns if c != "Time"]
+        if probe_h4:
+            _log_merge_nan("feat_h4", combined, probe_h4[0])
+    else:
+        logger.debug("feat_h4 vide ou absent, merge ignoré.")
 
-    # Merge D1
-    combined = pd.merge_asof(combined, feat_d1, on="Time", direction="backward")
-    probe_d1 = [c for c in feat_d1.columns if c != "Time"]
-    if probe_d1:
-        _log_merge_nan("feat_d1", combined, probe_d1[0])
+    # Merge D1 (skip si DataFrame vide — R3 fix)
+    if feat_d1 is not None and not feat_d1.empty:
+        feat_d1 = feat_d1.sort_index().reset_index()
+        feat_d1["Time"] = feat_d1["Time"].astype("datetime64[ns]")
+        feat_d1["Time"] = feat_d1["Time"] + d1_offset
+        combined = pd.merge_asof(combined, feat_d1, on="Time", direction="backward")
+        probe_d1 = [c for c in feat_d1.columns if c != "Time"]
+        if probe_d1:
+            _log_merge_nan("feat_d1", combined, probe_d1[0])
+    else:
+        logger.debug("feat_d1 vide ou absent, merge ignoré.")
 
     # Merge macro
     for i, macro_df in enumerate(macro_frames):

@@ -62,17 +62,3 @@ class SignalFilter(Protocol):
     ) -> tuple[pd.Series, pd.Series, int]: ...
 
 
-# ── Dataclasses transverses ──────────────────────────────────────────────────
-
-
-class MetricDict(dict):
-    """Dict de métriques avec accès par attribut pour rétrocompatibilité.
-
-    >>> m = MetricDict(profit_net=42.0)
-    >>> m['profit_net']
-    42.0
-    >>> m.get('profit_net')
-    42.0
-    """
-
-    pass

@@ -77,7 +77,7 @@ class BasePipeline(ABC):
     ) -> tuple[Any, dict]:
         """Exécute le backtest sur les prédictions."""
         from learning_machine_learning.backtest.simulator import simulate_trades
-        from learning_machine_learning.backtest.sizing import weight_linear
+        from learning_machine_learning.backtest.sizing import weight_centered
 
         all_trades = {}
         all_metrics = {}
@@ -94,7 +94,7 @@ class BasePipeline(ABC):
 
             trades_df, n_signaux, n_filtres = simulate_trades(
                 df=df_backtest,
-                weight_func=weight_linear,
+                weight_func=weight_centered,
                 tp_pips=self.backtest_cfg.tp_pips,
                 sl_pips=self.backtest_cfg.sl_pips,
                 window=self.backtest_cfg.window_hours,

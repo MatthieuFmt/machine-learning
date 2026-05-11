@@ -77,7 +77,9 @@ def apply_triple_barrier(
         short_sl = entry_price + sl_dist
 
         long_win = False
+        long_dead = False
         short_win = False
+        short_dead = False
 
         # Parcours forward jusqu'à window barres
         for j in range(1, window + 1):
@@ -85,29 +87,25 @@ def apply_triple_barrier(
             curr_high = highs[idx]
             curr_low = lows[idx]
 
-            # Vérification LONG
-            if not long_win:
+            # Vérification LONG (abandonnée si déjà gagné ou SL touché)
+            if not long_win and not long_dead:
                 if curr_low <= long_sl:
-                    # SL LONG touché → LONG perdant, on arrête de le tester
-                    # mais SHORT peut encore gagner
-                    pass  # on ne set pas long_win, il reste False
-                    # On ne break pas tout de suite — SHORT doit continuer
+                    long_dead = True  # SL touché avant TP → LONG perd définitivement
                 elif curr_high >= long_tp:
                     long_win = True
 
-            # Vérification SHORT
-            if not short_win:
+            # Vérification SHORT (abandonnée si déjà gagné ou SL touché)
+            if not short_win and not short_dead:
                 if curr_high >= short_sl:
-                    # SL SHORT touché → SHORT perdant
-                    pass
+                    short_dead = True  # SL touché avant TP → SHORT perd définitivement
                 elif curr_low <= short_tp:
                     short_win = True
 
-            # Si les deux sont résolus (gagné ou SL touché), on peut sortir
-            # Mais attention : un SL touché ne set pas le flag à True,
-            # donc on doit détecter "SL touché" autrement.
+            # Optimisation : si les deux directions sont résolues, sortir
+            if (long_win or long_dead) and (short_win or short_dead):
+                break
 
-        # Après la boucle, on détermine le label
+        # Label final : une seule direction gagnante → label directionnel
         if long_win and not short_win:
             targets[i] = 1.0
         elif short_win and not long_win:

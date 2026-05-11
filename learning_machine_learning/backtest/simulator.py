@@ -80,10 +80,12 @@ def simulate_trades(
 
     # Application des filtres
     n_filtres_appliques: dict[str, int] = {"trend": 0, "vol": 0, "session": 0}
+    df["Filter_Rejected"] = ""
     if filter_pipeline is not None:
-        mask_long, mask_short, n_filtres_appliques = filter_pipeline.apply(
+        mask_long, mask_short, n_filtres_appliques, rejection_reason = filter_pipeline.apply(
             df, mask_long, mask_short
         )
+        df["Filter_Rejected"] = rejection_reason
 
     # Signaux finaux
     df["Signal"] = 0
@@ -102,6 +104,7 @@ def simulate_trades(
     signals = df["Signal"].values
     weights = df["Weight"].values
     spreads = df["Spread"].values
+    filter_rejected_arr = df["Filter_Rejected"].values
 
     tp_dist = tp_pips * pip_size
     sl_dist = sl_pips * pip_size
@@ -118,6 +121,7 @@ def simulate_trades(
             signal = signals[i]
             spread_cost = spreads[i] / 10.0 + spread_cost_base
             weight = weights[i]
+            entry_filter_rejected = filter_rejected_arr[i]
 
             if signal == 1:
                 tp = entry_price + tp_dist
@@ -126,8 +130,8 @@ def simulate_trades(
                 tp = entry_price - tp_dist
                 sl = entry_price + sl_dist
 
-            pips_brut = -sl_pips - spread_cost
-            result_type = "loss_sl"
+            pips_brut = 0.0
+            result_type = "loss_timeout"
 
             for j in range(1, window + 1):
                 idx = i + j
@@ -138,6 +142,8 @@ def simulate_trades(
 
                 if signal == 1:
                     if curr_low <= sl:
+                        pips_brut = -sl_pips - spread_cost
+                        result_type = "loss_sl"
                         i = idx
                         break
                     elif curr_high >= tp:
@@ -147,6 +153,8 @@ def simulate_trades(
                         break
                 else:
                     if curr_high >= sl:
+                        pips_brut = -sl_pips - spread_cost
+                        result_type = "loss_sl"
                         i = idx
                         break
                     elif curr_low <= tp:
@@ -155,7 +163,13 @@ def simulate_trades(
                         i = idx
                         break
             else:
-                # Timeout
+                # Timeout : PnL réel basé sur le Close final (B2 fix)
+                exit_idx = min(i + window, n - 1)
+                exit_price = closes[exit_idx]
+                if signal == 1:
+                    pips_brut = (exit_price - entry_price) / pip_size - spread_cost
+                else:
+                    pips_brut = (entry_price - exit_price) / pip_size - spread_cost
                 i += window
                 result_type = "loss_timeout"
 
@@ -165,7 +179,7 @@ def simulate_trades(
                 "Pips_Bruts": pips_brut,
                 "Weight": weight,
                 "result": result_type,
-                "filter_rejected": "",
+                "filter_rejected": entry_filter_rejected,
             })
             continue
         i += 1

@@ -6,13 +6,26 @@ features macro, fusion multi-timeframe.
 
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
+import pandas_ta as ta
 
 from learning_machine_learning.config.instruments import InstrumentConfig
 from learning_machine_learning.core.logging import get_logger
 from learning_machine_learning.features.triple_barrier import apply_triple_barrier
 from learning_machine_learning.features.merger import merge_features, log_row_loss
 from learning_machine_learning.features.macro import calc_macro_return
+from learning_machine_learning.features.technical import (
+    calc_base_features,
+    calc_bb_width,
+    calc_ema_distance,
+)
+from learning_machine_learning.features.regime import (
+    calc_volatilite_realisee,
+    calc_range_atr_ratio,
+    calc_rsi_d1_delta,
+    calc_dist_sma200_d1,
+)
 
 logger = get_logger(__name__)
 
@@ -49,25 +62,6 @@ def build_ml_ready(
     Returns:
         DataFrame ML-ready indexe par Time.
     """
-    import pandas_ta as ta
-    import numpy as np
-
-    from learning_machine_learning.features.technical import (
-        calc_base_features,
-        calc_log_return,
-        calc_rsi,
-        calc_adx,
-        calc_atr_norm,
-        calc_bb_width,
-        calc_cyclical_time,
-    )
-    from learning_machine_learning.features.regime import (
-        calc_volatilite_realisee,
-        calc_range_atr_ratio,
-        calc_rsi_d1_delta,
-        calc_dist_sma200_d1,
-    )
-
     if features_dropped is None:
         features_dropped = list(instrument.features_dropped)
 
@@ -93,9 +87,10 @@ def build_ml_ready(
 
     # 2. Features techniques H1
     h1["Log_Return"] = np.log(h1["Close"] / h1["Close"].shift(1))
-    h1["Dist_EMA_9"] = (h1["Close"] - ta.ema(h1["Close"], length=9)) / h1["Close"]
-    h1["Dist_EMA_21"] = (h1["Close"] - ta.ema(h1["Close"], length=21)) / h1["Close"]
-    h1["Dist_EMA_50"] = (h1["Close"] - ta.ema(h1["Close"], length=50)) / h1["Close"]
+    ema_dists = calc_ema_distance(h1, periods=(9, 21, 50))
+    h1["Dist_EMA_9"] = ema_dists["Dist_EMA_9"]
+    h1["Dist_EMA_21"] = ema_dists["Dist_EMA_21"]
+    h1["Dist_EMA_50"] = ema_dists["Dist_EMA_50"]
     h1["RSI_14"] = ta.rsi(h1["Close"], length=14)
     h1["ADX_14"] = ta.adx(h1["High"], h1["Low"], h1["Close"], length=14)["ADX_14"]
     h1["ATR_Norm"] = ta.atr(h1["High"], h1["Low"], h1["Close"], length=14) / h1["Close"]
@@ -104,12 +99,7 @@ def build_ml_ready(
     h1["Volatilite_Realisee_24h"] = calc_volatilite_realisee(h1["Log_Return"], window=24)
     h1["Range_ATR_ratio"] = calc_range_atr_ratio(h1["High"], h1["Low"], h1["Close"])
 
-    # BBands
-    bbands = ta.bbands(h1["Close"], length=20, std=2)
-    col_upper = [c for c in bbands.columns if "BBU" in c][0]
-    col_lower = [c for c in bbands.columns if "BBL" in c][0]
-    col_mid = [c for c in bbands.columns if "BBM" in c][0]
-    h1["BB_Width"] = (bbands[col_upper] - bbands[col_lower]) / bbands[col_mid]
+    h1["BB_Width"] = calc_bb_width(h1)
 
     # Cyclical time
     h1["Hour_Sin"] = np.sin(h1.index.hour * (2.0 * np.pi / 24))

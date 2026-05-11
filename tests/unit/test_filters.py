@@ -189,25 +189,27 @@ class TestFilterPipeline:
         mask_long = pd.Series(True, index=index)
         mask_short = pd.Series(True, index=index)
 
-        ml, ms, rejected = pipeline.apply(df, mask_long, mask_short)
+        ml, ms, rejected, reasons = pipeline.apply(df, mask_long, mask_short)
 
         assert "trend" in rejected
         assert "session" in rejected
         assert rejected["trend"] + rejected["session"] >= 1
+        assert isinstance(reasons, pd.Series)
 
     def test_empty_pipeline_no_effect(self, df_basic: pd.DataFrame) -> None:
         """Pipeline vide = aucun rejet."""
         pipeline = FilterPipeline([])
         mask = pd.Series(True, index=df_basic.index)
-        ml, ms, rejected = pipeline.apply(df_basic, mask, mask)
+        ml, ms, rejected, reasons = pipeline.apply(df_basic, mask, mask)
         assert ml.all()
         assert ms.all()
         assert rejected == {}
+        assert (reasons == "").all()
 
     def test_n_rejected_never_exceeds_signal_count(self, df_basic: pd.DataFrame) -> None:
         """Le nombre de rejets par filtre ≤ nombre de signaux."""
         pipeline = FilterPipeline([TrendFilter(), VolFilter()])
         mask = pd.Series(True, index=df_basic.index)  # 24 signaux
-        _, _, rejected = pipeline.apply(df_basic, mask, mask)
+        _, _, rejected, _ = pipeline.apply(df_basic, mask, mask)
         for n in rejected.values():
             assert 0 <= n <= 24
