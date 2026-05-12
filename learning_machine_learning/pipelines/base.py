@@ -43,11 +43,12 @@ class BasePipeline(ABC):
         """Construit le DataFrame ML-ready."""
 
     def train_model(self, ml_data: Any) -> Any:
-        """Entraîne le modèle RandomForest."""
+        """Entraîne le modèle (RandomForest ou GBM Regressor selon target_mode)."""
         from learning_machine_learning.model.training import (
             _FILTER_ONLY_COLS,
             train_test_split_purge,
             train_model,
+            train_regressor,
         )
 
         X_train, y_train, X_cols = train_test_split_purge(
@@ -56,26 +57,35 @@ class BasePipeline(ABC):
             purge_hours=self.model_cfg.purge_hours,
             extra_drop_cols=_FILTER_ONLY_COLS,
         )
-        model = train_model(X_train, y_train, self.model_cfg.rf_params)
+
+        if self.instrument.target_mode == "forward_return":
+            model = train_regressor(X_train, y_train, self.model_cfg.gbm_params)
+        else:
+            model = train_model(X_train, y_train, self.model_cfg.rf_params)
         return model, X_cols
 
     def evaluate_model(self, model: Any, ml_data: Any, X_cols: list[str]) -> dict:
-        """Évalue le modèle sur val_year et test_year."""
-        from learning_machine_learning.model.evaluation import (
-            evaluate_model,
-            feature_importance_impurity,
-            feature_importance_permutation,
+        """Évalue le modèle sur val_year et test_year (classifieur ou régression)."""
+        from learning_machine_learning.model.prediction import (
+            predict_oos,
+            predict_oos_regression,
         )
-        from learning_machine_learning.model.prediction import predict_oos
 
-        results: dict[str, Any] = {}
-        class_map = None
+        results: dict[int, Any] = {}
 
-        for year in self.model_cfg.eval_years:
-            preds_df, class_map = predict_oos(
-                model, ml_data, eval_year=year, X_cols=X_cols, class_map=class_map,
-            )
-            results[year] = preds_df
+        if self.instrument.target_mode == "forward_return":
+            for year in self.model_cfg.eval_years:
+                preds_df = predict_oos_regression(
+                    model, ml_data, eval_year=year, X_cols=X_cols,
+                )
+                results[year] = preds_df
+        else:
+            class_map = None
+            for year in self.model_cfg.eval_years:
+                preds_df, class_map = predict_oos(
+                    model, ml_data, eval_year=year, X_cols=X_cols, class_map=class_map,
+                )
+                results[year] = preds_df
 
         return results
 
@@ -92,7 +102,10 @@ class BasePipeline(ABC):
             VolFilter,
             SessionFilter,
         )
-        from learning_machine_learning.backtest.simulator import simulate_trades
+        from learning_machine_learning.backtest.simulator import (
+            simulate_trades,
+            simulate_trades_continuous,
+        )
         from learning_machine_learning.backtest.sizing import weight_centered
 
         # Construire le pipeline de filtres selon la config backtest
@@ -124,6 +137,16 @@ class BasePipeline(ABC):
         # Colonnes requises par les filtres de régime (MomentumFilter, VolFilter)
         FILTER_COLS: tuple[str, ...] = ("Dist_SMA200_D1", "ATR_Norm", "RSI_D1_delta")
 
+        # Router la fonction de simulation selon target_mode
+        if self.instrument.target_mode == "forward_return":
+            simulate_func = simulate_trades_continuous
+            simulate_kwargs: dict[str, Any] = {
+                "signal_threshold": cfg.continuous_signal_threshold,
+            }
+        else:
+            simulate_func = simulate_trades
+            simulate_kwargs = {"seuil_confiance": cfg.confidence_threshold}
+
         for year, preds_df in predictions.items():
             # Joindre les prédictions avec OHLC H1 (simulate_trades a besoin de High/Low/Close)
             ohlc_cols = ["High", "Low", "Close"]
@@ -140,17 +163,17 @@ class BasePipeline(ABC):
                 year_filter = ml_data.loc[ml_data.index.year == year, filter_cols_present]
                 df_backtest = df_backtest.join(year_filter, how="left")
 
-            trades_df, n_signaux, n_filtres = simulate_trades(
+            trades_df, _n_signaux, _n_filtres = simulate_func(
                 df=df_backtest,
                 weight_func=weight_centered,
                 tp_pips=cfg.tp_pips,
                 sl_pips=cfg.sl_pips,
                 window=cfg.window_hours,
                 pip_size=self.instrument.pip_size,
-                seuil_confiance=cfg.confidence_threshold,
                 commission_pips=cfg.commission_pips,
                 slippage_pips=cfg.slippage_pips,
                 filter_pipeline=filter_pipeline,
+                **simulate_kwargs,
             )
 
             all_trades[year] = trades_df
@@ -202,19 +225,25 @@ class BasePipeline(ABC):
         from learning_machine_learning.model.training import (
             _FILTER_ONLY_COLS,
             train_model,
+            train_regressor,
             walk_forward_train,
         )
-        from learning_machine_learning.model.prediction import predict_oos
 
         # 1. Déterminer X_cols (comme dans train_model)
         drop_cols = {"Target", "Spread"} | _FILTER_ONLY_COLS
         X_cols = [c for c in ml_data.columns if c not in drop_cols]
 
         # 2. Factory de modèle utilisant les hyperparamètres de la config
-        rf_params = self.model_cfg.rf_params
+        is_regression = self.instrument.target_mode == "forward_return"
 
-        def model_factory(X_train: pd.DataFrame, y_train: pd.Series) -> Any:
-            return train_model(X_train, y_train, rf_params)
+        if is_regression:
+            gbm_params = self.model_cfg.gbm_params
+            def model_factory(X_train: pd.DataFrame, y_train: pd.Series) -> Any:
+                return train_regressor(X_train, y_train, gbm_params)
+        else:
+            rf_params = self.model_cfg.rf_params
+            def model_factory(X_train: pd.DataFrame, y_train: pd.Series) -> Any:
+                return train_model(X_train, y_train, rf_params)
 
         # 3. Walk-forward : itérer sur les folds
         all_predictions: list[pd.DataFrame] = []
@@ -239,30 +268,42 @@ class BasePipeline(ABC):
             if test_slice.empty:
                 continue
 
-            # Construire un sous-DataFrame pour predict_oos
+            # Construire un sous-DataFrame pour prédiction
             X_test = test_slice[X_cols]
             preds_array = model.predict(X_test)
-            probas = model.predict_proba(X_test)
 
-            if class_map is None:
-                class_map = {float(cls): int(idx) for idx, cls in enumerate(model.classes_)}
+            if is_regression:
+                # Mode régression : sortie continue, pas de probas
+                fold_preds = pd.DataFrame(
+                    {
+                        "Close_Reel_Direction": test_slice["Target"] if "Target" in test_slice.columns else np.nan,
+                        "Predicted_Return": preds_array,
+                    },
+                    index=test_slice.index,
+                )
+            else:
+                # Mode classifieur : probas + confiances
+                probas = model.predict_proba(X_test)
 
-            def _get_col(class_key: float) -> "np.ndarray":
-                import numpy as np
-                if class_key in class_map:
-                    return probas[:, class_map[class_key]]
-                return np.zeros(len(probas), dtype=np.float64)
+                if class_map is None:
+                    class_map = {float(cls): int(idx) for idx, cls in enumerate(model.classes_)}
 
-            fold_preds = pd.DataFrame(
-                {
-                    "Close_Reel_Direction": test_slice["Target"] if "Target" in test_slice.columns else np.nan,
-                    "Prediction_Modele": preds_array,
-                    "Confiance_Baisse_%": np.round(_get_col(-1.0) * 100, 2),
-                    "Confiance_Neutre_%": np.round(_get_col(0.0) * 100, 2),
-                    "Confiance_Hausse_%": np.round(_get_col(1.0) * 100, 2),
-                },
-                index=test_slice.index,
-            )
+                def _get_col(class_key: float) -> "np.ndarray":
+                    import numpy as np
+                    if class_key in class_map:
+                        return probas[:, class_map[class_key]]  # type: ignore[index]
+                    return np.zeros(len(probas), dtype=np.float64)
+
+                fold_preds = pd.DataFrame(
+                    {
+                        "Close_Reel_Direction": test_slice["Target"] if "Target" in test_slice.columns else np.nan,
+                        "Prediction_Modele": preds_array,
+                        "Confiance_Baisse_%": np.round(_get_col(-1.0) * 100, 2),
+                        "Confiance_Neutre_%": np.round(_get_col(0.0) * 100, 2),
+                        "Confiance_Hausse_%": np.round(_get_col(1.0) * 100, 2),
+                    },
+                    index=test_slice.index,
+                )
 
             if "Spread" in test_slice.columns:
                 fold_preds["Spread"] = test_slice["Spread"]

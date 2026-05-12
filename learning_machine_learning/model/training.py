@@ -16,7 +16,7 @@ from typing import Callable
 
 import pandas as pd
 from pandas.tseries.offsets import DateOffset
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import HistGradientBoostingRegressor, RandomForestClassifier
 
 from learning_machine_learning.core.logging import get_logger
 
@@ -102,6 +102,34 @@ def train_model(
         params.get("n_estimators", "?"), list(model.classes_), len(X_train),
     )
 
+    return model
+
+
+def train_regressor(
+    X_train: pd.DataFrame,
+    y_train: pd.Series,
+    params: dict,
+) -> HistGradientBoostingRegressor:
+    """Entraîne un HistGradientBoostingRegressor avec les paramètres fournis.
+
+    Args:
+        X_train: Features d'entraînement.
+        y_train: Target continue (log-return forward).
+        params: Dict kwargs pour HistGradientBoostingRegressor.
+
+    Returns:
+        Régresseur entraîné.
+    """
+    model = HistGradientBoostingRegressor(**params)
+    model.fit(X_train, y_train)
+
+    logger.info(
+        "Régresseur entraîné : max_iter=%d, max_depth=%s, loss=%s, échantillons=%d",
+        params.get("max_iter", "?"),
+        params.get("max_depth", "?"),
+        params.get("loss", "?"),
+        len(X_train),
+    )
     return model
 
 

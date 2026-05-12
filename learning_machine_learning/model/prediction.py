@@ -80,3 +80,57 @@ def predict_oos(
     )
 
     return out, class_map
+
+
+def predict_oos_regression(
+    model,  # HistGradientBoostingRegressor | RandomForestRegressor
+    df: pd.DataFrame,
+    eval_year: int,
+    X_cols: list[str],
+) -> pd.DataFrame:
+    """Prédit sur une année OOS en mode régression.
+
+    Sort un DataFrame avec Predicted_Return (continu) au lieu de
+    Prediction_Modele (classes). Pas de colonnes Confiance_*_% (pas
+    de probas en régression).
+
+    Args:
+        model: Régresseur entraîné (HistGradientBoostingRegressor ou autre).
+        df: DataFrame ML-ready complet (index datetime).
+        eval_year: Année à prédire (ex: 2024).
+        X_cols: Colonnes de features à utiliser.
+
+    Returns:
+        DataFrame avec colonnes : Target (vraie), Predicted_Return, Spread.
+    """
+    eval_start = pd.to_datetime(f"{eval_year}-01-01")
+    eval_end = pd.to_datetime(f"{eval_year + 1}-01-01")
+    test_data = df[(df.index >= eval_start) & (df.index < eval_end)].copy()
+
+    if test_data.empty:
+        raise ValueError(f"Aucune donnée pour l'année {eval_year}.")
+
+    X_test = test_data[X_cols]
+    predicted = model.predict(X_test)
+
+    out = pd.DataFrame(
+        {
+            "Target": test_data["Target"] if "Target" in test_data.columns else np.nan,
+            "Predicted_Return": predicted,
+        },
+        index=test_data.index,
+    )
+
+    if "Spread" in test_data.columns:
+        out["Spread"] = test_data["Spread"]
+
+    logger.info(
+        "Prédictions OOS régression %d : %d bougies, "
+        "mean_pred=%.6f, std_pred=%.6f",
+        eval_year,
+        len(out),
+        float(np.nanmean(predicted)),
+        float(np.nanstd(predicted)),
+    )
+
+    return out

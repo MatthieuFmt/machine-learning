@@ -8,7 +8,14 @@ Ajouter un nouvel actif = créer une nouvelle sous-classe.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import FrozenSet
+from typing import FrozenSet, Literal
+
+TargetMode = Literal[
+    "triple_barrier",
+    "forward_return",
+    "directional_clean",
+    "cost_aware_v2",
+]
 
 
 @dataclass(frozen=True)
@@ -30,6 +37,13 @@ class InstrumentConfig:
     friction_pips: float = 1.5
     min_profit_pips_cost_aware: float = 3.0
 
+    # ── Step 01 — Redéfinition de la cible ─────────────────────────────
+    target_mode: TargetMode = "triple_barrier"
+    target_horizon_hours: int = 24
+    target_noise_threshold_atr: float = 0.5
+    target_atr_period: int = 14
+    target_k_atr: float = 1.0
+
     def __post_init__(self) -> None:
         if self.pip_size <= 0:
             raise ValueError(f"pip_size doit être > 0, reçu {self.pip_size}")
@@ -41,6 +55,23 @@ class InstrumentConfig:
             )
         if not self.timeframes:
             raise ValueError("timeframes ne peut pas être vide")
+        if self.target_horizon_hours < 1:
+            raise ValueError(
+                f"target_horizon_hours doit être >= 1, reçu {self.target_horizon_hours}"
+            )
+        if self.target_noise_threshold_atr <= 0:
+            raise ValueError(
+                f"target_noise_threshold_atr doit être > 0, "
+                f"reçu {self.target_noise_threshold_atr}"
+            )
+        if self.target_atr_period < 1:
+            raise ValueError(
+                f"target_atr_period doit être >= 1, reçu {self.target_atr_period}"
+            )
+        if self.target_k_atr <= 0:
+            raise ValueError(
+                f"target_k_atr doit être > 0, reçu {self.target_k_atr}"
+            )
 
     def path_suffix(self, timeframe: str) -> str:
         """Retourne le suffixe de chemin pour un timeframe donné.

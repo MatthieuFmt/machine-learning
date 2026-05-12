@@ -15,6 +15,9 @@ from learning_machine_learning.core.logging import get_logger
 from learning_machine_learning.features.triple_barrier import (
     apply_triple_barrier,
     apply_triple_barrier_cost_aware,
+    compute_forward_return_target,
+    compute_directional_clean_target,
+    compute_cost_aware_target_v2,
 )
 from learning_machine_learning.features.merger import merge_features, log_row_loss
 from learning_machine_learning.features.macro import calc_macro_return
@@ -77,15 +80,59 @@ def build_ml_ready(
 
     h1 = data[primary_tf].copy()
 
-    # 1. Triple barrier (classique ou cost-aware selon la config)
-    if instrument.cost_aware_labeling:
+    # 1. Target labelling selon target_mode
+    n_before = len(h1)
+    mode = instrument.target_mode
+
+    if mode == "forward_return":
+        logger.info(
+            "Target FORWARD_RETURN (régression): horizon=%dh...",
+            instrument.target_horizon_hours,
+        )
+        h1["Target"] = compute_forward_return_target(
+            h1,
+            horizon_hours=instrument.target_horizon_hours,
+            pip_size=instrument.pip_size,
+        )
+    elif mode == "directional_clean":
+        logger.info(
+            "Target DIRECTIONAL_CLEAN (binaire): horizon=%dh, "
+            "noise=%.1fx ATR_%d...",
+            instrument.target_horizon_hours,
+            instrument.target_noise_threshold_atr,
+            instrument.target_atr_period,
+        )
+        h1["Target"] = compute_directional_clean_target(
+            h1,
+            horizon_hours=instrument.target_horizon_hours,
+            noise_threshold_atr=instrument.target_noise_threshold_atr,
+            atr_period=instrument.target_atr_period,
+            pip_size=instrument.pip_size,
+        )
+    elif mode == "cost_aware_v2":
+        logger.info(
+            "Target COST_AWARE_V2: TP=%.1f, SL=%.1f, Window=%dh, "
+            "Friction=%.1fp, k_ATR=%.1f...",
+            tp_pips, sl_pips, window,
+            instrument.friction_pips, instrument.target_k_atr,
+        )
+        h1["Target"] = compute_cost_aware_target_v2(
+            h1,
+            tp_pips=tp_pips,
+            sl_pips=sl_pips,
+            window=window,
+            friction_pips=instrument.friction_pips,
+            k_atr=instrument.target_k_atr,
+            pip_size=instrument.pip_size,
+        )
+    elif instrument.cost_aware_labeling:
+        # Legacy : cost_aware_labeling (conservé pour rétrocompatibilité)
         logger.info(
             "Application de la triple barriere COST-AWARE "
             "(TP=%.1f, SL=%.1f, Window=%dh, Friction=%.1fp, MinProfit=%.1fp)...",
             tp_pips, sl_pips, window,
             instrument.friction_pips, instrument.min_profit_pips_cost_aware,
         )
-        n_before = len(h1)
         h1["Target"] = apply_triple_barrier_cost_aware(
             h1, tp_pips=tp_pips, sl_pips=sl_pips, window=window,
             pip_size=instrument.pip_size,
@@ -93,12 +140,12 @@ def build_ml_ready(
             min_profit_pips=instrument.min_profit_pips_cost_aware,
         )
     else:
+        # Triple barrière classique (défaut)
         logger.info(
             "Application de la triple barriere classique "
             "(TP=%.1f, SL=%.1f, Window=%dh)...",
             tp_pips, sl_pips, window,
         )
-        n_before = len(h1)
         h1["Target"] = apply_triple_barrier(
             h1, tp_pips=tp_pips, sl_pips=sl_pips, window=window,
             pip_size=instrument.pip_size,

@@ -19,6 +19,7 @@ class BacktestConfig:
     commission_pips: float = 0.5
     slippage_pips: float = 1.0
     confidence_threshold: float = 0.33
+    continuous_signal_threshold: float = 0.0005
     initial_capital: float = 10_000.0
     pip_value_eur: float = 1.0
 
@@ -59,6 +60,10 @@ class BacktestConfig:
         if not (0 < self.confidence_threshold <= 1):
             raise ValueError(
                 f"confidence_threshold doit être dans (0, 1], reçu {self.confidence_threshold}"
+            )
+        if self.continuous_signal_threshold <= 0:
+            raise ValueError(
+                f"continuous_signal_threshold doit être > 0, reçu {self.continuous_signal_threshold}"
             )
         if self.initial_capital <= 0:
             raise ValueError(f"initial_capital doit être > 0, reçu {self.initial_capital}")
