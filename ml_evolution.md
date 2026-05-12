@@ -422,3 +422,37 @@ Ajout du labelling triple barrière avec prise en compte des coûts de friction 
 - La feature est prête à être activée (`cost_aware_labeling=True` dans la config) mais n'aura d'impact significatif qu'avec des TP/SL plus serrés (5-10 pips).
 - **Tests** : 231/231 passent (dont 11 cost-aware + 19 triple barrier existants).
 
+## Date/Version: 16 — 2026-05-12 (Roadmap stratégique documentée)
+
+- **Modification** : Création du dossier [`docs/`](docs/) avec 8 fichiers de roadmap : `step_01_target_redefinition.md`, `step_02_robust_validation_framework.md`, `step_03_gbm_primary_classifier.md`, `step_04_session_aware_features.md`, `step_05_economic_calendar_integration.md`, `step_06_meta_labeling_calibration.md`, `step_07_cross_asset_validation.md`, et [`docs/README.md`](docs/README.md) (index avec critères go/no-go inter-étapes).
+
+- **Hypothèse** : Les 15 itérations précédentes ont épuisé les optimisations cosmétiques sans débloquer la fiabilité statistique (DSR 2025 = -1.97, p(Sharpe>0) = 0.29). Une roadmap structurée attaquant les **causes racines** (cible bruitée à 36% NEUTRE, validation mono-split fragile, biais directionnel SHORT 75%) plutôt qu'empilant des optimisations marginales est requise. Chaque fichier `step_NN_*.md` documente une piste avec : hypothèse mathématique, méthodologie d'implémentation, métriques de validation cibles, risques. Aucun code écrit à ce stade — documentation stratégique uniquement.
+
+- **Sélection des 7 pistes** (priorisées par impact sur la fiabilité statistique, pas sur le ROI cosmétique) :
+  - **step_01** (Rupture, 🔴) : redéfinition cible (régression forward-return / binaire purifiée / cost-aware v2) pour augmenter le signal-to-noise
+  - **step_02** (Méthodologie, 🔴) : Combinatorial Purged CV (López de Prado ch.12) + Probabilistic/Deflated Sharpe Ratio (Bailey & López de Prado 2014)
+  - **step_03** (Modèle, 🟠) : LightGBM/XGBoost + Optuna avec inner CV temporel — early stopping comme régularisation explicite
+  - **step_04** (Feature engineering, 🟠) : `session_id` + `ATR_session_zscore` + range_open_session (Tokyo/Londres/NY/overlap LdN-NY/low_liq)
+  - **step_05** (Feature exogène, 🟠) : intégration calendrier macro Forex Factory (NFP, CPI, FOMC, BCE, BoE, BoJ) + `CalendarFilter`
+  - **step_06** (Optimisation, 🟠) : calibration isotonique du méta-classifieur + seuil breakeven analytique (formule TP/SL/friction) ou robust_cpcv
+  - **step_07** (Validation, 🟡) : test cross-actif GBPUSD/USDJPY/XAUUSD avec config identique (aucun tuning par actif) — gate final go/no-go production
+
+- **Hors-scope explicite** : HMM/régime-switching, deep learning (taille dataset insuffisante), microstructure tick-by-tick (données absentes), position sizing Kelly (prématuré sans edge confirmé). Réintégrables en v17+ si l'edge devient fiable.
+
+- **Résultats** : aucun (étape documentaire). Les résultats viendront à l'exécution séquentielle des steps.
+
+- **Critères de bascule** documentés dans [`docs/README.md`](docs/README.md) :
+  - Après step_01 : accuracy OOS > 0.36 → step_03 ; sinon reconsidérer projet
+  - Après step_02 : DSR > 0 et % splits profitables > 60 % → continuer ; sinon retour step_01
+  - Après steps 03-06 : Sharpe OOS 2025 > 0.50 et DSR > 0 → step_07 ; sinon ablation study
+  - Après step_07 : Sharpe > 0 sur ≥ 2 actifs / 4 → GO production ; sinon overfit confirmé
+
+- **Target Metrics pour v17** : 
+  - DSR 2025 > 0 sur distribution CPCV (≥ 200 splits)
+  - p(Sharpe > 0) < 0.05 bootstrap
+  - Sharpe OOS 2025 > 0.50
+  - WR OOS 2025 > 38 % (breakeven 27.7 % + marge)
+  - Biais directionnel < 60 %
+
+- **Prochaine étape immédiate** : démarrer step_01 (target redefinition) **et** step_02 (CPCV) en parallèle. Ce sont les deux pistes "causes racines" indépendantes.
+
