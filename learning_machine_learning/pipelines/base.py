@@ -2,6 +2,8 @@
 
 Définit la séquence standard : clean → features → train → predict → backtest → report.
 Chaque pipeline concret (EurUsdPipeline, BtcUsdPipeline) override les étapes spécifiques.
+
+Support également le walk-forward retraining (v14).
 """
 
 from __future__ import annotations
@@ -9,7 +11,13 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
+import numpy as np
+import pandas as pd
+
 from learning_machine_learning.config.registry import ConfigRegistry
+from learning_machine_learning.core.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 class BasePipeline(ABC):
@@ -162,6 +170,146 @@ class BasePipeline(ABC):
                 all_metrics[year] = metrics
 
         return all_trades, all_metrics
+
+    def run_walk_forward(
+        self,
+        ml_data: Any,
+        data: dict[str, Any],
+        train_months: int = 36,
+        step_months: int = 3,
+    ) -> dict[str, Any]:
+        """Exécute le pipeline en walk-forward retraining (v14).
+
+        À chaque fold :
+        1. Réentraîne le modèle sur [fold_start, fold_start + train_months).
+        2. Prédit sur [train_end + purge, train_end + purge + step_months).
+        3. Agrège toutes les prédictions OOS en une série unique.
+
+        Args:
+            ml_data: DataFrame ML-ready complet (index datetime).
+            data: Dict des données brutes (doit contenir 'h1').
+            train_months: Durée de la fenêtre d'entraînement en mois.
+            step_months: Pas d'avancement entre les folds en mois.
+
+        Returns:
+            Dict avec :
+            - 'predictions_agg': DataFrame des prédictions OOS agrégées.
+            - 'trades_agg': DataFrame des trades simulés.
+            - 'metrics_agg': Dict des métriques globales.
+            - 'fold_count': Nombre de folds générés.
+            - 'X_cols': Colonnes de features utilisées.
+        """
+        from learning_machine_learning.model.training import (
+            _FILTER_ONLY_COLS,
+            train_model,
+            walk_forward_train,
+        )
+        from learning_machine_learning.model.prediction import predict_oos
+
+        # 1. Déterminer X_cols (comme dans train_model)
+        drop_cols = {"Target", "Spread"} | _FILTER_ONLY_COLS
+        X_cols = [c for c in ml_data.columns if c not in drop_cols]
+
+        # 2. Factory de modèle utilisant les hyperparamètres de la config
+        rf_params = self.model_cfg.rf_params
+
+        def model_factory(X_train: pd.DataFrame, y_train: pd.Series) -> Any:
+            return train_model(X_train, y_train, rf_params)
+
+        # 3. Walk-forward : itérer sur les folds
+        all_predictions: list[pd.DataFrame] = []
+        fold_info: list[dict[str, Any]] = []
+
+        folds = walk_forward_train(
+            df=ml_data,
+            X_cols=X_cols,
+            model_factory=model_factory,
+            train_months=train_months,
+            step_months=step_months,
+            purge_hours=self.model_cfg.purge_hours,
+            extra_drop_cols=_FILTER_ONLY_COLS,
+        )
+
+        class_map = None
+        for fold_idx, (model, train_start, train_end, test_start, test_end) in enumerate(folds, start=1):
+            # Prédire sur la période de test de ce fold
+            test_mask = (ml_data.index >= test_start) & (ml_data.index < test_end)
+            test_slice = ml_data.loc[test_mask]
+
+            if test_slice.empty:
+                continue
+
+            # Construire un sous-DataFrame pour predict_oos
+            X_test = test_slice[X_cols]
+            preds_array = model.predict(X_test)
+            probas = model.predict_proba(X_test)
+
+            if class_map is None:
+                class_map = {float(cls): int(idx) for idx, cls in enumerate(model.classes_)}
+
+            def _get_col(class_key: float) -> "np.ndarray":
+                import numpy as np
+                if class_key in class_map:
+                    return probas[:, class_map[class_key]]
+                return np.zeros(len(probas), dtype=np.float64)
+
+            fold_preds = pd.DataFrame(
+                {
+                    "Close_Reel_Direction": test_slice["Target"] if "Target" in test_slice.columns else np.nan,
+                    "Prediction_Modele": preds_array,
+                    "Confiance_Baisse_%": np.round(_get_col(-1.0) * 100, 2),
+                    "Confiance_Neutre_%": np.round(_get_col(0.0) * 100, 2),
+                    "Confiance_Hausse_%": np.round(_get_col(1.0) * 100, 2),
+                },
+                index=test_slice.index,
+            )
+
+            if "Spread" in test_slice.columns:
+                fold_preds["Spread"] = test_slice["Spread"]
+
+            all_predictions.append(fold_preds)
+            fold_info.append({
+                "fold": fold_idx,
+                "train_start": str(train_start.date()),
+                "train_end": str(train_end.date()),
+                "test_start": str(test_start.date()),
+                "test_end": str(test_end.date()),
+                "n_train": int(((ml_data.index >= train_start) & (ml_data.index < train_end)).sum()),
+                "n_test": len(test_slice),
+            })
+
+        # 4. Agréger les prédictions
+        if not all_predictions:
+            raise ValueError("Aucune prédiction OOS générée par le walk-forward.")
+
+        predictions_agg = pd.concat(all_predictions).sort_index()
+        # Dédupliquer (les folds ne se chevauchent pas, mais par précaution)
+        predictions_agg = predictions_agg[~predictions_agg.index.duplicated(keep="first")]
+
+        # 5. Backtest sur les prédictions agrégées
+        # Structurer comme evaluate_model pour run_backtest (dict année -> DataFrame)
+        predictions_by_year: dict[int, pd.DataFrame] = {}
+        for year in predictions_agg.index.year.unique():
+            predictions_by_year[int(year)] = predictions_agg[predictions_agg.index.year == year]
+
+        trades_agg, metrics_agg = self.run_backtest(
+            predictions_by_year, ml_data, data.get("h1"),
+        )
+
+        n_folds = len(all_predictions)
+        logger.info(
+            "Walk-forward terminé : %d folds, %d prédictions agrégées, %d années couvertes.",
+            n_folds, len(predictions_agg), len(predictions_by_year),
+        )
+
+        return {
+            "predictions_agg": predictions_agg,
+            "trades_agg": trades_agg,
+            "metrics_agg": metrics_agg,
+            "fold_count": n_folds,
+            "fold_info": fold_info,
+            "X_cols": X_cols,
+        }
 
     def run(self) -> dict[str, Any]:
         """Exécute le pipeline complet.

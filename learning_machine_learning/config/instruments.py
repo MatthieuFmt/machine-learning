@@ -26,6 +26,9 @@ class InstrumentConfig:
     primary_tf: str
     macro_instruments: FrozenSet[str]
     features_dropped: tuple[str, ...] = ()
+    cost_aware_labeling: bool = False
+    friction_pips: float = 1.5
+    min_profit_pips_cost_aware: float = 3.0
 
     def __post_init__(self) -> None:
         if self.pip_size <= 0:

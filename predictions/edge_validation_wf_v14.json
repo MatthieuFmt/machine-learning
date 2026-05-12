@@ -1,0 +1,272 @@
+{
+  "2013": {
+    "n_trades": 43,
+    "breakeven": {
+      "wr_pct": 28.75,
+      "observed_wr_pct": 32.56,
+      "margin_pct": 3.81
+    },
+    "bootstrap_sharpe": {
+      "observed": 0.048826,
+      "mean_bootstrap": 0.039392,
+      "p_value_gt_0": 0.3841,
+      "ci_95_lower": -0.283473,
+      "ci_95_upper": 0.331333
+    },
+    "deflated_sharpe": {
+      "dsr": -2.47764,
+      "psr": 0.006613,
+      "e_max_sr": 0.259756,
+      "n_trials": 13
+    },
+    "t_statistic": {
+      "mean_pnl": 0.8175,
+      "std_pnl": 16.7438,
+      "t_stat": 0.320172,
+      "p_value": 0.750426
+    }
+  },
+  "2014": {
+    "n_trades": 198,
+    "breakeven": {
+      "wr_pct": 28.75,
+      "observed_wr_pct": 21.72,
+      "margin_pct": -7.03
+    },
+    "bootstrap_sharpe": {
+      "observed": -0.196377,
+      "mean_bootstrap": -0.201398,
+      "p_value_gt_0": 0.995,
+      "ci_95_lower": -0.37227,
+      "ci_95_upper": -0.046642
+    },
+    "deflated_sharpe": {
+      "dsr": -8.000961,
+      "psr": 0.0,
+      "e_max_sr": 0.121051,
+      "n_trials": 13
+    },
+    "t_statistic": {
+      "mean_pnl": -2.9126,
+      "std_pnl": 14.8319,
+      "t_stat": -2.763266,
+      "p_value": 0.006265
+    }
+  },
+  "2016": {
+    "n_trades": 33,
+    "breakeven": {
+      "wr_pct": 28.75,
+      "observed_wr_pct": 21.21,
+      "margin_pct": -7.54
+    },
+    "bootstrap_sharpe": {
+      "observed": -0.184521,
+      "mean_bootstrap": -0.21906,
+      "p_value_gt_0": 0.8574,
+      "ci_95_lower": -0.713657,
+      "ci_95_upper": 0.14485
+    },
+    "deflated_sharpe": {
+      "dsr": -4.949908,
+      "psr": 0.0,
+      "e_max_sr": 0.296512,
+      "n_trials": 13
+    },
+    "t_statistic": {
+      "mean_pnl": -2.6533,
+      "std_pnl": 14.3794,
+      "t_stat": -1.059991,
+      "p_value": 0.297084
+    }
+  },
+  "2017": {
+    "n_trades": 237,
+    "breakeven": {
+      "wr_pct": 28.75,
+      "observed_wr_pct": 24.05,
+      "margin_pct": -4.7
+    },
+    "bootstrap_sharpe": {
+      "observed": -0.123264,
+      "mean_bootstrap": -0.125114,
+      "p_value_gt_0": 0.969,
+      "ci_95_lower": -0.267012,
+      "ci_95_upper": 0.00437
+    },
+    "deflated_sharpe": {
+      "dsr": -6.45036,
+      "psr": 0.0,
+      "e_max_sr": 0.110643,
+      "n_trials": 13
+    },
+    "t_statistic": {
+      "mean_pnl": -1.7305,
+      "std_pnl": 14.0392,
+      "t_stat": -1.897631,
+      "p_value": 0.058965
+    }
+  },
+  "2019": {
+    "n_trades": 9,
+    "breakeven": {
+      "wr_pct": 28.75,
+      "observed_wr_pct": 11.11,
+      "margin_pct": -17.64
+    },
+    "bootstrap_sharpe": {
+      "observed": -0.459529,
+      "mean_bootstrap": -1.648329,
+      "p_value_gt_0": 0.9186,
+      "ci_95_lower": -18.279971,
+      "ci_95_upper": 0.16187
+    },
+    "deflated_sharpe": {
+      "dsr": -5.520602,
+      "psr": 0.0,
+      "e_max_sr": 0.567778,
+      "n_trials": 13
+    },
+    "t_statistic": {
+      "mean_pnl": -5.0124,
+      "std_pnl": 10.9077,
+      "t_stat": -1.378586,
+      "p_value": 0.205342
+    }
+  },
+  "2020": {
+    "n_trades": 118,
+    "breakeven": {
+      "wr_pct": 28.75,
+      "observed_wr_pct": 32.2,
+      "margin_pct": 3.45
+    },
+    "bootstrap_sharpe": {
+      "observed": 0.005969,
+      "mean_bootstrap": 0.00348,
+      "p_value_gt_0": 0.4713,
+      "ci_95_lower": -0.186246,
+      "ci_95_upper": 0.176754
+    },
+    "deflated_sharpe": {
+      "dsr": -2.935016,
+      "psr": 0.001668,
+      "e_max_sr": 0.156805,
+      "n_trials": 13
+    },
+    "t_statistic": {
+      "mean_pnl": 0.0977,
+      "std_pnl": 16.3614,
+      "t_stat": 0.064838,
+      "p_value": 0.948414
+    }
+  },
+  "2022": {
+    "n_trades": 25,
+    "breakeven": {
+      "wr_pct": 28.75,
+      "observed_wr_pct": 40.0,
+      "margin_pct": 11.25
+    },
+    "bootstrap_sharpe": {
+      "observed": 0.238649,
+      "mean_bootstrap": 0.234847,
+      "p_value_gt_0": 0.1131,
+      "ci_95_lower": -0.161628,
+      "ci_95_upper": 0.627815
+    },
+    "deflated_sharpe": {
+      "dsr": -0.913711,
+      "psr": 0.180434,
+      "e_max_sr": 0.340667,
+      "n_trials": 13
+    },
+    "t_statistic": {
+      "mean_pnl": 4.7368,
+      "std_pnl": 19.8482,
+      "t_stat": 1.193247,
+      "p_value": 0.244435
+    }
+  },
+  "2023": {
+    "n_trades": 180,
+    "breakeven": {
+      "wr_pct": 28.75,
+      "observed_wr_pct": 25.56,
+      "margin_pct": -3.19
+    },
+    "bootstrap_sharpe": {
+      "observed": -0.087977,
+      "mean_bootstrap": -0.09234,
+      "p_value_gt_0": 0.8813,
+      "ci_95_lower": -0.254576,
+      "ci_95_upper": 0.054786
+    },
+    "deflated_sharpe": {
+      "dsr": -5.16547,
+      "psr": 0.0,
+      "e_max_sr": 0.126959,
+      "n_trials": 13
+    },
+    "t_statistic": {
+      "mean_pnl": -1.5078,
+      "std_pnl": 17.1383,
+      "t_stat": -1.180331,
+      "p_value": 0.239435
+    }
+  },
+  "2025": {
+    "n_trades": 10,
+    "breakeven": {
+      "wr_pct": 28.75,
+      "observed_wr_pct": 30.0,
+      "margin_pct": 1.25
+    },
+    "bootstrap_sharpe": {
+      "observed": -0.297978,
+      "mean_bootstrap": -1.524159,
+      "p_value_gt_0": 0.8283,
+      "ci_95_lower": -2.531938,
+      "ci_95_upper": 0.24977
+    },
+    "deflated_sharpe": {
+      "dsr": -4.739069,
+      "psr": 1e-06,
+      "e_max_sr": 0.538641,
+      "n_trials": 13
+    },
+    "t_statistic": {
+      "mean_pnl": -3.1066,
+      "std_pnl": 10.4255,
+      "t_stat": -0.942289,
+      "p_value": 0.370649
+    }
+  },
+  "2026": {
+    "n_trades": 103,
+    "breakeven": {
+      "wr_pct": 28.75,
+      "observed_wr_pct": 32.04,
+      "margin_pct": 3.29
+    },
+    "bootstrap_sharpe": {
+      "observed": 0.01991,
+      "mean_bootstrap": 0.015351,
+      "p_value_gt_0": 0.4238,
+      "ci_95_lower": -0.185822,
+      "ci_95_upper": 0.202832
+    },
+    "deflated_sharpe": {
+      "dsr": -2.689197,
+      "psr": 0.003581,
+      "e_max_sr": 0.167834,
+      "n_trials": 13
+    },
+    "t_statistic": {
+      "mean_pnl": 0.3024,
+      "std_pnl": 15.1898,
+      "t_stat": 0.202068,
+      "p_value": 0.840266
+    }
+  }
+}

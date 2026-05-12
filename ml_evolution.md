@@ -361,3 +361,64 @@ Ajouter `"momentum": 0` dans le dict `n_filtres_appliques` :
   - Walk-forward 2-étapes (méta entraîné sur 2023, appliqué 2024 ET 2025) — prompt 2
   - Cost-aware labeling (triple barrière intégrant spread+slippage) — prompt 3
   - Multi-asset (BTCUSD, XAUUSD) — prompt 4
+
+## Date/Version: 14 — 2026-05-12:20:21
+- **Modification** : Walk-Forward Retraining (prompt 2). Ajout du générateur [`walk_forward_train()`](learning_machine_learning/model/training.py:108) — fenêtre glissante 36 mois, step 3 mois, purge 48h, zéro look-ahead. Méthode [`BasePipeline.run_walk_forward()`](learning_machine_learning/pipelines/base.py:174) — réentraînement par fold, agrégation prédictions OOS, backtest, edge validation. Script [`run_pipeline_walk_forward.py`](run_pipeline_walk_forward.py:1). Tests [`tests/unit/test_walk_forward.py`](tests/unit/test_walk_forward.py) : 8/8 pass. Suite complète : 220/220 pass.
+- **Hypothèse** : Le split statique train≤2023/val=2024/test=2025 (v1-v13) ne capture pas la non-stationnarité. Le walk-forward réentraîne tous les 3 mois sur 36 mois glissants, s'adaptant aux changements de régime (v13 a montré que le modèle statique échoue sur 2025).
+- **Résultats v14 — Walk-Forward (5 folds, 7611 prédictions OOS)** :
+
+| Année | Trades | WR | Sharpe/trade | p(Sharpe>0) | DSR | Décision |
+|---|---|---|---|---|---|---|
+| 2013 | 43 | 32.6% | +0.32 | 0.38 | -2.48 | NON |
+| 2014 | 198 | 21.7% | -2.77 | 0.99 | -8.00 | NON |
+| 2016 | 33 | 21.2% | -1.08 | 0.86 | -4.95 | NON |
+| 2017 | 237 | 24.1% | -1.90 | 0.97 | -6.45 | NON |
+| 2019 | 9 | 11.1% | -1.46 | 0.92 | -5.52 | NON |
+| 2020 | 118 | 32.2% | +0.07 | 0.47 | -2.94 | NON |
+| 2022 | 25 | 40.0% | +1.22 | 0.11 | -0.91 | NON |
+| 2023 | 180 | 25.6% | -1.18 | 0.88 | -5.17 | NON |
+| 2025 | 10 | 30.0% | -0.99 | 0.83 | -4.74 | NON |
+| 2026 | 103 | 32.0% | +0.20 | 0.42 | -2.69 | NON |
+
+- **Analyse** : Aucune année ne passe le test d'edge. Même 2022 (meilleure année, WR=40%, Sharpe/trade=+1.22) a p=0.11 > 0.05 et DSR=-0.91 < 0. Le walk-forward seul ne résout pas le problème fondamental : les features et la target Direction_SMA200_D1 ne capturent pas un signal suffisamment fort et stable.
+- **Comparaison statique vs walk-forward sur 2025** : WR 33.3% (statique) vs 30.0% (w-f), Sharpe 0.04 vs -0.99. Le walk-forward est plus réaliste mais ne produit pas d'edge.
+- **Décision** : Le walk-forward est une amélioration méthodologique (plus réaliste, pas de look-ahead) mais la cause racine est la qualité du signal, pas la méthode d'entraînement. Prochaine étape : cost-aware labeling intégrant spread+slippage (prompt 3) ou diversification multi-asset (prompt 4).
+## Date/Version: 15 — 2026-05-12:21:00
+
+### Cost-Aware Labeling (Prompt 3)
+
+Ajout du labelling triple barrière avec prise en compte des coûts de friction (commission + slippage) et d'un seuil de profit minimum net.
+
+#### Fichiers modifiés/créés
+
+1. [`learning_machine_learning/features/triple_barrier.py`](learning_machine_learning/features/triple_barrier.py:119) — Nouvelle fonction `apply_triple_barrier_cost_aware()` (120 lignes). Même algorithme bidirectionnel que `apply_triple_barrier` mais avec 2 différences :
+   - TP touché → label ±1 seulement si `tp_pips - friction_pips >= min_profit_pips`
+   - Timeout → calcul du PnL sur Close, label directionnel seulement si `|PnL| - friction_pips >= min_profit_pips`
+
+2. [`learning_machine_learning/config/instruments.py`](learning_machine_learning/config/instruments.py:31) — 3 nouveaux champs dans `InstrumentConfig` :
+   - `cost_aware_labeling: bool = False`
+   - `friction_pips: float = 1.5`
+   - `min_profit_pips_cost_aware: float = 3.0`
+
+3. [`learning_machine_learning/features/pipeline.py`](learning_machine_learning/features/pipeline.py:77) — Branchement dans `build_ml_ready()` : si `instrument.cost_aware_labeling` est True, utilise `apply_triple_barrier_cost_aware` au lieu de `apply_triple_barrier`.
+
+4. [`tests/unit/test_cost_aware_labeling.py`](tests/unit/test_cost_aware_labeling.py:1) — 11 tests unitaires (<1s) couvrant : TP profitable/non-profitable, timeout PnL, SL, NaN convention, validation params négatifs, shape matching, ratio de trades raisonnable.
+
+5. [`compare_cost_aware.py`](compare_cost_aware.py:1) — Script de comparaison classique vs cost-aware sur données réelles EURUSD H1.
+
+#### Résultats de la comparaison
+
+| Métrique | Classique | Cost-Aware | Delta |
+|---|---|---|---|
+| LONG | 32267 | 32468 | +201 |
+| SHORT | 31505 | 31706 | +201 |
+| NEUTRE | 36203 (36.2%) | 35801 (35.8%) | -0.4pp |
+| Total valide | 99975 | 99975 | — |
+
+#### Analyse
+
+- Impact quasi-nul avec TP=20p / SL=10p actuels car friction=1.5p est négligeable face au TP de 20p.
+- Le cost-aware AJOUTE des trades (pas n'en enlève) : les timeouts que le classique marque 0 (pas de TP/SL touché) peuvent devenir directionnels si le PnL sur Close est profitable après friction.
+- La feature est prête à être activée (`cost_aware_labeling=True` dans la config) mais n'aura d'impact significatif qu'avec des TP/SL plus serrés (5-10 pips).
+- **Tests** : 231/231 passent (dont 11 cost-aware + 19 triple barrier existants).
+

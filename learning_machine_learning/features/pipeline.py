@@ -12,7 +12,10 @@ import pandas_ta as ta
 
 from learning_machine_learning.config.instruments import InstrumentConfig
 from learning_machine_learning.core.logging import get_logger
-from learning_machine_learning.features.triple_barrier import apply_triple_barrier
+from learning_machine_learning.features.triple_barrier import (
+    apply_triple_barrier,
+    apply_triple_barrier_cost_aware,
+)
 from learning_machine_learning.features.merger import merge_features, log_row_loss
 from learning_machine_learning.features.macro import calc_macro_return
 from learning_machine_learning.features.technical import (
@@ -74,14 +77,32 @@ def build_ml_ready(
 
     h1 = data[primary_tf].copy()
 
-    # 1. Triple barrier
-    logger.info("Application de la triple barriere (TP=%.1f, SL=%.1f, Window=%dh)...",
-                tp_pips, sl_pips, window)
-    n_before = len(h1)
-    h1["Target"] = apply_triple_barrier(
-        h1, tp_pips=tp_pips, sl_pips=sl_pips, window=window,
-        pip_size=instrument.pip_size,
-    )
+    # 1. Triple barrier (classique ou cost-aware selon la config)
+    if instrument.cost_aware_labeling:
+        logger.info(
+            "Application de la triple barriere COST-AWARE "
+            "(TP=%.1f, SL=%.1f, Window=%dh, Friction=%.1fp, MinProfit=%.1fp)...",
+            tp_pips, sl_pips, window,
+            instrument.friction_pips, instrument.min_profit_pips_cost_aware,
+        )
+        n_before = len(h1)
+        h1["Target"] = apply_triple_barrier_cost_aware(
+            h1, tp_pips=tp_pips, sl_pips=sl_pips, window=window,
+            pip_size=instrument.pip_size,
+            friction_pips=instrument.friction_pips,
+            min_profit_pips=instrument.min_profit_pips_cost_aware,
+        )
+    else:
+        logger.info(
+            "Application de la triple barriere classique "
+            "(TP=%.1f, SL=%.1f, Window=%dh)...",
+            tp_pips, sl_pips, window,
+        )
+        n_before = len(h1)
+        h1["Target"] = apply_triple_barrier(
+            h1, tp_pips=tp_pips, sl_pips=sl_pips, window=window,
+            pip_size=instrument.pip_size,
+        )
     h1.dropna(subset=["Target"], inplace=True)
     log_row_loss("dropna Target (triple barrier)", n_before, len(h1))
 
