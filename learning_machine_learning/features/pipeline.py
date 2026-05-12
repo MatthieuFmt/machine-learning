@@ -87,9 +87,7 @@ def build_ml_ready(
 
     # 2. Features techniques H1
     h1["Log_Return"] = np.log(h1["Close"] / h1["Close"].shift(1))
-    ema_dists = calc_ema_distance(h1, periods=(9, 21, 50))
-    h1["Dist_EMA_9"] = ema_dists["Dist_EMA_9"]
-    h1["Dist_EMA_21"] = ema_dists["Dist_EMA_21"]
+    ema_dists = calc_ema_distance(h1, periods=(50,))
     h1["Dist_EMA_50"] = ema_dists["Dist_EMA_50"]
     h1["RSI_14"] = ta.rsi(h1["Close"], length=14)
     h1["ADX_14"] = ta.adx(h1["High"], h1["Low"], h1["Close"], length=14)["ADX_14"]
@@ -145,7 +143,7 @@ def build_ml_ready(
     # 6. Selection des colonnes finales
     colonnes_finales = [
         "Target", "Spread", "Log_Return",
-        "Dist_EMA_9", "Dist_EMA_21", "Dist_EMA_50",
+        "Dist_EMA_50",
         "RSI_14", "ADX_14", "ATR_Norm", "BB_Width",
         "Hour_Sin", "Hour_Cos",
         "Volatilite_Realisee_24h", "Range_ATR_ratio",

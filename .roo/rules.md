@@ -1,42 +1,46 @@
-# Règles de Codage — Pipeline ML Trading
-
 ## 1. Typage
-- **Toute fonction/méthode** doit avoir des type hints complets sur la signature et le retour.
-- Utiliser `from __future__ import annotations` en tête de chaque fichier.
-- Les types génériques (`dict`, `list`, `tuple`) doivent avoir leurs paramètres : `dict[str, float]`, `list[int]`, `tuple[str, ...]`.
-- Préférer `numpy.ndarray` à `list` pour les tableaux numériques.
++ - `mypy --strict` doit passer (voir pyproject.toml)
++ - `ruff check` doit passer (E/F/I/N/W/UP/B/C4/SIM)
+- Préférer `typing.Protocol` pour les signatures injectables (weight_func, filter)
 
-## 2. Tests Unitaires
-- **Après toute modification de code** dans `learning_machine_learning/`, exécuter :
-  ```powershell
-  python -m pytest tests/unit/ -v --tb=short
-  ```
-- Si des tests échouent, corriger avant de continuer.
-- Tout nouveau module doit être accompagné d'un fichier de tests dans `tests/unit/`.
-- **Obligatoire** : Toute nouvelle classe publique ou fonction exportée doit avoir ses tests unitaires ajoutés **dans le même commit** que le code. Ne jamais différer les tests. Les tests doivent couvrir : cas nominal, cas d'erreur (ValueError), cas limites (zéro, vide), et invariants.
+## 2. Tests
+- Commande : `python -m pytest tests/ -v --tb=short` (couvre unit + integration + acceptance)
++ - `unit/` : pas d'I/O ; `integration/` : I/O fixtures ; `acceptance/` : bout en bout
++ - Coverage seuil minimum 50% (configuré dans pyproject.toml)
 
 ## 3. Vectorisation
-- **Zéro** `iterrows()`, `itertuples()`, `apply()` avec lambda.
-- Toujours vectoriser avec NumPy : `.values`, `.shift()`, `.rolling()`, opérations broadcast.
-- Les calculs financiers (Sharpe, drawdown, volatilité) doivent être en pur NumPy, pas en boucle Python.
+- Zéro `iterrows()`, `itertuples()`, `apply()` avec lambda.
++ - Exception : boucles `for` autorisées si l'algorithme est **séquentiel par nature** (stateful simulation, triple-barrier early-exit)
 
 ## 4. Anti-Data Leakage
-- Split temporel strict, jamais de `shuffle`.
-- `merge_asof` avec direction `backward` uniquement.
-- Toute feature doit être calculée sur des données **antérieures ou contemporaines** à la barre cible, jamais futures.
-- Les labels triple barrière doivent utiliser `numpy.roll` ou équivalent sans look-ahead.
+- Triple barrier : les `window` dernières barres restent NaN (pas de label sans forward bars suffisantes)
++ - Purge `purge_hours` (≥ window) entre train et OOS (López de Prado embargo)
++ - Split 3-étages : train ≤ TRAIN_END_YEAR / VAL_YEAR / TEST_YEAR — le modèle ne voit jamais val ni test
 
 ## 5. Logging
-- Utiliser le logger structuré du projet (`learning_machine_learning.core.logging`).
-- Chaque étape du pipeline logge ses dimensions (n_lignes, n_colonnes).
-- Toute exception est loggée avec `logger.error("msg", exc_info=True)`.
+- Utiliser `logger.exception(...)` dans tous les blocs `except` (capture le traceback automatiquement)
+- Interdire `print()` dans `learning_machine_learning/` (scripts legacy `1_*` à `4_*` exemptés)
 
-## 6. Immutabilité des Configs
-- Toutes les dataclasses de config sont `frozen=True`.
-- Pour dériver une config, utiliser `dataclasses.replace(config, champ=valeur)`.
-- Pas de mutation de config au runtime.
++ ## 8. Architecture du package
++ - `config/` : dataclasses immuables
++ - `core/` : logging, exceptions, types
++ - `data/` : ingestion + cleaning + validation
++ - `features/` : feature engineering, triple barrier
++ - `model/` : training, evaluation, prediction
++ - `backtest/` : simulator, filters, sizing, metrics, reporting
++ - `analysis/` : diagnostics post-backtest
++ - `pipelines/` : orchestrateurs par actif (BasePipeline + concrets)
 
-## 7. Rapport d'Évolution
-- **Toute modification** du pipeline doit être documentée dans `ml_evolution.md`.
-- Format obligatoire : date/version, modification, hypothèse, résultats pré-fix, résultats post-fix (**mesurés**, pas `[À MESURER]`), target metrics.
-- Mesurer les résultats en relançant `run_pipeline_v1.py` avant d'écrire le log.
++ ## 9. Inversion de dépendances
++ - `simulate_trades` reçoit `weight_func` et `filter_pipeline` en paramètres — JAMAIS `from config import *`
++ - Les filtres implémentent un protocole `apply(df, mask_long, mask_short)` et raisent ValueError si colonne manquante
++ - Pour dériver une config, `dataclasses.replace(config, ...)` — jamais de mutation
+
++ ## 10. Séparation feature-modèle vs feature-filtre
++ - Features exclues de X_train mais nécessaires aux filtres backtest : préservées via `FILTER_KEEP` (features/pipeline.py) et `_FILTER_ONLY_COLS` (model/training.py)
++ - Ex : `ATR_Norm`, `Dist_SMA200_D1` sont gardées dans `ml_data` mais retirées de `X_cols`
+
++ ## 11. Workflow humain
++ - Ne pas lancer `run_pipeline_v1.py` automatiquement — laisser l'utilisateur déclencher
++ - Ne pas commit sans accord explicite
++ - Documenter chaque modif dans `ml_evolution.md` AVANT de proposer la suivante

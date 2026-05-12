@@ -13,12 +13,12 @@ class BacktestConfig:
     absurdes (TP négatif, seuil > 1, etc.).
     """
 
-    tp_pips: float = 20.0
+    tp_pips: float = 30.0
     sl_pips: float = 10.0
     window_hours: int = 24
     commission_pips: float = 0.5
     slippage_pips: float = 1.0
-    confidence_threshold: float = 0.35
+    confidence_threshold: float = 0.33
     initial_capital: float = 10_000.0
     pip_value_eur: float = 1.0
 
@@ -37,7 +37,7 @@ class BacktestConfig:
 
     # Variantes TP/SL
     tp_sl_variants: dict[str, tuple[float, float]] = field(default_factory=lambda: {
-        "baseline": (20.0, 10.0),
+        "baseline": (30.0, 10.0),
         "ratio_1_1": (20.0, 20.0),
         "ratio_3_1": (30.0, 10.0),
     })

@@ -9,7 +9,7 @@ Examiner les derniers rapports de performance (predictions/) + le code source (l
 Lire ml_evolution.md. Resumer l'historique et l'impact des modifications anterieures sur les metriques (Sharpe, max drawdown, precision, win rate).
 
 ### 3. DIAGNOSE & SELECT
-Choisir UNE SEULE amelioration, la plus impactante. Justifier pourquoi ce changement (feature, hyperparametre, meta-labeling, scaling, bias correction, filtre) est prioritaire.
+Choisir UNE ou DEUX ameliorations, les plus impactantes. Justifier pourquoi ce changement (feature, hyperparametre, meta-labeling, scaling, bias correction, filtre) est prioritaire.
 
 ### 4. THINK STEP-BY-STEP (Architecture)
 Raisonner sur l'architecture AVANT de coder : design modulaire, data flow, anti-leakage, vectorisation NumPy/Pandas, pre-allocation. Chaque composant doit avoir type hints, error handling, logging structure.
@@ -17,13 +17,6 @@ Raisonner sur l'architecture AVANT de coder : design modulaire, data flow, anti-
 ### 5. ACTION -- SEARCH-AND-REPLACE
 Format exact :
 FILE: <chemin/relatif>
-
-Regles par fonction/classe :
-- Type hints complets sur toutes les signatures
-- try-except sur tout I/O, logger.error avec stacktrace
-- Vectorise NumPy/Pandas, zero iterrows()/apply()
-- Une seule responsabilite par fonction
-- Zero data leakage : split temporel strict, merge_asof avec offsets
 
 ### 6. UPDATE LOG
 Apres chaque modification, ajouter dans ml_evolution.md :

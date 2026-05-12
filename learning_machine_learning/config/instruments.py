@@ -61,8 +61,8 @@ class EurUsdConfig(InstrumentConfig):
     features_dropped: tuple[str, ...] = (
         "Dist_EMA_9",
         "Dist_EMA_21",
+        "Dist_EMA_20",
         "Log_Return",
-        "XAU_Return",
         "CHF_Return",
         "Dist_EMA_50_D1",
         "BB_Width",
@@ -74,6 +74,11 @@ class EurUsdConfig(InstrumentConfig):
         "ATR_Norm",
         "Volatilite_Realisee_24h",
         "Range_ATR_ratio",
+        "Momentum_5",
+        "Momentum_10",
+        "Momentum_20",
+        "EMA_20_50_cross",
+        "Volatility_Ratio",
     )
 
 

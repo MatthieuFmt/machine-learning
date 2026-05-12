@@ -1,0 +1,63 @@
+J'ai un pipeline ML trading EURUSD H1 dans /d:/Documents/learning-machine-learning. 
+Package learning_machine_learning/. Tests pytest. ml_evolution.md documente 
+5+ versions. Modèle = RandomForest 3-classes (-1/0/1), entraîné jusqu'à 
+TRAIN_END_YEAR=2023, OOS sur 2024 (VAL) et 2025 (TEST).
+
+CONTEXTE : J'ai validé statistiquement (cf. ml_evolution.md dernière entrée) 
+qu'un edge faible existe mais le modèle statique 2010-2023 ne capture pas 
+les régimes récents. Biais directionnel SHORT massif en 2025 (85%) — 
+artefact de la distribution historique baissière EURUSD 2010-2023.
+
+TÂCHE : Implémenter du walk-forward retraining qui réentraîne le modèle 
+glissant pour absorber les changements de régime.
+
+CONCEPT :
+- Fenêtre d'entraînement glissante de 3 ans
+- Réentraînement tous les 3 mois  
+- Test OOS sur les 3 mois suivants
+- Embargo purge_hours entre train et OOS conservé
+
+PLAN TECHNIQUE :
+1. Ajouter dans learning_machine_learning/model/training.py :
+   `walk_forward_train(df, model_factory, train_months=36, step_months=3, 
+   purge_hours=48) -> Iterator[tuple[model, train_window, test_window]]`
+   Générateur yieldant (modèle, période train, période test) à chaque fold.
+
+2. Ajouter dans learning_machine_learning/pipelines/base.py :
+   `run_walk_forward(self) -> tuple[pd.DataFrame, dict]` qui :
+   - Itère sur les folds via walk_forward_train
+   - Agrège les prédictions OOS dans une seule série temporelle
+   - Applique le backtest sur les prédictions agrégées
+   - Retourne (predictions_aggregated, metrics_per_fold + aggregated)
+
+3. Ajouter un script run_pipeline_walk_forward.py à la racine (sur le modèle 
+   de run_pipeline_v1.py).
+
+4. Tests unitaires :
+   - test_walk_forward_no_lookahead (vérifier que train < test à chaque fold)
+   - test_walk_forward_purge_respected
+   - test_walk_forward_aggregated_predictions_cover_all_test_data
+
+5. Mise à jour ml_evolution.md avec :
+   - Comparatif metrics(static train ≤ 2023) vs metrics(walk-forward)
+   - Stabilité du Sharpe fold par fold (graphique optionnel)
+   - Évolution du biais directionnel par fold
+
+CONTRAINTES :
+- mypy strict, ruff, from __future__ import annotations
+- Tests dans tests/unit/ et tests/integration/ selon scope
+- Logger structuré
+- Ne PAS lancer python automatiquement
+- Ne PAS commit sans accord explicite
+
+ATTENTION ANTI-LEAK :
+- Le merge_asof D1/H4 doit rester direction='backward' avec décalage temporel
+- La calibration Platt (si présente) DOIT être refittée à chaque fold sur la 
+  partie tardive du train de ce fold, jamais sur OOS
+- _FILTER_ONLY_COLS et FILTER_KEEP préservés
+
+CRITÈRE DE SUCCÈS :
+- Sharpe OOS aggregated >= -1.0 (versus -2.69 en v5)
+- Biais SHORT < 65% (versus 85%)
+- Si même avec walk-forward le biais reste > 70% → la cause est ailleurs 
+  (cible 3-classes ou features), passer à cost-aware labeling

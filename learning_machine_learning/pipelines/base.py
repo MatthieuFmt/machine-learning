@@ -139,6 +139,9 @@ class BasePipeline(ABC):
                 sl_pips=cfg.sl_pips,
                 window=cfg.window_hours,
                 pip_size=self.instrument.pip_size,
+                seuil_confiance=cfg.confidence_threshold,
+                commission_pips=cfg.commission_pips,
+                slippage_pips=cfg.slippage_pips,
                 filter_pipeline=filter_pipeline,
             )
 
