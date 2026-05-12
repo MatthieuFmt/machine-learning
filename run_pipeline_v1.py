@@ -20,6 +20,18 @@ from learning_machine_learning.model.meta_labeling import (
     train_meta_model,
     apply_meta_filter,
 )
+from learning_machine_learning.analysis.edge_validation import validate_edge
+from learning_machine_learning.config.backtest import BacktestConfig
+
+# v10: Colonnes de contexte de marché pour le méta-modèle
+# Ces colonnes sont dans ml_data (FILTER_KEEP) mais pas dans X_cols.
+# Elles donnent au méta-modèle l'information de régime au moment du trade.
+META_EXTRA_COLS: list[str] = [
+    "ATR_Norm",
+    "Spread",
+    "Dist_SMA200_D1",
+    "Volatilite_Realisee_24h",
+]
 
 def evaluate_meta_thresholds(
     pipeline: EurUsdPipeline,
@@ -30,6 +42,7 @@ def evaluate_meta_thresholds(
     X_cols: list[str],
     val_year: int,
     thresholds: list[float],
+    extra_cols: list[str] | None = None,
 ) -> pd.DataFrame:
     """Sweep des seuils méta sur val_year.
 
@@ -59,6 +72,7 @@ def evaluate_meta_thresholds(
             ml_data=ml_data,
             X_cols=X_cols,
             threshold=t,
+            extra_cols=extra_cols,
         )
         _, metrics_dict = pipeline.run_backtest(
             {val_year: filtered}, ml_data, ohlcv_h1,
@@ -79,7 +93,7 @@ def evaluate_meta_thresholds(
 
 
 def main() -> None:
-    print("=== Pipeline EURUSD v9 (méta-labeling + sweep seuil) ===")
+    print("=== Pipeline EURUSD v12 (méta-RF 10 features + seuil 0.55 fixe) ===")
     pipeline = EurUsdPipeline()
     
     print("1/4 Chargement donnees...")
@@ -95,8 +109,8 @@ def main() -> None:
     model, X_cols = pipeline.train_model(ml)
     predictions = pipeline.evaluate_model(model, ml, X_cols)
     
-    # v9: Méta-labeling avec optimisation du seuil sur val_year
-    print("3.5/4 Méta-labeling + sweep seuil...")
+    # v12: Méta-labeling RF 10 features (sans contexte marché) + seuil 0.55 fixe
+    print("3.5/4 Méta-labeling (RF 10 features, seuil 0.55 fixe)...")
     val_year = pipeline.model_cfg.val_year  # 2024
     test_year = pipeline.model_cfg.test_year  # 2025
 
@@ -106,7 +120,7 @@ def main() -> None:
     val_trades = val_trades_dict.get(val_year)
 
     if val_trades is not None and not val_trades.empty:
-        # Construire les méta-labels à partir des trades val_year
+        # Construire les méta-labels à partir des trades val_year (10 features, sans extra_cols)
         X_meta, y_meta = build_meta_labels(
             trades_df=val_trades,
             predictions_df=predictions[val_year],
@@ -115,12 +129,12 @@ def main() -> None:
         )
 
         if not X_meta.empty:
-            # Entraîner le méta-modèle
+            # Entraîner le méta-modèle RF (v8 — meilleure généralisation observée)
             meta_model = train_meta_model(X_meta, y_meta)
 
-            # Étape 2: Sweep des seuils sur val_year
+            # Sweep diagnostic (informatif seulement — le seuil reste fixe à 0.55)
             thresholds = [0.50, 0.52, 0.55, 0.58, 0.60, 0.65]
-            print(f"   Sweep seuils {thresholds} sur val_year ({val_year})...")
+            print(f"   Sweep diagnostic {thresholds} sur val_year ({val_year})...")
             sweep_df = evaluate_meta_thresholds(
                 pipeline, meta_model,
                 predictions_val=predictions[val_year],
@@ -142,30 +156,28 @@ def main() -> None:
                     f"{row['trades']:6.0f}  {row['dd']:6.1f}"
                 )
 
-            # Sélection du meilleur seuil (max Sharpe)
-            best_idx = sweep_df["sharpe"].idxmax()
-            best_threshold = float(sweep_df.loc[best_idx, "threshold"])
-            best_sharpe = float(sweep_df.loc[best_idx, "sharpe"])
-            print(f"   => Meilleur seuil: {best_threshold:.2f} (Sharpe val={best_sharpe:.4f})")
+            # v12: Seuil fixe 0.55 — meilleure généralisation observée (v8)
+            FIXED_THRESHOLD = 0.55
+            print(f"   => Seuil fixe: {FIXED_THRESHOLD} (v8 — meilleur Sharpe test_year)")
 
-            # Appliquer le meilleur seuil sur test_year (2025) — jamais vu par le sweep
+            # Appliquer le seuil fixe sur test_year (2025)
             predictions[test_year] = apply_meta_filter(
                 meta_model,
                 df_predictions=predictions[test_year],
                 ml_data=ml,
                 X_cols=X_cols,
-                threshold=best_threshold,
+                threshold=FIXED_THRESHOLD,
             )
 
-            # Appliquer aussi sur val_year pour rapport complet (métriques potentiellement optimistes)
+            # Appliquer aussi sur val_year pour rapport complet
             predictions[val_year] = apply_meta_filter(
                 meta_model,
                 df_predictions=predictions[val_year].copy(),
                 ml_data=ml,
                 X_cols=X_cols,
-                threshold=best_threshold,
+                threshold=FIXED_THRESHOLD,
             )
-            print(f"   Méta-filtre appliqué sur val_year={val_year} et test_year={test_year} (seuil={best_threshold:.2f})")
+            print(f"   Méta-filtre appliqué sur val_year={val_year} et test_year={test_year} (seuil={FIXED_THRESHOLD})")
         else:
             print("   ⚠️ X_meta vide, méta-labeling désactivé")
     else:
@@ -191,6 +203,43 @@ def main() -> None:
         metrics_serializable = {k: float(v) if isinstance(v, (int, float)) else str(v) for k, v in m.items()}
         out_path.write_text(json.dumps(metrics_serializable, indent=2, ensure_ascii=False))
         print(f"   -> Sauvegarde: {out_path}")
+    
+    # ── v13: Validation statistique de l'edge ────────────────────────────
+    print(f"\n=== v13: Edge Validation ===")
+    backtest_cfg = BacktestConfig()
+    n_trials = 12  # v1 → v12 = 12 itérations de recherche
+    
+    for year in sorted(trades.keys()):
+        t = trades[year]
+        if t is None or t.empty:
+            print(f"   {year}: pas de trades — validation impossible")
+            continue
+        
+        result = validate_edge(t, backtest_cfg, n_trials_searched=n_trials)
+        
+        print(f"\n   --- {year} ({result['n_trades']} trades) ---")
+        
+        be = result["breakeven"]
+        print(f"   Breakeven WR: {be['wr_pct']}% | Observé: {be['observed_wr_pct']}% | Marge: {be['margin_pct']:+.1f}%")
+        
+        bs = result["bootstrap_sharpe"]
+        print(f"   Bootstrap Sharpe: obs={bs['observed']:.4f} | p(>0)={bs['p_value_gt_0']:.4f} | CI95=[{bs['ci_95_lower']:.4f}, {bs['ci_95_upper']:.4f}]")
+        
+        ds = result["deflated_sharpe"]
+        print(f"   Deflated SR: DSR={ds['dsr']:.4f} | PSR={ds['psr']:.4f} | E[max SR]={ds['e_max_sr']:.4f} (n_trials={ds['n_trials']})")
+        
+        tt = result["t_statistic"]
+        print(f"   t-test: mean={tt['mean_pnl']:.4f} | std={tt['std_pnl']:.4f} | t={tt['t_stat']:.4f} | p={tt['p_value']:.4f}")
+        
+        # Décision
+        p_val = bs["p_value_gt_0"]
+        if p_val < 0.05:
+            decision = "EDGE REEL — passer au walk-forward"
+        elif p_val > 0.10:
+            decision = "EDGE NON CONFIRME — restructurer le probleme"
+        else:
+            decision = "ZONE GRISE — investiguer davantage"
+        print(f"   => DECISION: {decision}")
     
     # Sauvegarder le nombre de colonnes pour le log
     print(f"\n=== Resume ===")

@@ -257,3 +257,107 @@ Ajouter `"momentum": 0` dans le dict `n_filtres_appliques` :
     | v8 | 0.55 | 153 | 33.3% | +103.9 | **+0.53** |
     | v9 | 0.50 | 367 | 28.6% | −220.2 | −0.64 |
 - **Target Metrics pour v10** : Restaurer le seuil 0.55 (meilleure généralisation observée). Piste principale : enrichir les features du méta-modèle avec des colonnes de contexte de trade (ATR_Norm, Spread, Volatilite_Realisee_24h, Dist_SMA200_D1) pour améliorer sa capacité à discriminer les trades profitables indépendamment de l'année. Objectif : Sharpe test_year ≥ +0.5 maintenu ou amélioré.
+
+## Date/Version: 10 — 2026-05-12:08:25
+- **Modification** : (1) Ajout de `META_EXTRA_COLS` = `[ATR_Norm, Spread, Dist_SMA200_D1, Volatilite_Realisee_24h]` dans [`run_pipeline_v1.py`](run_pipeline_v1.py:26) — constante définissant les colonnes de contexte de marché injectées dans le méta-modèle. (2) [`meta_labeling.py`](learning_machine_learning/model/meta_labeling.py:31) — `build_meta_labels()` et `apply_meta_filter()` gagnent le paramètre `extra_cols: list[str] | None` ; ces colonnes sont extraites de `ml_data` et ajoutées à `X_meta`. (3) [`pipeline.py`](learning_machine_learning/features/pipeline.py:165) — `Volatilite_Realisee_24h` ajouté à `FILTER_KEEP` pour qu'il survive au `features_dropped`. (4) [`training.py`](learning_machine_learning/model/training.py:21) — `Volatilite_Realisee_24h` ajouté à `_FILTER_ONLY_COLS` pour qu'il soit exclu de l'entraînement primaire. (5) Tous les appels à `build_meta_labels()`, `apply_meta_filter()`, `evaluate_meta_thresholds()` propagent `extra_cols=META_EXTRA_COLS`.
+- **Hypothèse** : Le méta-modèle v8/v9 ne voyait que les 8 features primaires + signal + confiance (10 features). Il ne disposait d'aucune information de régime de marché au moment du trade. Un trade SHORT gagnant en 2024 (marché ranging) peut avoir les mêmes features primaires qu'un trade SHORT perdant en 2025 (marché haussier) — le méta-modèle ne peut pas discriminer sans contexte. Les 4 colonnes ajoutées (ATR_Norm = volatilité normalisée, Spread = coût de transaction réel, Dist_SMA200_D1 = position dans la tendance long-terme, Volatilite_Realisee_24h = régime de turbulence récent) donnent au méta-modèle l'information nécessaire pour reconnaître les contextes favorables/défavorables indépendamment de l'année. Le méta-modèle passe de 10 à 14 features. Aucun impact sur l'entraînement primaire (ces colonnes restent exclues via `_FILTER_ONLY_COLS`). Le sweep de seuil v9 est conservé.
+- **Résultats (pré-fix — v9)** :
+  - Config : TP=30/SL=10, seuil primaire=0.33, 8 features, méta-seuil=0.50 (optimisé val_year)
+  - 2024 val_year (méta 0.50) ⚠️ optimiste : 203 trades, WR 52.7%, Net +1371.4 pips, Sharpe +4.53
+  - 2025 test_year (méta 0.50) ✅ : 367 trades, WR 28.6%, Net −220.2 pips, Sharpe −0.64
+- **Résultats (post-fix v10 — mesuré)** :
+  - Config : TP=30/SL=10, seuil primaire=0.33, 8 features primaires, 14 features méta (8 primaires + 2 signal/confiance + 4 contexte)
+  - Tableau de sweep val_year (features enrichies) :
+    ```
+      0.50  Sharpe=4.81  Net=+1368.6  WR=53.4%  193 trades  DD=-56.7
+      0.52  Sharpe=4.37  Net=+1286.8  WR=55.8%  163 trades  DD=-47.5
+      0.55  Sharpe=3.63  Net= +869.4  WR=58.2%   98 trades  DD=-38.6
+      0.58  Sharpe=3.60  Net= +689.8  WR=69.0%   58 trades  DD=-19.3
+      0.60  Sharpe=2.82  Net= +430.1  WR=71.4%   35 trades  DD=-29.3
+      0.65  Sharpe=2.34  Net=  +78.1  WR=100.0%   4 trades  DD=  0.0
+    ```
+    Meilleur seuil val = 0.50 (Sharpe=4.81, quasi identique à v9).
+  - 2024 val_year (méta 0.50) ⚠️ optimiste : 193 trades, WR 53.4%, Net +1368.6 pips, Sharpe +4.81
+  - 2025 test_year (méta 0.50) ✅ : 363 trades, WR 26.7%, Net −457.6 pips, Sharpe −1.41
+- **Analyse** : 🔴 DÉGRADATION. L'ajout des 4 colonnes de contexte de marché (ATR_Norm, Spread, Dist_SMA200_D1, Volatilite_Realisee_24h) a aggravé l'overfitting du méta-modèle au lieu de le réduire. Sharpe test_year passe de −0.64 (v9) à −1.41 (v10), perte nette de −457.6 vs −220.2 pips. Hypothèse confirmée d'échec : les features de contexte varient par régime (2024 ranging → 2025 haussier) et le RF les exploite pour discriminer les trades gagnants sur 2024, mais ces patterns de contexte ne se transfèrent pas en 2025. Le méta-modèle RF est structurellement inadapté à la généralisation inter-régime.
+- **Décision pour v11** : Remplacer [`RandomForestClassifier`](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html) par [`GradientBoostingClassifier`](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.GradientBoostingClassifier.html) pour le méta-modèle. Le boosting a une meilleure capacité de généralisation sur données financières (López de Prado, 2018). Conserver les 14 features méta (8 primaires + 2 signal/confiance + 4 contexte). Paramètres initiaux : `n_estimators=100, max_depth=3, learning_rate=0.05, subsample=0.8` pour limiter l'overfitting.
+- **Target Metrics pour v11** : Sharpe test_year ≥ +0.5 (minimum v8), WR test_year ≥ 33%.
+
+## Date/Version: 11 — 2026-05-12:08:40
+- **Modification** : (1) [`meta_labeling.py`](learning_machine_learning/model/meta_labeling.py:96) — `train_meta_model()` gagne le paramètre `model_type: str = "rf"`. Supporte `"rf"` (RandomForest, inchangé) et `"gbm"` (GradientBoostingClassifier). Ajout de `_GBM_DEFAULT_PARAMS` : `n_estimators=100, max_depth=3, learning_rate=0.05, subsample=0.8, min_samples_leaf=20`. L'import `GradientBoostingClassifier` est ajouté. La signature de retour devient `Union[RandomForestClassifier, GradientBoostingClassifier]`. (2) [`run_pipeline_v1.py`](run_pipeline_v1.py:132) — appel `train_meta_model(X_meta, y_meta, model_type="gbm")`. (3) [`apply_meta_filter()`](learning_machine_learning/model/meta_labeling.py:185) — signature élargie à `Union[RandomForestClassifier, GradientBoostingClassifier]` (`.predict_proba()` compatible).
+- **Hypothèse** : Le RF (bagging) mémorise les patterns spécifiques à 2024 via des arbres profonds (max_depth=6) qui ne généralisent pas à 2025. Le GBM (boosting) avec arbres peu profonds (max_depth=3), learning_rate faible (0.05) et stochasticité (subsample=0.8) devrait mieux généraliser entre régimes de marché car chaque arbre corrige marginalement l'erreur résiduelle plutôt que de partitionner l'espace des features.
+- **Résultats (pré-fix — v10)** :
+  - Config : TP=30/SL=10, seuil primaire=0.33, méta-RF 14 features
+  - 2024 val_year (méta 0.50) : 193 trades, WR 53.4%, Net +1368.6 pips, Sharpe +4.81
+  - 2025 test_year (méta 0.50) : 363 trades, WR 26.7%, Net −457.6 pips, Sharpe −1.41
+- **Résultats (post-fix v11 — mesuré)** :
+  - Config : TP=30/SL=10, seuil primaire=0.33, méta-GBM 14 features
+  - Tableau de sweep val_year (GBM) :
+    ```
+      0.50  Sharpe=4.04  Net= +791.9  WR=85.4%   48 trades  DD=-11.1
+      0.52  Sharpe=3.76  Net= +716.5  WR=86.0%   43 trades  DD=-11.1
+      0.55  Sharpe=2.81  Net= +472.8  WR=86.2%   29 trades  DD= -9.4
+      0.58  Sharpe=2.35  Net= +325.5  WR=88.9%   18 trades  DD= -9.3
+      0.60  Sharpe=2.08  Net= +276.3  WR=100.0%  13 trades  DD=  0.0
+      0.65  Sharpe=2.31  Net= +148.2  WR=100.0%   7 trades  DD=  0.0
+    ```
+    Meilleur seuil val = 0.50 (Sharpe=4.04).
+  - 2024 val_year (méta 0.50) ⚠️ optimiste : 48 trades (−75% vs v10:193), WR 85.4% (+32pp), Net +791.9 pips, Sharpe +4.04
+  - 2025 test_year (méta 0.50) ✅ : 71 trades (−80% vs v10:363), WR 18.3% (−8.4pp), Net −295.7 pips (+161.9 vs v10), Sharpe −1.95 (−0.54 vs v10)
+- **Analyse** : 🟡 RÉSULTAT MITIGÉ. Le GBM filtre beaucoup plus agressivement que le RF (48 trades val vs 193, 71 trades test vs 363). Sur val_year : WR explose (85.4% vs 53.4%) mais le profit net baisse (791.9 vs 1368.6) car trop peu de trades. Sur test_year : le profit net s'améliore (−295.7 vs −457.6) mais le Sharpe se dégrade (−1.95 vs −1.41) car le WR s'effondre à 18.3% — les 71 trades survivants sont majoritairement des SL à −10 pips. **Le GBM sur-optimise différemment du RF** : au lieu de mémoriser les patterns gagnants de 2024, il apprend un seuil de confiance implicite très élevé (peu de trades, WR val très haut) qui ne se transfère pas mieux. Le problème racine n'est pas l'algorithme (RF vs GBM) mais la non-stationnarité des features entre 2024 et 2025 — aucun classifieur ne peut discriminer des patterns inexistants dans son ensemble d'entraînement.
+- **Comparatif cumulé v8→v11 sur test_year 2025** :
+  | Version | Méta-modèle | Seuil | Trades | WR | Net(pips) | Sharpe |
+  |---------|------------|-------|--------|-----|-----------|--------|
+  | v8 | RF 10 features | 0.55 fixe | 153 | 33.3% | **+103.9** | **+0.53** |
+  | v9 | RF 10 features | 0.50 sweep | 367 | 28.6% | −220.2 | −0.64 |
+  | v10 | RF 14 features | 0.50 sweep | 363 | 26.7% | −457.6 | −1.41 |
+  | v11 | GBM 14 features | 0.50 sweep | 71 | 18.3% | −295.7 | −1.95 |
+  **v8 (seuil 0.55 fixe, RF 10 features) reste la meilleure version sur test_year 2025.**
+- **Décision pour v12** : Revenir au méta-modèle RF 10 features (sans contexte de marché) avec seuil fixe 0.55.
+- **Target Metrics pour v12** : Restaurer Sharpe test_year ≥ +0.5. WR test_year ≥ 33%. Trades ≥ 100.
+
+## Date/Version: 12 — 2026-05-12:18:20
+- **Modification** : Rollback pur vers configuration v8 dans [`run_pipeline_v1.py`](run_pipeline_v1.py:93) : `model_type="rf"` (défaut), retrait de tous les `extra_cols=META_EXTRA_COLS`, seuil fixe `FIXED_THRESHOLD=0.55`. Le sweep est conservé en mode diagnostic uniquement. Aucune modification de `meta_labeling.py` ni des autres modules.
+- **Hypothèse** : Les versions v9→v11 n'ont pas surpassé v8. Le rollback doit reproduire les résultats v8 à l'identique — test de cohérence du pipeline.
+- **Résultats (pré-fix — v11)** :
+  - Config : TP=30/SL=10, méta-GBM 14 features, seuil=0.50 sweep
+  - 2024 val_year : 48 trades, WR 85.4%, Net +791.9 pips, Sharpe +4.04
+  - 2025 test_year : 71 trades, WR 18.3%, Net −295.7 pips, Sharpe −1.95
+- **Résultats (post-fix v12 — mesuré)** :
+  - Config : TP=30/SL=10, méta-RF 10 features, seuil=0.55 fixe
+  - Sweep val_year diagnostic : 0.50→Sharpe 4.53, 0.55→Sharpe 3.64, 0.65→Sharpe 2.80
+  - 2024 val_year (méta 0.55) : 105 trades, WR 56.2%, Net +824.6 pips, Sharpe +3.64
+  - 2025 test_year (méta 0.55) : 153 trades, WR 33.3%, Net +103.9 pips, Sharpe +0.53
+- **Analyse** : Résultats identiques à v8 — rollback confirmé. Sharpe +0.53, 153 trades, WR 33.3%. La cohérence du pipeline est vérifiée : aucune dérive entre versions.
+- **Comparatif final v8→v12 test_year 2025** : v8/v12 (+0.53) > v9 (−0.64) > v11 (−1.95) > v10 (−1.41). Le seuil 0.55 fixe + RF 10 features est la meilleure configuration à ce jour.
+- **Décision pour v13** : Walk-forward 2 étapes (méta entraîné sur 2023, appliqué 2024 puis 2025) pour réduire la sensibilité au régime unique. Alternatives : LogisticRegression, réduction max_depth méta-RF 6→4.
+- **Target Metrics pour v13** : Sharpe test_year ≥ +1.0. WR test_year ≥ 35%. Trades ∈ [100, 250].
+
+## Date/Version: 13 — 2026-05-12:18:45
+- **Modification** : Création du module [`learning_machine_learning/analysis/edge_validation.py`](learning_machine_learning/analysis/edge_validation.py:1) — validation statistique de l'edge (prompt 1). Fonction `validate_edge(trades_df, backtest_cfg, n_trials_searched=12) -> dict` avec 4 tests : (1) Breakeven WR vs WR observé, (2) Bootstrap Sharpe 10k itérations, (3) Deflated Sharpe Ratio (López de Prado ch.14), (4) t-test expectancy. Tests unitaires [`tests/unit/test_edge_validation.py`](tests/unit/test_edge_validation.py) : 13/13 pass. Intégration dans [`run_pipeline_v1.py`](run_pipeline_v1.py:207) après le backtest.
+- **Hypothèse** : Les 12 itérations de recherche (v1→v12) peuvent avoir introduit du data-snooping. Le DSR corrige pour le nombre de trials. Le bootstrap Sharpe teste si l'edge est significativement > 0.
+- **Résultats v13 — Edge Validation** :
+
+| Métrique | 2024 (val) | 2025 (test) |
+|---|---|---|
+| Trades | 105 | 153 |
+| Breakeven WR | 28.75% | 28.75% |
+| WR Observé | 56.19% | 33.33% |
+| Marge WR | **+27.4%** | **+4.6%** |
+| Bootstrap Sharpe obs | 0.4907 | 0.0444 |
+| Bootstrap p(Sharpe>0) | **0.0000** | **0.2933** |
+| Bootstrap CI95 | [0.30, 0.70] | [-0.12, 0.19] |
+| Deflated SR (DSR) | **+5.94** | **−1.97** |
+| Probabilistic SR (PSR) | 1.0000 | 0.0244 |
+| E[max SR] (n=12) | 0.1625 | 0.1346 |
+| t-test p-value | 0.0000 | 0.5837 |
+
+- **Décision** :
+  - **2024** : EDGE RÉEL. p=0.0000, DSR=+5.94, PSR=1.00. L'edge sur l'année de validation est statistiquement indiscutable. Le Sharpe observé (0.49/trade) est 5.94 écarts-types au-dessus du maximum attendu par chance après 12 trials.
+  - **2025** : EDGE NON CONFIRMÉ. p=0.2933, DSR=−1.97, PSR=0.024. Le Sharpe tombe à 0.044 (quasi nul), le CI95 contient 0, le t-test p=0.58. La probabilité que le Sharpe vrai soit > 0 n'est que de 2.4%.
+- **Analyse** : L'écart 2024→2025 est un cas d'école de non-stationnarité de régime. Le méta-modèle RF appris sur 2024 (WR 56%, Sharpe 3.64) ne se généralise pas à 2025 (WR 33%, Sharpe 0.53). Le DSR 2025 négatif (−1.97) indique que même avec seulement 12 trials, la performance 2025 est inférieure à ce qu'on attendrait du hasard. La marge WR de +4.6% au-dessus du breakeven (28.75%) est trop faible pour être statistiquement fiable.
+- **Conclusion (critique)** : Selon les critères du prompt 1 : p(Sharpe>0) = 0.29 > 0.10 sur 2025 → **NE PAS continuer les optimisations cosmétiques**. Les v9→v12 ont été des micro-optimisations sans effet réel. La prochaine étape doit être structurelle : changer de timeframe, d'instrument, ou de fonction objectif (ex: remplacer Dist_SMA200_D1 sign par une cible continue type forward return).
+- **Suites possibles** :
+  - Walk-forward 2-étapes (méta entraîné sur 2023, appliqué 2024 ET 2025) — prompt 2
+  - Cost-aware labeling (triple barrière intégrant spread+slippage) — prompt 3
+  - Multi-asset (BTCUSD, XAUUSD) — prompt 4

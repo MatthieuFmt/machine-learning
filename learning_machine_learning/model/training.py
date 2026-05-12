@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 
 # Colonnes preservees dans ml_data pour les filtres backtest mais exclues
 # de l'entraînement (features_dropped avec exemption FILTER_KEEP).
-_FILTER_ONLY_COLS: frozenset[str] = frozenset({"ATR_Norm"})
+_FILTER_ONLY_COLS: frozenset[str] = frozenset({"ATR_Norm", "Volatilite_Realisee_24h"})
 
 
 def train_test_split_purge(
