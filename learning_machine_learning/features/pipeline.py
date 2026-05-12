@@ -163,12 +163,19 @@ def build_ml_ready(
     # Ne garder que les colonnes presentes
     colonnes_finales = [c for c in colonnes_finales if c in combined.columns]
 
+    # Colonnes preservees meme si dans features_dropped (necessaires aux filtres backtest)
+    FILTER_KEEP: frozenset[str] = frozenset({"ATR_Norm", "Dist_SMA200_D1"})
+
     # Appliquer le filtrage features_dropped (R4 fix — etait defini mais jamais applique)
     n_avant_drop = len(colonnes_finales)
-    colonnes_finales = [c for c in colonnes_finales if c not in features_dropped]
+    colonnes_finales = [
+        c for c in colonnes_finales
+        if c not in features_dropped or c in FILTER_KEEP
+    ]
     logger.info(
-        "Filtrage features_dropped : %d -> %d colonnes (%d exclues)",
+        "Filtrage features_dropped : %d -> %d colonnes (%d exclues, %d preservees filtres)",
         n_avant_drop, len(colonnes_finales), n_avant_drop - len(colonnes_finales),
+        len([c for c in colonnes_finales if c in FILTER_KEEP]),
     )
 
     dataset_ml = combined[colonnes_finales]

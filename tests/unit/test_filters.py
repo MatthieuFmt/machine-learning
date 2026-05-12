@@ -6,6 +6,7 @@ import pytest
 
 from learning_machine_learning.backtest.filters import (
     TrendFilter,
+    MomentumFilter,
     VolFilter,
     SessionFilter,
     FilterPipeline,
@@ -84,6 +85,120 @@ class TestTrendFilter:
         mask = pd.Series(True, index=df.index)
         with pytest.raises(ValueError, match="Dist_SMA200_D1"):
             filt.apply(df, mask, mask)
+
+
+# ── MomentumFilter ─────────────────────────────────────────
+
+class TestMomentumFilter:
+    """Tests du MomentumFilter — filtre directionnel basé sur RSI_D1_delta."""
+
+    @pytest.fixture
+    def df_momentum(self) -> pd.DataFrame:
+        """DataFrame avec RSI_D1_delta varié (négatif, neutre, positif)."""
+        n = 12
+        index = pd.date_range("2024-01-01 00:00", periods=n, freq="h", name="Time")
+        return pd.DataFrame(
+            {
+                "RSI_D1_delta": [-5.0, -2.0, 0.0, 2.0, 5.0, -5.0, -2.0, 0.0, 2.0, 5.0, -5.0, 5.0],
+            },
+            index=index,
+        )
+
+    def test_blocks_long_when_rsi_d1_delta_below_neg_threshold(
+        self, df_momentum: pd.DataFrame,
+    ) -> None:
+        """LONG rejeté si RSI_D1_delta < -threshold (momentum baissier)."""
+        filt = MomentumFilter(threshold=3.0)
+        mask_long = pd.Series(True, index=df_momentum.index)
+        mask_short = pd.Series(False, index=df_momentum.index)
+
+        ml, ms, n = filt.apply(df_momentum, mask_long, mask_short)
+
+        # Seules les barres avec RSI_D1_delta >= -3 survivent
+        expected_surviving = df_momentum["RSI_D1_delta"] >= -3.0
+        assert ml.sum() == expected_surviving.sum()
+        # Les barres à -5 doivent être rejetées
+        assert not ml.iloc[0]  # -5 → rejeté
+        assert ml.iloc[1]      # -2 → conservé (>= -3)
+        assert n > 0
+
+    def test_blocks_short_when_rsi_d1_delta_above_pos_threshold(
+        self, df_momentum: pd.DataFrame,
+    ) -> None:
+        """SHORT rejeté si RSI_D1_delta > +threshold (momentum haussier)."""
+        filt = MomentumFilter(threshold=3.0)
+        mask_long = pd.Series(False, index=df_momentum.index)
+        mask_short = pd.Series(True, index=df_momentum.index)
+
+        ml, ms, n = filt.apply(df_momentum, mask_long, mask_short)
+
+        # Seules les barres avec RSI_D1_delta <= +3 survivent
+        expected_surviving = df_momentum["RSI_D1_delta"] <= 3.0
+        assert ms.sum() == expected_surviving.sum()
+        # Les barres à +5 doivent être rejetées
+        assert not ms.iloc[4]  # +5 → rejeté
+        assert ms.iloc[3]      # +2 → conservé (<= +3)
+        assert n > 0
+
+    def test_allows_all_when_rsi_d1_delta_neutral(self) -> None:
+        """Aucun rejet si RSI_D1_delta dans [-threshold, +threshold]."""
+        filt = MomentumFilter(threshold=3.0)
+        n = 9
+        index = pd.date_range("2024-01-01", periods=n, freq="h")
+        df = pd.DataFrame({"RSI_D1_delta": [-2.0, 0.0, 2.0] * 3}, index=index)
+
+        mask = pd.Series(True, index=df.index)
+        ml, ms, n_rej = filt.apply(df, mask, mask)
+
+        assert n_rej == 0
+        assert ml.all()
+        assert ms.all()
+
+    def test_allows_long_when_rsi_rising(self) -> None:
+        """LONG autorisé même avec RSI_D1_delta fortement positif (momentum haussier)."""
+        filt = MomentumFilter(threshold=3.0)
+        index = pd.date_range("2024-01-01", periods=5, freq="h")
+        df = pd.DataFrame({"RSI_D1_delta": [4.0, 6.0, 8.0, 10.0, 2.0]}, index=index)
+
+        mask_long = pd.Series(True, index=index)
+        mask_short = pd.Series(False, index=index)
+
+        ml, ms, n = filt.apply(df, mask_long, mask_short)
+
+        # LONG toujours autorisé (condition: >= -3, tous positifs)
+        assert ml.sum() == 5
+        assert n == 0
+
+    def test_allows_short_when_rsi_falling(self) -> None:
+        """SHORT autorisé même avec RSI_D1_delta fortement négatif (momentum baissier)."""
+        filt = MomentumFilter(threshold=3.0)
+        index = pd.date_range("2024-01-01", periods=5, freq="h")
+        df = pd.DataFrame({"RSI_D1_delta": [-4.0, -6.0, -8.0, -10.0, -2.0]}, index=index)
+
+        mask_long = pd.Series(False, index=index)
+        mask_short = pd.Series(True, index=index)
+
+        ml, ms, n = filt.apply(df, mask_long, mask_short)
+
+        # SHORT toujours autorisé (condition: <= +3, tous négatifs)
+        assert ms.sum() == 5
+        assert n == 0
+
+    def test_raises_when_column_missing(self) -> None:
+        """ValueError si RSI_D1_delta absente."""
+        filt = MomentumFilter()
+        df = pd.DataFrame(
+            {"ATR_Norm": [0.003]},
+            index=pd.date_range("2024-01-01", periods=1, freq="h"),
+        )
+        mask = pd.Series(True, index=df.index)
+        with pytest.raises(ValueError, match="RSI_D1_delta"):
+            filt.apply(df, mask, mask)
+
+    def test_default_threshold_is_three(self) -> None:
+        """Le seuil par défaut est 3.0."""
+        filt = MomentumFilter()
+        assert filt.threshold == 3.0
 
 
 # ── VolFilter ─────────────────────────────────────────────

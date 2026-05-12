@@ -134,6 +134,49 @@ class SessionFilter:
         return mask_long, mask_short, n_rejected
 
 
+class MomentumFilter:
+    """Filtre directionnel basé sur le momentum macro RSI_D1_delta.
+
+    Remplace le TrendFilter binaire (SMA200) qui est inopérant en marchés
+    tendanciels unidirectionnels (ex: 2025 où Close > SMA200 sur ~95% des
+    barres → zéro SHORT bloqué). Utilise la variation du RSI D1 sur 3 jours
+    pour détecter les retournements de momentum, symétrique par conception.
+
+    LONG autorisé uniquement si RSI_D1_delta >= -threshold (pas de momentum baissier).
+    SHORT autorisé uniquement si RSI_D1_delta <= +threshold (pas de momentum haussier).
+    """
+
+    name = "momentum"
+
+    def __init__(self, threshold: float = 3.0) -> None:
+        self.threshold = threshold
+
+    def apply(
+        self,
+        df: pd.DataFrame,
+        mask_long: pd.Series,
+        mask_short: pd.Series,
+    ) -> tuple[pd.Series, pd.Series, int]:
+        if "RSI_D1_delta" not in df.columns:
+            raise ValueError(
+                "MomentumFilter nécessite la colonne 'RSI_D1_delta'. "
+                "Relancer le feature engineering."
+            )
+
+        momentum_long_ok = df["RSI_D1_delta"] >= -self.threshold
+        momentum_short_ok = df["RSI_D1_delta"] <= self.threshold
+
+        rejected_long = mask_long & ~momentum_long_ok
+        rejected_short = mask_short & ~momentum_short_ok
+        n_rejected = int((rejected_long | rejected_short).sum())
+
+        mask_long = mask_long & momentum_long_ok
+        mask_short = mask_short & momentum_short_ok
+
+        logger.debug("MomentumFilter: %d signaux rejetés", n_rejected)
+        return mask_long, mask_short, n_rejected
+
+
 class FilterPipeline:
     """Composite : applique une séquence ordonnée de filtres.
     

@@ -23,7 +23,8 @@ class BacktestConfig:
     pip_value_eur: float = 1.0
 
     # Filtres de régime
-    use_trend_filter: bool = True
+    use_trend_filter: bool = False
+    use_momentum_filter: bool = True
     use_vol_filter: bool = True
     use_session_filter: bool = True
 
@@ -32,6 +33,7 @@ class BacktestConfig:
     vol_filter_multiplier: float = 2.0
     session_exclude_start: int = 22
     session_exclude_end: int = 1
+    momentum_filter_threshold: float = 3.0
 
     # Variantes TP/SL
     tp_sl_variants: dict[str, tuple[float, float]] = field(default_factory=lambda: {
@@ -60,6 +62,10 @@ class BacktestConfig:
             )
         if self.initial_capital <= 0:
             raise ValueError(f"initial_capital doit être > 0, reçu {self.initial_capital}")
+        if self.momentum_filter_threshold <= 0:
+            raise ValueError(
+                f"momentum_filter_threshold doit être > 0, reçu {self.momentum_filter_threshold}"
+            )
 
     def pips_to_return(self, pips: float) -> float:
         """Convertit des pips en fraction de capital.

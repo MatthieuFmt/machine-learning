@@ -27,7 +27,7 @@ Regles par fonction/classe :
 
 ### 6. UPDATE LOG
 Apres chaque modification, ajouter dans ml_evolution.md :
-## Date/Version: [N] -- [YYYY-MM-DD]
+## Date/Version: [N] -- [YYYY-MM-DD:hh-mm]
 - Modification : [Description technique]
 - Hypothese : [Pourquoi ca ameliore]
 - Resultats (pre-fix) : [Metriques avant]

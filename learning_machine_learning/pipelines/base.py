@@ -37,6 +37,7 @@ class BasePipeline(ABC):
     def train_model(self, ml_data: Any) -> Any:
         """Entraîne le modèle RandomForest."""
         from learning_machine_learning.model.training import (
+            _FILTER_ONLY_COLS,
             train_test_split_purge,
             train_model,
         )
@@ -45,6 +46,7 @@ class BasePipeline(ABC):
             ml_data,
             train_end_year=self.model_cfg.train_end_year,
             purge_hours=self.model_cfg.purge_hours,
+            extra_drop_cols=_FILTER_ONLY_COLS,
         )
         model = train_model(X_train, y_train, self.model_cfg.rf_params)
         return model, X_cols
@@ -76,11 +78,43 @@ class BasePipeline(ABC):
         ohlcv_h1: Any,
     ) -> tuple[Any, dict]:
         """Exécute le backtest sur les prédictions."""
+        from learning_machine_learning.backtest.filters import (
+            FilterPipeline,
+            MomentumFilter,
+            VolFilter,
+            SessionFilter,
+        )
         from learning_machine_learning.backtest.simulator import simulate_trades
         from learning_machine_learning.backtest.sizing import weight_centered
 
+        # Construire le pipeline de filtres selon la config backtest
+        filters: list = []
+        cfg = self.backtest_cfg
+        if cfg.use_momentum_filter:
+            filters.append(
+                MomentumFilter(threshold=cfg.momentum_filter_threshold)
+            )
+        if cfg.use_vol_filter:
+            filters.append(
+                VolFilter(
+                    window=cfg.vol_filter_window,
+                    multiplier=cfg.vol_filter_multiplier,
+                )
+            )
+        if cfg.use_session_filter:
+            filters.append(
+                SessionFilter(
+                    exclude_start=cfg.session_exclude_start,
+                    exclude_end=cfg.session_exclude_end,
+                )
+            )
+        filter_pipeline = FilterPipeline(filters) if filters else None
+
         all_trades = {}
         all_metrics = {}
+
+        # Colonnes requises par les filtres de régime (MomentumFilter, VolFilter)
+        FILTER_COLS: tuple[str, ...] = ("Dist_SMA200_D1", "ATR_Norm", "RSI_D1_delta")
 
         for year, preds_df in predictions.items():
             # Joindre les prédictions avec OHLC H1 (simulate_trades a besoin de High/Low/Close)
@@ -92,14 +126,22 @@ class BasePipeline(ABC):
             else:
                 df_backtest = preds_df
 
+            # Injecter les colonnes requises par les filtres depuis ml_data
+            filter_cols_present = [c for c in FILTER_COLS if c in ml_data.columns]
+            if filter_cols_present:
+                year_filter = ml_data.loc[ml_data.index.year == year, filter_cols_present]
+                df_backtest = df_backtest.join(year_filter, how="left")
+
             trades_df, n_signaux, n_filtres = simulate_trades(
                 df=df_backtest,
                 weight_func=weight_centered,
-                tp_pips=self.backtest_cfg.tp_pips,
-                sl_pips=self.backtest_cfg.sl_pips,
-                window=self.backtest_cfg.window_hours,
+                tp_pips=cfg.tp_pips,
+                sl_pips=cfg.sl_pips,
+                window=cfg.window_hours,
                 pip_size=self.instrument.pip_size,
+                filter_pipeline=filter_pipeline,
             )
+
             all_trades[year] = trades_df
 
             from learning_machine_learning.backtest.metrics import compute_metrics

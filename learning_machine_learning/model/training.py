@@ -16,10 +16,16 @@ from learning_machine_learning.core.logging import get_logger
 logger = get_logger(__name__)
 
 
+# Colonnes preservees dans ml_data pour les filtres backtest mais exclues
+# de l'entraînement (features_dropped avec exemption FILTER_KEEP).
+_FILTER_ONLY_COLS: frozenset[str] = frozenset({"ATR_Norm"})
+
+
 def train_test_split_purge(
     df: pd.DataFrame,
     train_end_year: int,
     purge_hours: int = 48,
+    extra_drop_cols: frozenset[str] | None = None,
 ) -> tuple[pd.DataFrame, pd.Series, list[str]]:
     """Split temporel avec embargo anti-overlap.
 
@@ -27,10 +33,11 @@ def train_test_split_purge(
         df: DataFrame ML-ready indexé par Time (datetime).
         train_end_year: Dernière année d'entraînement (ex: 2023).
         purge_hours: Heures d'embargo entre train et OOS.
+        extra_drop_cols: Colonnes supplementaires a exclure des features
+            (ex: colonnes preservees pour filtres backtest seulement).
 
     Returns:
-        (X_train, y_train, X_train_for_eval, y_train_for_eval).
-        X_train_for_eval peut être None si purge chevauche tout.
+        (X_train, y_train, X_cols).
     """
     if not isinstance(df.index, pd.DatetimeIndex):
         raise ValueError("L'index du DataFrame doit être un DatetimeIndex.")
@@ -41,7 +48,9 @@ def train_test_split_purge(
         raise ValueError(f"Aucune donnée d'entraînement avant {train_cutoff}.")
 
     target_col = "Target"
-    drop_cols = [target_col, "Spread"]
+    drop_cols = {target_col, "Spread"}
+    if extra_drop_cols:
+        drop_cols |= extra_drop_cols
 
     X_cols = [c for c in df.columns if c not in drop_cols]
 
@@ -50,8 +59,8 @@ def train_test_split_purge(
     y_train = train_data[target_col]
 
     logger.info(
-        "Split train/purge : cutoff=%s, n_train=%d, purge=%dh",
-        train_cutoff, len(X_train), purge_hours,
+        "Split train/purge : cutoff=%s, n_train=%d, purge=%dh, X_cols=%d (drop=%d)",
+        train_cutoff, len(X_train), purge_hours, len(X_cols), len(drop_cols),
     )
 
     return X_train, y_train, X_cols
