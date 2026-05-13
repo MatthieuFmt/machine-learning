@@ -6,8 +6,11 @@ from typing import Any
 
 import pandas as pd
 
+from learning_machine_learning.core.logging import get_logger
 from learning_machine_learning.features.pipeline import build_ml_ready
 from learning_machine_learning.pipelines.base import BasePipeline
+
+logger = get_logger(__name__)
 
 
 class EurUsdPipeline(BasePipeline):
@@ -40,17 +43,53 @@ class EurUsdPipeline(BasePipeline):
                 macro_data[macro_name] = data[key]
 
         data["_macro"] = macro_data
+
+        # ★ Step 05 : Charger le calendrier économique
+        from learning_machine_learning.data.calendar_loader import load_calendar
+
+        h1_data = data["h1"]
+        cal_start = h1_data.index.min()
+        cal_end = h1_data.index.max()
+
+        try:
+            calendar_df = load_calendar(cal_start, cal_end)
+            data["_calendar"] = calendar_df
+            logger.info(
+                "Calendrier économique chargé : %d événements",
+                len(calendar_df),
+            )
+        except FileNotFoundError:
+            logger.warning(
+                "Dossier calendrier économique introuvable — ignoré."
+            )
+            data["_calendar"] = None
+        except OSError as e:
+            logger.error(
+                "Erreur chargement calendrier : %s — ignoré.", e
+            )
+            data["_calendar"] = None
+
         return data
 
-    def build_features(self, data: dict[str, Any]) -> pd.DataFrame:
-        """Construit le DataFrame ML-ready via le pipeline de features."""
+    def build_features(
+        self, data: dict[str, Any], train_end: pd.Timestamp | None = None
+    ) -> pd.DataFrame:
+        """Construit le DataFrame ML-ready via le pipeline de features.
+
+        Args:
+            data: Dict contenant les DataFrames H1, H4, D1 et éventuellement _macro.
+            train_end: Si fourni, le SessionVolatilityScaler est fit uniquement sur
+                les données ≤ train_end (anti-look-ahead). None = fit sur tout l'historique.
+        """
         ml = build_ml_ready(
             instrument=self.instrument,
             data={"H1": data["h1"], "H4": data["h4"], "D1": data["d1"]},
             macro_data=data.get("_macro", {}),
+            calendar_df=data.get("_calendar"),
             tp_pips=self.backtest_cfg.tp_pips,
             sl_pips=self.backtest_cfg.sl_pips,
             window=self.backtest_cfg.window_hours,
             features_dropped=list(self.instrument.features_dropped),
+            train_end=train_end,
         )
         return ml

@@ -134,6 +134,49 @@ class SessionFilter:
         return mask_long, mask_short, n_rejected
 
 
+class CalendarFilter:
+    """Filtre de calendrier économique — exclut les signaux proches
+    d'un événement macro high-impact.
+
+    Lit la colonne 'near_high_impact_event' (int8, 0/1) générée
+    par merge_calendar_features(). Si absente, raise ValueError.
+    """
+
+    name = "calendar"
+
+    def __init__(
+        self,
+        exclude_window_minutes: int = 120,
+        impact_threshold: str = "high",
+    ) -> None:
+        self.exclude_window_minutes = exclude_window_minutes
+        self.impact_threshold = impact_threshold
+
+    def apply(
+        self,
+        df: pd.DataFrame,
+        mask_long: pd.Series,
+        mask_short: pd.Series,
+    ) -> tuple[pd.Series, pd.Series, int]:
+        if "near_high_impact_event" not in df.columns:
+            raise ValueError(
+                "CalendarFilter nécessite la colonne 'near_high_impact_event'. "
+                "Exécuter le feature engineering avec calendar_df fourni."
+            )
+
+        near_event = df["near_high_impact_event"] == 1
+
+        rejected_long = mask_long & near_event
+        rejected_short = mask_short & near_event
+        n_rejected = int((rejected_long | rejected_short).sum())
+
+        mask_long = mask_long & ~near_event
+        mask_short = mask_short & ~near_event
+
+        logger.debug("CalendarFilter: %d signaux rejetés", n_rejected)
+        return mask_long, mask_short, n_rejected
+
+
 class MomentumFilter:
     """Filtre directionnel basé sur le momentum macro RSI_D1_delta.
 

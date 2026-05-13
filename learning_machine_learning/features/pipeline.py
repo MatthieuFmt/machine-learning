@@ -31,6 +31,10 @@ from learning_machine_learning.features.regime import (
     calc_range_atr_ratio,
     calc_rsi_d1_delta,
     calc_dist_sma200_d1,
+    compute_session_id,
+    compute_session_open_range,
+    compute_relative_position_in_session,
+    SessionVolatilityScaler,
 )
 
 logger = get_logger(__name__)
@@ -40,10 +44,12 @@ def build_ml_ready(
     instrument: InstrumentConfig,
     data: dict[str, pd.DataFrame],
     macro_data: dict[str, pd.DataFrame] | None = None,
+    calendar_df: pd.DataFrame | None = None,
     tp_pips: float = 20.0,
     sl_pips: float = 10.0,
     window: int = 24,
     features_dropped: list[str] | None = None,
+    train_end: pd.Timestamp | None = None,
 ) -> pd.DataFrame:
     """Construit le DataFrame ML-ready pour un instrument.
 
@@ -60,10 +66,13 @@ def build_ml_ready(
         instrument: Configuration de l'instrument.
         data: Dict {timeframe: DataFrame OHLCV}. Doit contenir le primary_tf.
         macro_data: Dict {instrument_name: DataFrame OHLCV H1} pour les macro.
+        calendar_df: DataFrame calendrier économique (optionnel).
         tp_pips: Take-profit en pips.
         sl_pips: Stop-loss en pips.
         window: Horizon max en barres.
         features_dropped: Liste de colonnes a exclure (stockees mais pas dans X).
+        train_end: Si fourni, le SessionVolatilityScaler est fit uniquement
+            sur les données ≤ train_end (anti-look-ahead).
 
     Returns:
         DataFrame ML-ready indexe par Time.
@@ -171,6 +180,42 @@ def build_ml_ready(
     h1["Hour_Sin"] = np.sin(h1.index.hour * (2.0 * np.pi / 24))
     h1["Hour_Cos"] = np.cos(h1.index.hour * (2.0 * np.pi / 24))
 
+    # 2.5 ★ Features de session (microstructure FX) ★
+    h1["session_id"] = compute_session_id(h1.index)
+    h1["session_open_range"] = compute_session_open_range(
+        h1["High"], h1["Low"], h1["session_id"]
+    )
+    h1["relative_position_in_session"] = compute_relative_position_in_session(
+        h1.index, h1["session_id"]
+    )
+
+    # ATR_session_zscore : fit train-only si train_end fourni
+    scaler = SessionVolatilityScaler()
+    if train_end is not None:
+        train_mask = h1.index <= train_end
+        scaler.fit(
+            h1.loc[train_mask, "ATR_Norm"],
+            h1.loc[train_mask, "session_id"],
+        )
+    else:
+        # Mode exploration : fit sur toutes les données
+        scaler.fit(h1["ATR_Norm"], h1["session_id"])
+    h1["ATR_session_zscore"] = scaler.transform(
+        h1["ATR_Norm"], h1["session_id"]
+    )
+
+    # One-hot encoding si configuré
+    if instrument.session_encoding == "one_hot":
+        SESSION_LABELS = {
+            1: "session_London",
+            2: "session_NY",
+            3: "session_Overlap",
+            4: "session_LowLiq",
+        }
+        for sid_val, col_name in SESSION_LABELS.items():
+            h1[col_name] = (h1["session_id"] == sid_val).astype(np.int8)
+        # Tokyo = baseline (toutes les dummies à 0)
+
     # 3. Features H4 et D1
     feat_h4 = None
     feat_d1 = None
@@ -208,6 +253,16 @@ def build_ml_ready(
         macro_frames,
     )
 
+    # 5.5 ★ Calendrier économique macro ★
+    if calendar_df is not None:
+        from learning_machine_learning.features.calendar import merge_calendar_features
+        n_avant_cal = len(combined)
+        cal_features = merge_calendar_features(combined, calendar_df)
+        combined = combined.join(cal_features)
+        log_row_loss("merge calendar features", n_avant_cal, len(combined))
+    else:
+        logger.info("Aucun calendrier économique fourni — features calendrier ignorées.")
+
     # 6. Selection des colonnes finales
     colonnes_finales = [
         "Target", "Spread", "Log_Return",
@@ -215,7 +270,20 @@ def build_ml_ready(
         "RSI_14", "ADX_14", "ATR_Norm", "BB_Width",
         "Hour_Sin", "Hour_Cos",
         "Volatilite_Realisee_24h", "Range_ATR_ratio",
+        # ★ Session features ★
+        "session_id", "ATR_session_zscore",
+        "session_open_range", "relative_position_in_session",
+        # ★ Calendar features ★
+        "near_high_impact_event", "minutes_to_next_event",
+        "minutes_since_last_event", "surprise_zscore",
     ]
+
+    # Ajouter les one-hot si présentes
+    if instrument.session_encoding == "one_hot":
+        colonnes_finales += [
+            "session_London", "session_NY",
+            "session_Overlap", "session_LowLiq",
+        ]
 
     if feat_h4 is not None:
         colonnes_finales += ["RSI_14_H4", "Dist_EMA_20_H4", "Dist_EMA_50_H4"]
@@ -230,7 +298,10 @@ def build_ml_ready(
     colonnes_finales = [c for c in colonnes_finales if c in combined.columns]
 
     # Colonnes preservees meme si dans features_dropped (necessaires aux filtres backtest)
-    FILTER_KEEP: frozenset[str] = frozenset({"ATR_Norm", "Dist_SMA200_D1", "Volatilite_Realisee_24h"})
+    FILTER_KEEP: frozenset[str] = frozenset({
+        "ATR_Norm", "Dist_SMA200_D1", "Volatilite_Realisee_24h",
+        "near_high_impact_event",
+    })
 
     # Appliquer le filtrage features_dropped (R4 fix — etait defini mais jamais applique)
     n_avant_drop = len(colonnes_finales)

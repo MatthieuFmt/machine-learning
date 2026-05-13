@@ -36,6 +36,11 @@ class BacktestConfig:
     session_exclude_end: int = 1
     momentum_filter_threshold: float = 3.0
 
+    # ── Step 05 — Calendrier économique ──────────────────────────────
+    use_calendar_filter: bool = True
+    calendar_exclude_window_minutes: int = 120
+    calendar_impact_threshold: str = "high"
+
     # Variantes TP/SL
     tp_sl_variants: dict[str, tuple[float, float]] = field(default_factory=lambda: {
         "baseline": (30.0, 10.0),
@@ -70,6 +75,16 @@ class BacktestConfig:
         if self.momentum_filter_threshold <= 0:
             raise ValueError(
                 f"momentum_filter_threshold doit être > 0, reçu {self.momentum_filter_threshold}"
+            )
+        if self.calendar_exclude_window_minutes <= 0:
+            raise ValueError(
+                f"calendar_exclude_window_minutes doit être > 0, "
+                f"reçu {self.calendar_exclude_window_minutes}"
+            )
+        if self.calendar_impact_threshold not in ("medium", "high"):
+            raise ValueError(
+                f"calendar_impact_threshold doit être 'medium' ou 'high', "
+                f"reçu {self.calendar_impact_threshold}"
             )
 
     def pips_to_return(self, pips: float) -> float:

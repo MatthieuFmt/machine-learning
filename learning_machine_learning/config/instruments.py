@@ -44,6 +44,9 @@ class InstrumentConfig:
     target_atr_period: int = 14
     target_k_atr: float = 1.0
 
+    # ── Step 04 — Features de session ────────────────────────────
+    session_encoding: Literal["ordinal", "one_hot"] = "one_hot"
+
     def __post_init__(self) -> None:
         if self.pip_size <= 0:
             raise ValueError(f"pip_size doit être > 0, reçu {self.pip_size}")

@@ -101,6 +101,7 @@ class BasePipeline(ABC):
             MomentumFilter,
             VolFilter,
             SessionFilter,
+            CalendarFilter,
         )
         from learning_machine_learning.backtest.simulator import (
             simulate_trades,
@@ -129,13 +130,23 @@ class BasePipeline(ABC):
                     exclude_end=cfg.session_exclude_end,
                 )
             )
+        if cfg.use_calendar_filter:
+            filters.append(
+                CalendarFilter(
+                    exclude_window_minutes=cfg.calendar_exclude_window_minutes,
+                    impact_threshold=cfg.calendar_impact_threshold,
+                )
+            )
         filter_pipeline = FilterPipeline(filters) if filters else None
 
         all_trades = {}
         all_metrics = {}
 
         # Colonnes requises par les filtres de régime (MomentumFilter, VolFilter)
-        FILTER_COLS: tuple[str, ...] = ("Dist_SMA200_D1", "ATR_Norm", "RSI_D1_delta")
+        FILTER_COLS: tuple[str, ...] = (
+            "Dist_SMA200_D1", "ATR_Norm", "RSI_D1_delta",
+            "near_high_impact_event",
+        )
 
         # Router la fonction de simulation selon target_mode
         if self.instrument.target_mode == "forward_return":

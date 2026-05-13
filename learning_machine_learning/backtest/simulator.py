@@ -203,7 +203,7 @@ def simulate_trades(
     )
 
     # Application des filtres
-    n_filtres_appliques: dict[str, int] = {"trend": 0, "vol": 0, "session": 0, "momentum": 0}
+    n_filtres_appliques: dict[str, int] = {"trend": 0, "vol": 0, "session": 0, "momentum": 0, "calendar": 0}
     df["Filter_Rejected"] = ""
     if filter_pipeline is not None:
         mask_long, mask_short, n_filtres_appliques, rejection_reason = filter_pipeline.apply(
@@ -294,7 +294,7 @@ def simulate_trades_continuous(
     mask_short = df["Predicted_Return"] < -signal_threshold
 
     # Application des filtres (identiques au mode classifieur)
-    n_filtres_appliques: dict[str, int] = {"trend": 0, "vol": 0, "session": 0, "momentum": 0}
+    n_filtres_appliques: dict[str, int] = {"trend": 0, "vol": 0, "session": 0, "momentum": 0, "calendar": 0}
     df["Filter_Rejected"] = ""
     if filter_pipeline is not None:
         mask_long, mask_short, n_filtres_appliques, rejection_reason = filter_pipeline.apply(
