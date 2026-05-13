@@ -1,0 +1,164 @@
+{
+  "forward_return": {
+    "mode": "forward_return",
+    "distribution": {
+      "-1": 0.0,
+      "0": 0.0,
+      "1": 0.0
+    },
+    "metrics": {
+      "2024": {
+        "annee": 2024,
+        "profit_net": -342.96000000000186,
+        "dd": -418.8800000000012,
+        "trades": 314,
+        "win_rate": 27.070063694267514,
+        "sharpe": -1.1936920399424036,
+        "sharpe_per_trade": -1.4162408751287618,
+        "total_return_pct": -3.429600000000019,
+        "max_dd_pct": -4.188800000000012,
+        "bh_pips": -691.1999999999985,
+        "bh_return_pct": -6.911999999999985,
+        "alpha_pips": 348.2399999999966,
+        "alpha_return_pct": 3.482399999999966
+      },
+      "2025": {
+        "annee": 2025,
+        "profit_net": -1091.4399999999973,
+        "dd": -1173.0400000000027,
+        "trades": 499,
+        "win_rate": 23.446893787575153,
+        "sharpe": -2.7108001636525807,
+        "sharpe_per_trade": -3.636204609253092,
+        "total_return_pct": -10.914399999999972,
+        "max_dd_pct": -11.730400000000026,
+        "bh_pips": 1390.4999999999989,
+        "bh_return_pct": 13.90499999999999,
+        "alpha_pips": -2481.939999999996,
+        "alpha_return_pct": -24.819399999999963
+      }
+    },
+    "n_trades": {
+      "2024": 314,
+      "2025": 499
+    },
+    "X_cols": [
+      "Dist_EMA_50",
+      "RSI_14",
+      "ADX_14",
+      "RSI_14_D1",
+      "Dist_EMA_20_D1",
+      "RSI_D1_delta",
+      "Dist_SMA200_D1",
+      "XAU_Return"
+    ]
+  },
+  "directional_clean": {
+    "mode": "directional_clean",
+    "distribution": {
+      "-1": 43.94,
+      "0": 12.39,
+      "1": 43.67
+    },
+    "metrics": {
+      "2024": {
+        "annee": 2024,
+        "profit_net": -797.7962400000008,
+        "dd": -1039.2954400000042,
+        "trades": 616,
+        "win_rate": 26.136363636363637,
+        "sharpe": -1.9246942720353695,
+        "sharpe_per_trade": -2.2588387512871884,
+        "total_return_pct": -7.977962400000008,
+        "max_dd_pct": -10.392954400000042,
+        "bh_pips": -691.1999999999985,
+        "bh_return_pct": -6.911999999999985,
+        "alpha_pips": -106.59624000000235,
+        "alpha_return_pct": -1.0659624000000232
+      },
+      "2025": {
+        "annee": 2025,
+        "profit_net": -1069.1305199999993,
+        "dd": -1245.221320000002,
+        "trades": 815,
+        "win_rate": 26.625766871165645,
+        "sharpe": -2.0261591604263742,
+        "sharpe_per_trade": -2.4886569276313404,
+        "total_return_pct": -10.691305199999993,
+        "max_dd_pct": -12.452213200000019,
+        "bh_pips": 1390.4999999999989,
+        "bh_return_pct": 13.90499999999999,
+        "alpha_pips": -2459.630519999998,
+        "alpha_return_pct": -24.596305199999982
+      }
+    },
+    "n_trades": {
+      "2024": 616,
+      "2025": 815
+    },
+    "X_cols": [
+      "Dist_EMA_50",
+      "RSI_14",
+      "ADX_14",
+      "RSI_14_D1",
+      "Dist_EMA_20_D1",
+      "RSI_D1_delta",
+      "Dist_SMA200_D1",
+      "XAU_Return"
+    ]
+  },
+  "cost_aware_v2": {
+    "mode": "cost_aware_v2",
+    "distribution": {
+      "-1": 74.82,
+      "0": 2.71,
+      "1": 22.46
+    },
+    "metrics": {
+      "2024": {
+        "annee": 2024,
+        "profit_net": -1584.2846399999967,
+        "dd": -1574.9246399999965,
+        "trades": 735,
+        "win_rate": 25.71428571428571,
+        "sharpe": -2.7437472217983507,
+        "sharpe_per_trade": -3.35214960756365,
+        "total_return_pct": -15.842846399999965,
+        "max_dd_pct": -15.749246399999967,
+        "bh_pips": -691.1999999999985,
+        "bh_return_pct": -6.911999999999985,
+        "alpha_pips": -893.0846399999982,
+        "alpha_return_pct": -8.93084639999998
+      },
+      "2025": {
+        "annee": 2025,
+        "profit_net": -1262.5922800000003,
+        "dd": -1378.9103600000024,
+        "trades": 832,
+        "win_rate": 26.442307692307693,
+        "sharpe": -1.9409039051149135,
+        "sharpe_per_trade": -2.5555709092211916,
+        "total_return_pct": -12.625922800000003,
+        "max_dd_pct": -13.789103600000024,
+        "bh_pips": 1390.4999999999989,
+        "bh_return_pct": 13.90499999999999,
+        "alpha_pips": -2653.092279999999,
+        "alpha_return_pct": -26.530922799999992
+      }
+    },
+    "n_trades": {
+      "2024": 735,
+      "2025": 832
+    },
+    "X_cols": [
+      "Dist_EMA_50",
+      "RSI_14",
+      "ADX_14",
+      "RSI_14_D1",
+      "Dist_EMA_20_D1",
+      "RSI_D1_delta",
+      "Dist_SMA200_D1",
+      "XAU_Return"
+    ]
+  }
+}

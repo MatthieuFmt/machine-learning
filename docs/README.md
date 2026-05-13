@@ -97,3 +97,6 @@ Les pistes suivantes ont été identifiées mais **volontairement exclues** de c
 - **Position sizing avancé (Kelly, vol-targeting)** : utile en aval, sans edge confirmé d'abord c'est mettre la charrue avant les bœufs.
 
 Ces pistes peuvent être réintégrées dans une roadmap v17+ si la fiabilité de l'edge est confirmée et qu'on cherche des leviers marginaux supplémentaires.
+
+
+écrit un rapport final sur ce les résultats qu'à apporté la step une fois terminée 

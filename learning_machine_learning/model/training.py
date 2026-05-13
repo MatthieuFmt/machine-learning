@@ -35,29 +35,62 @@ ModelFactory = Callable[[pd.DataFrame, pd.Series], RandomForestClassifier]
 
 def train_test_split_purge(
     df: pd.DataFrame,
-    train_end_year: int,
+    train_end_year: int | None = None,
     purge_hours: int = 48,
     extra_drop_cols: frozenset[str] | None = None,
+    *,
+    train_mask: pd.Series | None = None,
+    test_mask: pd.Series | None = None,
 ) -> tuple[pd.DataFrame, pd.Series, list[str]]:
     """Split temporel avec embargo anti-overlap.
+
+    Deux modes d'appel :
+    1. Par année : `train_end_year=2023` → cutoff = 2024-01-01 - purge_hours.
+    2. Par masques : `train_mask=...` + `test_mask=...` → split arbitraire
+       (compatible CPCV). `test_mask` n'est utilisé que pour le logging.
 
     Args:
         df: DataFrame ML-ready indexé par Time (datetime).
         train_end_year: Dernière année d'entraînement (ex: 2023).
+            Ignoré si `train_mask` est fourni.
         purge_hours: Heures d'embargo entre train et OOS.
         extra_drop_cols: Colonnes supplementaires a exclure des features
             (ex: colonnes preservees pour filtres backtest seulement).
+        train_mask: Masque booléen d'entraînement (optionnel, prioritaire).
+        test_mask: Masque booléen de test (optionnel, logging seulement).
 
     Returns:
         (X_train, y_train, X_cols).
+
+    Raises:
+        ValueError: Si ni train_end_year ni train_mask n'est fourni,
+            ou si l'index n'est pas DatetimeIndex.
     """
     if not isinstance(df.index, pd.DatetimeIndex):
         raise ValueError("L'index du DataFrame doit être un DatetimeIndex.")
-    train_cutoff = pd.to_datetime(f"{train_end_year + 1}-01-01") - timedelta(hours=purge_hours)
-    train_mask = df.index < train_cutoff
+
+    # ── Résolution du masque train ──────────────────────────────────────
+    if train_mask is not None:
+        if not train_mask.any():
+            raise ValueError("train_mask fourni mais aucune barre sélectionnée.")
+        train_cutoff_str = "custom_mask"
+        n_test_info = int(test_mask.sum()) if test_mask is not None else -1
+    elif train_end_year is not None:
+        train_cutoff = pd.to_datetime(f"{train_end_year + 1}-01-01") - timedelta(hours=purge_hours)
+        train_mask = df.index < train_cutoff
+        if not train_mask.any():
+            raise ValueError(f"Aucune donnée d'entraînement avant {train_cutoff}.")
+        train_cutoff_str = str(train_cutoff)
+        n_test_info = -1
+    else:
+        raise ValueError(
+            "train_end_year ou train_mask doit être fourni. "
+            "Utiliser train_end_year pour le split par année, "
+            "train_mask pour un split arbitraire (CPCV)."
+        )
 
     if not train_mask.any():
-        raise ValueError(f"Aucune donnée d'entraînement avant {train_cutoff}.")
+        raise ValueError("Aucune donnée dans le masque d'entraînement.")
 
     target_col = "Target"
     drop_cols = {target_col, "Spread"}
@@ -71,8 +104,8 @@ def train_test_split_purge(
     y_train = train_data[target_col]
 
     logger.info(
-        "Split train/purge : cutoff=%s, n_train=%d, purge=%dh, X_cols=%d (drop=%d)",
-        train_cutoff, len(X_train), purge_hours, len(X_cols), len(drop_cols),
+        "Split train/purge : cutoff=%s, n_train=%d, n_test=%d, purge=%dh, X_cols=%d (drop=%d)",
+        train_cutoff_str, len(X_train), n_test_info, purge_hours, len(X_cols), len(drop_cols),
     )
 
     return X_train, y_train, X_cols
