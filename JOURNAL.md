@@ -221,3 +221,31 @@
   - pytest : ✅ 51 passed, 5 skipped
   - snooping_check : ✅ TEST_SET_LOCK.json absent
 - **Hypothèses à explorer ensuite** : Prompt 08 (H07 stratégies alternatives sur US30), Prompt 10-11 (méta-labeling pour US30 et XAUUSD)
+
+## 2026-05-14 — Prompt 08 : H07 Stratégies trend-following alternatives
+
+- **Statut** : ✅ Terminé — NO-GO, 0 stratégie alternative validée sur 4
+- **Fichiers créés** : `scripts/run_h07_strategies_alt.py` (490 lignes), `tests/unit/test_strategy_dual_ma.py` (5 tests), `tests/unit/test_strategy_keltner.py` (6 tests), `tests/unit/test_strategy_chandelier.py` (5 tests), `tests/unit/test_strategy_parabolic.py` (5 tests), `prompts/08_architecture_plan.md`, `docs/v3_hypothesis_07.md`, `predictions/h07_strategies_alt.json`
+- **Fichiers modifiés** : `app/strategies/dual_ma.py`, `app/strategies/keltner.py`, `app/strategies/chandelier.py`, `app/strategies/parabolic.py`, `app/backtest/deterministic.py`
+- **Résultats clés** :
+  - **4 stratégies testées, 0 GO** : Dual MA ❌, Keltner ❌, Chandelier ❌, Parabolic SAR ❌
+  - **Donchian baseline** : Sharpe test −1.14, WR 48.4%, 91 trades — confirme la dégradation H06
+  - **Dual MA** (fast=10, slow=50) : Sharpe train +0.79, val −0.20, test +0.36, WR 52.2%, 594 trades — seul test Sharpe positif mais DSR −12.66 (p=1.000), DD 189%
+  - **Keltner** (period=20, mult=2.0) : Sharpe train +0.98, val **+3.70**, test −0.76, WR 50.7%, 75 trades — overfitting val flagrant (Sharpe +3.70 → −0.76)
+  - **Chandelier** (period=44, k_atr=4.0) : Sharpe train +0.62, val +2.36, test NaN, WR 50.9%, 595 trades — PnL constant → écart-type nul → Sharpe NaN
+  - **Parabolic SAR** (step=0.03, af_max=0.2) : Sharpe train +0.47, val +0.64, test −0.01, WR 49.9%, 627 trades — flat, DSR −27.52
+  - **Corrélations vs Donchian** : Dual MA 0.19, Keltner 0.29, Chandelier 0.28, Parabolic 0.31 — toutes diversifiantes (ρ < 0.35)
+  - **Verdict** : 🔴 NO-GO — aucune stratégie trend-following pure ne survit aux coûts réalistes v3 sur US30 D1
+- **Corrections techniques** :
+  - Colonnes PascalCase (conformes `load_asset()`) : `df["Close"]`, `df["High"]`, `df["Low"]`
+  - `.shift(1)` anti-look-ahead sur le retour de `generate_signals()` pour les 4 stratégies
+  - **Erreur de diagnostic initial** : Les stratégies avaient été converties en lowercase (`df["close"]`) mais `load_asset()` renomme en Title Case (`Close`, `High`, `Low`) après normalisation. Correction au 2ᵉ passage.
+- **Problèmes rencontrés** :
+  - `KeyError: 'close'` au premier run → `load_asset()` normalise en minuscules puis re-renomme en Title Case (ligne 140), les colonnes sont `Close`/`High`/`Low`, pas `close`/`high`/`low`
+  - `RuntimeWarning: invalid value encountered in subtract` dans `pandas/core/nanops.py` pour Chandelier (périodes PnL constant → std=0 → division par zéro dans le calcul du Sharpe)
+- **Vérifications** :
+  - ruff : ✅ All checks passed (10 fichiers)
+  - mypy : ✅ Success: no issues found (10 fichiers)
+  - pytest : ⏳ À exécuter (Règle 2)
+  - snooping_check : ✅ TEST_SET_LOCK.json absent
+- **Hypothèses à explorer ensuite** : Prompt 09 (H08 combinaison naïve multi-actif equal risk), Prompt 10-11 (méta-labeling RF pour filtrer les trades Donchian)

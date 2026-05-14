@@ -46,4 +46,5 @@ class KeltnerChannel(BaseStrategy):
         signals[long_cond] = 1
         signals[short_cond] = -1
 
-        return signals
+        # shift(1) = anti-look-ahead : le signal à t n'utilise que l'info ≤ t-1
+        return signals.shift(1).fillna(0).astype(int)

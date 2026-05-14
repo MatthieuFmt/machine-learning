@@ -50,6 +50,8 @@ def run_deterministic_backtest(
     """
     if "Time" in df.columns:
         df = df.set_index("Time")
+    elif "time" in df.columns:
+        df = df.set_index("time")
 
     # Alignement
     common_idx = df.index.intersection(signals.index)
