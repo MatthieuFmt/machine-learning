@@ -6,7 +6,11 @@
       "Bash(python3 -c ' *)",
       "Bash(python3)",
       "Bash(rtk .venv/Scripts/python.exe -m pip freeze)",
-      "PowerShell(Get-ChildItem -Path \"d:\\\\Documents\\\\learning-machine-learning\\\\results\" -File | ForEach-Object { $_.Name })"
+      "PowerShell(Get-ChildItem -Path \"d:\\\\Documents\\\\learning-machine-learning\\\\results\" -File | ForEach-Object { $_.Name })",
+      "Bash(Get-ChildItem -Path \"d:\\\\Documents\\\\learning-machine-learning\" -Force)",
+      "Bash(Select-Object -Property Name, PSIsContainer)",
+      "Bash(Format-Table -AutoSize)",
+      "Bash(grep -E \"\\\\.py$\")"
     ]
   }
 }
