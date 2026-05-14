@@ -1,0 +1,133 @@
+{
+  "hypothesis": "v2_04",
+  "instrument": "USA30IDXUSD",
+  "primary_tf": "D1",
+  "strategy": "Donchian(20,20) + RF meta-labeling",
+  "rf_params": {
+    "n_estimators": 200,
+    "max_depth": 4,
+    "min_samples_leaf": 10,
+    "class_weight": "balanced_subsample",
+    "random_state": 42
+  },
+  "threshold_grid": [
+    0.45,
+    0.5,
+    0.55,
+    0.6,
+    0.65
+  ],
+  "best_threshold": 0.65,
+  "calibration_results": {
+    "0.45": {
+      "sharpe": 7.389456903389858,
+      "trades": 178,
+      "wr": 0.6235955056179775,
+      "total_pnl_pips": 11753.467000000004
+    },
+    "0.50": {
+      "sharpe": 8.771653729348241,
+      "trades": 142,
+      "wr": 0.6549295774647887,
+      "total_pnl_pips": 11039.962
+    },
+    "0.55": {
+      "sharpe": 10.283304027353552,
+      "trades": 102,
+      "wr": 0.6862745098039216,
+      "total_pnl_pips": 9173.976000000002
+    },
+    "0.60": {
+      "sharpe": 13.227196449963458,
+      "trades": 72,
+      "wr": 0.75,
+      "total_pnl_pips": 7848.0
+    },
+    "0.65": {
+      "sharpe": 17.137833291129017,
+      "trades": 48,
+      "wr": 0.8125,
+      "total_pnl_pips": 6132.0
+    }
+  },
+  "backtest_config": {
+    "tp_pips": 200.0,
+    "sl_pips": 100.0,
+    "window_hours": 120,
+    "commission_pips": 3.0,
+    "slippage_pips": 5.0
+  },
+  "split": {
+    "train_end": "2022-12-31",
+    "val": "2023-01-01 -> 2023-12-31",
+    "test_start": "2024-01-01"
+  },
+  "results": {
+    "val": {
+      "baseline_sharpe": 5.668424415098581,
+      "meta_sharpe": 0.0
+    },
+    "test": {
+      "baseline_sharpe": 3.0711021686791775,
+      "meta_sharpe": 8.607438643406065
+    },
+    "cpcv": {
+      "baseline_sharpe_mean": 3.2413333155660307,
+      "baseline_sharpe_std": 2.3400132035263375,
+      "meta_sharpe_mean": 5.789461690577689,
+      "meta_sharpe_std": 10.027641796554162,
+      "p_value_paired_ttest": 0.63752974617405,
+      "n_splits": 5,
+      "n_test_splits": 2,
+      "purge_hours": 120,
+      "split_details": [
+        {
+          "fold": 0,
+          "train_start": "2013-06-23",
+          "train_end": "2016-03-16",
+          "test_start": "2019-01-03",
+          "test_end": "2021-06-14",
+          "n_train": 761,
+          "n_test": 761,
+          "baseline_sharpe": 0.9633118509125025,
+          "baseline_trades": 101,
+          "meta_sharpe": 0.0,
+          "meta_trades": 0
+        },
+        {
+          "fold": 1,
+          "train_start": "2013-06-23",
+          "train_end": "2019-01-02",
+          "test_start": "2021-06-15",
+          "test_end": "2023-11-23",
+          "n_train": 1522,
+          "n_test": 761,
+          "baseline_sharpe": 5.638765856195138,
+          "baseline_trades": 104,
+          "meta_sharpe": 17.368385071733066,
+          "meta_trades": 6
+        },
+        {
+          "fold": 2,
+          "train_start": "2013-06-23",
+          "train_end": "2021-06-14",
+          "test_start": "2023-11-24",
+          "test_end": "2026-05-07",
+          "n_train": 2283,
+          "n_test": 763,
+          "baseline_sharpe": 3.121922239590451,
+          "baseline_trades": 103,
+          "meta_sharpe": 0.0,
+          "meta_trades": 2
+        }
+      ]
+    }
+  },
+  "go_no_go": {
+    "verdict": "GO",
+    "meta_beats_baseline_test": true,
+    "meta_beats_baseline_cpcv": true,
+    "p_value": 0.63752974617405
+  },
+  "n_trials_cumulatif_v2": 4
+}

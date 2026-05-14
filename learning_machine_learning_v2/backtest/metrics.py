@@ -39,10 +39,53 @@ def sharpe_ratio(
     """
     if len(returns) < 2:
         return 0.0
-    std = np.std(returns)
-    if std == 0:
+    arr = np.asarray(returns, dtype=np.float64)
+    arr = arr[np.isfinite(arr)]
+    if len(arr) < 2:
         return 0.0
-    return (np.mean(returns) / std) * np.sqrt(annual_factor)
+    mean_val = np.mean(arr)
+    std_val = np.std(arr)
+    if not np.isfinite(std_val) or std_val == 0:
+        return 0.0
+    return (mean_val / std_val) * np.sqrt(annual_factor)
+
+
+def sharpe_daily_from_trades(
+    trades: list[dict[str, Any]],
+    annual_factor: float = 252.0,
+) -> float:
+    """Sharpe annualisé à partir d'une liste de trades — calculé sur les returns
+    quotidiens de la courbe d'equity (pas sur les PnL par trade).
+
+    Méthode correcte : construit la courbe d'equity cumulée → resample quotidien
+    (forward fill) → returns journaliers → annualisation √252.
+
+    Args:
+        trades: Liste de dicts avec 'pips_net' (float) et 'exit_time' (str).
+        annual_factor: Facteur d'annualisation (252 = quotidien).
+
+    Returns:
+        Sharpe ratio annualisé. 0.0 si < 2 jours de returns.
+    """
+    if not trades or len(trades) < 2:
+        return 0.0
+
+    pnls = np.array([t["pips_net"] for t in trades], dtype=np.float64)
+    equity = np.cumsum(pnls)
+
+    # Edge case: tous les trades perdants -> Sharpe negatif ou zero
+    if len(pnls) > 0 and np.all(pnls <= 0):
+        return 0.0
+
+    exit_times = pd.to_datetime([t["exit_time"] for t in trades])
+    equity_series = pd.Series(equity, index=exit_times).sort_index()
+
+    equity_daily = equity_series.resample("D").last().ffill()
+    if len(equity_daily) < 2:
+        return 0.0
+
+    daily_returns = equity_daily.pct_change().dropna()
+    return sharpe_ratio(daily_returns, annual_factor=annual_factor)
 
 
 def max_drawdown(pnl_series: pd.Series) -> float:

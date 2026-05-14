@@ -255,6 +255,7 @@ matplotlib, tqdm, numba, colorama
 - **Anti-look-ahead** — toute feature à l'instant `t` n'utilise que l'information ≤ `t`
 - **Logging structuré** — `get_logger(__name__)` dans chaque module, rotation de fichiers
 - **Tests rapides** — < 100ms par test unitaire, fixtures synthétiques, pas d'I/O
+- **RTK obligatoire** — toute commande CLI susceptible de produire une sortie longue (>20 lignes) doit être préfixée par `rtk` (`rtk -- pytest`, `rtk -- python run_pipeline.py`, etc.). RTK filtre et résume la sortie avant qu'elle n'atteigne le contexte LLM, réduisant la pollution et le coût en tokens.
 - **Langue** : code en anglais, documentation en français
 
 ---

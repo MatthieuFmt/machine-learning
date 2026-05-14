@@ -162,3 +162,43 @@ class BtcUsdConfig(InstrumentConfig):
         "Volatility_Ratio",
     )
     tp_sl_scale_factor: float = 5.0
+
+
+@dataclass(frozen=True)
+class Us30Config(InstrumentConfig):
+    """Configuration US30 (Dow Jones CFD) — indice, D1 primaire.
+
+    US30 n'a pas de pip au sens forex : 1 point = 1 unité.
+    pip_value_eur=0.92 (taux EUR/USD ≈ 1.08).
+    Pas de macro_instruments pour les indices.
+    features_dropped vide — on part de zéro en v2.
+    """
+
+    name: str = "USA30IDXUSD"
+    pip_size: float = 1.0
+    pip_value_eur: float = 0.92
+    timeframes: FrozenSet[str] = frozenset({"D1", "H4"})
+    primary_tf: str = "D1"
+    macro_instruments: FrozenSet[str] = frozenset()
+    features_dropped: tuple[str, ...] = ()
+    tp_sl_scale_factor: float = 1.0
+
+@dataclass(frozen=True)
+class XauUsdConfig(InstrumentConfig):
+    """Configuration XAUUSD (Or spot) — H4 primaire, mono-TF.
+
+    Pip or : 1 pip-or = 1 cent = $0.01, donc pip_size=1.0.
+    pip_value_eur=0.92 (taux EUR/USD ≈ 1.08).
+    Pas de macro_instruments, pas de features_dropped.
+    D1 chargé mais non utilisé dans build_features (gardé pour v2-02b).
+    """
+
+    name: str = "XAUUSD"
+    pip_size: float = 1.0
+    pip_value_eur: float = 0.92
+    timeframes: FrozenSet[str] = frozenset({"H4", "D1"})
+    primary_tf: str = "H4"
+    macro_instruments: FrozenSet[str] = frozenset()
+    features_dropped: tuple[str, ...] = ()
+    tp_sl_scale_factor: float = 1.0
+

@@ -1,0 +1,74 @@
+{
+  "hypothesis": "v2_02",
+  "instrument": "XAUUSD",
+  "primary_tf": "H4",
+  "target_mode": "directional_clean",
+  "rf_params": {
+    "n_estimators": 300,
+    "max_depth": 5,
+    "min_samples_leaf": 50,
+    "class_weight": "balanced_subsample",
+    "random_state": 42
+  },
+  "backtest_config": {
+    "tp_pips": 300.0,
+    "sl_pips": 150.0,
+    "window_hours": 96,
+    "commission_pips": 25.0,
+    "slippage_pips": 10.0,
+    "confidence_threshold": 0.45
+  },
+  "split": {
+    "train_end": "2022-12-31",
+    "val": "2023-01-01 \u2192 2023-12-31",
+    "test_start": "2024-01-01"
+  },
+  "metrics": {
+    "2023": {
+      "annee": 2023,
+      "profit_net": -417.5112000000005,
+      "dd": -530.1084000000004,
+      "trades": 12,
+      "win_rate": 8.333333333333332,
+      "sharpe": -1.5258960274935924,
+      "sharpe_per_trade": -1.9849765811315998,
+      "total_return_pct": -3.8411030400000046,
+      "max_dd_pct": -4.876997280000004,
+      "bh_pips": 233.39300000000003,
+      "bh_return_pct": 2.1472156000000004,
+      "alpha_pips": -650.9042000000005,
+      "alpha_return_pct": -5.988318640000005
+    },
+    "2024": {
+      "annee": 2024,
+      "profit_net": -1441.1868000000004,
+      "dd": -1483.4880000000003,
+      "trades": 18,
+      "win_rate": 22.22222222222222,
+      "sharpe": -2.277406839634406,
+      "sharpe_per_trade": -3.415582257753116,
+      "total_return_pct": -13.258918560000005,
+      "max_dd_pct": -13.648089600000002,
+      "bh_pips": 560.6400000000003,
+      "bh_return_pct": 5.157888000000003,
+      "alpha_pips": -2001.8268000000007,
+      "alpha_return_pct": -18.41680656000001
+    },
+    "2025": {
+      "annee": 2025,
+      "profit_net": -3035.4720000000007,
+      "dd": -2839.7364000000002,
+      "trades": 24,
+      "win_rate": 12.5,
+      "sharpe": -2.8320682291797046,
+      "sharpe_per_trade": -4.499299495917228,
+      "total_return_pct": -27.92634240000001,
+      "max_dd_pct": -26.125574880000002,
+      "bh_pips": 1695.1240000000003,
+      "bh_return_pct": 15.595140800000005,
+      "alpha_pips": -4730.596000000001,
+      "alpha_return_pct": -43.52148320000001
+    }
+  },
+  "sharpe": -2.5162500341993574
+}
