@@ -7,12 +7,10 @@ sont passés explicitement.
 
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 import pandas as pd
-
-from learning_machine_learning.core.logging import get_logger
-
-logger = get_logger(__name__)
 
 
 def _pips_to_return(

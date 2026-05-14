@@ -10,11 +10,13 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from learning_machine_learning.core.logging import get_logger
+from app.core.logging import get_logger
+from app.testing.look_ahead_validator import look_ahead_safe
 
 logger = get_logger(__name__)
 
 
+@look_ahead_safe
 def calc_volatilite_realisee(
     log_returns: pd.Series, window: int = 24
 ) -> pd.Series:
@@ -30,6 +32,7 @@ def calc_volatilite_realisee(
     return log_returns.rolling(window=window).std()
 
 
+@look_ahead_safe
 def calc_range_atr_ratio(
     high: pd.Series, low: pd.Series, close: pd.Series, length: int = 14
 ) -> pd.Series:
@@ -48,6 +51,7 @@ def calc_range_atr_ratio(
     return (high - low) / (atr + 1e-10)
 
 
+@look_ahead_safe
 def calc_rsi_d1_delta(
     rsi_d1: pd.Series, diff_periods: int = 3
 ) -> pd.Series:
@@ -63,6 +67,7 @@ def calc_rsi_d1_delta(
     return rsi_d1.diff(diff_periods)
 
 
+@look_ahead_safe
 def calc_dist_sma200_d1(
     close_d1: pd.Series, length: int = 200
 ) -> pd.Series:
@@ -88,6 +93,7 @@ def calc_dist_sma200_d1(
 # Session-Aware Features (Step 04) — Microstructure FX
 # ══════════════════════════════════════════════════════════════════════
 
+@look_ahead_safe
 def compute_session_id(index: pd.DatetimeIndex) -> pd.Series:
     """Détermine la session de trading pour chaque barre H1.
 
@@ -127,6 +133,7 @@ def compute_session_id(index: pd.DatetimeIndex) -> pd.Series:
     return sid
 
 
+@look_ahead_safe
 def compute_session_open_range(
     high: pd.Series,
     low: pd.Series,
@@ -159,6 +166,7 @@ _SESSION_START: dict[int, int] = {0: 23, 1: 7, 2: 16, 3: 12, 4: 22}
 _SESSION_DURATION: dict[int, int] = {0: 9, 1: 5, 2: 5, 3: 4, 4: 3}
 
 
+@look_ahead_safe
 def compute_relative_position_in_session(
     index: pd.DatetimeIndex,
     session_id: pd.Series,
@@ -213,7 +221,7 @@ class SessionVolatilityScaler:
 
     def fit(
         self, atr_norm: pd.Series, session_id: pd.Series
-    ) -> "SessionVolatilityScaler":
+    ) -> SessionVolatilityScaler:
         """Calcule μ et σ par session sur les données d'entraînement uniquement.
 
         Args:

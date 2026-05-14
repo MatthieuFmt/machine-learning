@@ -15,7 +15,8 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from learning_machine_learning.core.logging import get_logger
+from app.core.logging import get_logger
+from app.testing.look_ahead_validator import look_ahead_safe
 
 logger = get_logger(__name__)
 
@@ -33,6 +34,7 @@ def _filter_events_by_impact(
     return events_df[events_df["impact"].isin(labels)]
 
 
+@look_ahead_safe
 def compute_minutes_to_next_event(
     timestamps: pd.DatetimeIndex,
     events_df: pd.DataFrame,
@@ -88,6 +90,7 @@ def compute_minutes_to_next_event(
     return result
 
 
+@look_ahead_safe
 def compute_minutes_since_last_event(
     timestamps: pd.DatetimeIndex,
     events_df: pd.DataFrame,
@@ -131,6 +134,7 @@ def compute_minutes_since_last_event(
     return result
 
 
+@look_ahead_safe
 def compute_surprise_zscore(
     events_df: pd.DataFrame,
     lookback: int = 50,
@@ -165,7 +169,7 @@ def compute_surprise_zscore(
     # Rolling backward : pour chaque event_name, rolling std des surprises passées
     df["surprise_std"] = np.nan
 
-    for event_name, group in df.groupby("event_name"):
+    for _event_name, group in df.groupby("event_name"):
         indices = group.index
         surprise_vals = df.loc[indices, "surprise"].values
 
@@ -194,6 +198,7 @@ def compute_surprise_zscore(
     return df[["timestamp", "event_name", "surprise", "surprise_zscore"]]
 
 
+@look_ahead_safe
 def merge_calendar_features(
     ohlc: pd.DataFrame,
     events_df: pd.DataFrame,

@@ -75,7 +75,7 @@
 | baseline | v2 H04 | 1 | 20 | ✅ GO | +8.61 |
 | baseline | v2 H05 | 1 | 21 | ✅ GO | +8.84 |
 | 03–06 | (phase data, pas d'hypothèse) | 0 | 21 | — | — |
-| 07 | H06 (Donchian multi-actif) | — | — | — | — |
+| 07 | H06 (Donchian multi-actif) | 1 | 22 | 🔴 NO-GO | 6 testés, 0 GO (US30 −0.09, XAUUSD +1.46, GER30 −1.01, US500 −0.85, XAGUSD 0.00, USOIL erreur) |
 | 08 | H07 (strats alt) | — | — | — | — |
 | 09 | H08 (portfolio equal-risk) | — | — | — | — |
 | 10 | H09 (régime detector) | — | — | — | — |
@@ -145,3 +145,79 @@
   - 326 timestamps "dupliqués" étaient un artefact du décalage de colonnes (la colonne Open était interprétée comme timestamp).
   - `timezone.utc` → `datetime.UTC` (ruff UP017) sur tout `test_calendar.py`.
   - Variable `l` → `lo` dans [`loader.py`](app/data/loader.py:144) (ruff E741).
+
+## 2026-05-14 — Prompt 04 : Feature research harness
+
+- **Statut** : ✅ Terminé
+- **Fichiers créés** : `app/features/__init__.py` (existant, vidé), `app/features/indicators.py` (422 lignes, 18 indicateurs + `compute_all_indicators`), `app/features/research.py` (185 lignes, `rank_features`), `scripts/run_feature_research.py` (CLI), `tests/unit/test_indicators.py` (312 lignes, 61 tests), `tests/unit/test_feature_research.py` (integration mockée), `prompts/04_architecture_plan.md`
+- **Tests pytest** : ✅ 61/61 passed (46 indicators + 15 research)
+- **Ruff** : ✅ `All checks passed!` sur les 5 fichiers
+- **Problèmes rencontrés** :
+  - `pd.NA` dans `replace(0, pd.NA)` forçait un dtype `object` → `ewm()`/`rolling()` échouaient. Résolu : `replace(0, np.nan)` partout (8 occurrences).
+  - `williams_r` et `cci` testés comme univariés mais sont multivariés (H, L, C) → déplacés dans `test_non_look_ahead_multivariate`.
+  - `max(axis=1, skipna=True)` par défaut ignorait le NaN de `prev_close` sur la 1ère barre dans `atr()` et `adx()`. Résolu : `skipna=False`.
+  - `_ohlcv_dataframe()` dans les tests créait `close` sans index DatetimeIndex → pandas alignait par index et mettait tout OHLC à NaN. Résolu : `close.index = dates` avant arithmétique.
+  - `ewm()` propage les NaN indéfiniment → pattern `dropna()` + `ewm()` + `reindex()` dans `atr()` ; `mask_valid` + `ewm()` + `reindex()` dans `adx()`.
+- **Notes** : `n_trials` inchangé (ce prompt n'est pas une phase d'hypothèse). Tous les indicateurs utilisent exclusivement `.shift()`, `.rolling()`, `.ewm()` — zéro boucle Python row-by-row.
+
+## 2026-05-14 — Prompt 05 : Economic calendar
+
+- **Statut** : ✅ Terminé
+- **Fichiers créés** : `app/features/economic.py` (283 lignes, `load_calendar` + `compute_event_features`), `tests/unit/test_economic_features.py` (321 lignes, 25 tests), `prompts/05_architecture_plan.md`
+- **Fichiers modifiés** : `app/features/indicators.py` (ajout paramètre `include_economic` dans `compute_all_indicators`)
+- **Tests pytest** : ✅ 25/25 passed (economic) + 50/50 passed (indicators) = 75/75
+- **Ruff** : ✅ `All checks passed!` sur les 3 fichiers
+- **Problèmes rencontrés** :
+  - `pd.date_range(..., tz="UTC")` en pandas ≥ 2.0 produit `datetime64[us, UTC]` — `.asi8` et `.values.view(np.int64)` retournent des microsecondes, pas des nanosecondes. Résolu : helper `_to_ns()` qui détecte l'unité native et normalise avec `.as_unit("ns").asi8`.
+  - Les features `hours_*` étaient 1000× trop petites ; les fenêtres `event_high_within_*` couvraient 1000× trop large.
+  - `filter(like="event_")` dans `test_empty_calendar` capturait `hours_to_next_event_high` → remplacé par `filter(regex="^event_")`.
+  - `.astype("datetime64[ns]")` échoue sur tz-aware → abandonné au profit de `_to_ns()`.
+- **Architecture** : `_event_within_window`, `_hours_since_last`, `_hours_to_next` utilisent exclusivement `np.searchsorted` — O(E × log B), zéro boucle Python row-by-row.
+- **Notes** : `n_trials` inchangé. 9 features économiques : 6 booléennes `event_high_within_{1,4,24}h_{USD,EUR}` + 3 numériques `hours_since_last_{nfp,fomc}` + `hours_to_next_event_high`. Sentinelle `np.nan` pour "pas d'event". Anti-look-ahead vérifié par `test_anti_look_ahead_consistency`.
+
+## 2026-05-14 — Prompt 06 : Validation framework
+
+- **Statut** : ✅ Terminé
+- **Fichiers créés** : `prompts/06_architecture_plan.md`, `tests/unit/test_indicators_look_ahead.py` (scan dynamique des 5 modules features)
+- **Fichiers modifiés** : `app/analysis/edge_validation.py` (réécriture complète : 9 fonctions publiques + EdgeReport + v2 compat), `tests/unit/test_edge_validation.py` (25 tests), `tests/unit/test_walk_forward.py` (8 tests), `app/features/calendar.py` (fix import `learning_machine_learning` + décorateurs `@look_ahead_safe`), `app/features/regime.py` (idem), `app/features/economic.py` (`@look_ahead_safe` sur `load_calendar`), `app/features/indicators.py` (`@look_ahead_safe` sur `compute_all_indicators`), `app/features/research.py` (`@look_ahead_safe` sur `rank_features`)
+- **Tests pytest** : ✅ 51/51 passed + 5 skipped (signatures multi-paramètres non testables automatiquement)
+- **Ruff** : ✅ `All checks passed!`
+- **Mypy** : ✅ 0 errors
+- **Snooping check** : ✅ `TEST_SET_LOCK.json` absent, pas de scan nécessaire
+- **Problèmes rencontrés** :
+  - `_ohlcv_index` utilisait `rng.randn()` → `rng.normal()` (Generator API NumPy 1.17+)
+  - `sharpe_ratio` : `std == 0.0` jamais vrai sur float → remplacé par `np.isclose(std, 0.0)`
+  - `TestWalkForwardSplit` dupliqué dans `test_edge_validation.py` → renommé `TestWalkForwardEdgeCases` avec tests de garde uniquement
+  - Tests `deflated_sharpe`/`probabilistic_sharpe` : `sr=5, skew=-10, kurt=50` ne rendait pas le dénominateur ≤ 0 → paramètres corrigés (`sr=2, skew=3, kurt=1.5`)
+  - `test_indicators_look_ahead.py` : modules avec `learning_machine_learning` cassé → `_import_module_safe` avec fallback None + filtrage `__module__.startswith("app.features")` pour exclure les ré-exportations (`get_logger`, sklearn)
+- **Architecture** : DSR Bailey & López de Prado (2014) avec constante d'Euler-Mascheroni, PSR (2012), purged k-fold avec embargo, walk-forward expanding window. Toutes les fonctions de features des 5 modules sont décorées `@look_ahead_safe`. `validate_edge` produit `EdgeReport(go, reasons, metrics)` basé sur les 5 critères de la constitution.
+- **Notes** : `n_trials` inchangé (phase data, pas d'hypothèse). Toutes les features de `app/features/*.py` sont désormais protégées anti-look-ahead.
+
+## 2026-05-14 — Prompt 07 : H06 Extension Donchian multi-actif
+
+- **Statut** : ✅ Terminé — NO-GO, 0 actif validé sur 6 testés (+ 1 erreur USOIL, + 1 indisponible BUND)
+- **Fichiers créés** : `scripts/run_h06_donchian_multi_asset.py` (370 lignes), `scripts/download_h06_missing_assets.py` (126 lignes), `docs/v3_hypothesis_06.md`, `predictions/h06_donchian_multi_asset.json`
+- **Fichiers modifiés** : `app/config/instruments.py` (AssetConfig + ASSET_CONFIGS 7 actifs), `app/backtest/metrics.py` (fix import cassé)
+- **Résultats clés** :
+  - **6 actifs testés, 0 GO** : US30 ❌, XAUUSD ❌, GER30 ❌, US500 ❌, XAGUSD ❌, USOIL ⚠️ erreur, BUND ⚠️ indisponible
+  - **US30** (N=100, M=10) : Sharpe train +0.35, val +0.58, test −0.09 — ❌ NO-GO (Sharpe −0.27, DSR −7.85, DD 362%)
+  - **XAUUSD** (N=100, M=20) : Sharpe train +1.13, val 0.00, test +1.46 — ❌ NO-GO (WR 22.5% < 30%, trades/an 18.1 < 30)
+  - **GER30** (N=50, M=10) : Sharpe train +0.29, val +1.86, test −1.01 — ❌ NO-GO (Sharpe −3.74, DSR −4.43, DD 4829%, trades/an 28.3)
+  - **US500** (N=50, M=50) : Sharpe train +0.62, val +1.62, test −0.85 — ❌ NO-GO (Sharpe −3.60, DSR −4.81, DD 411%, trades/an 21.5)
+  - **XAGUSD** (N=20, M=10) : Sharpe train 0.00, val 0.00, test 0.00 — ❌ NO-GO (WR 0.0%)
+  - **USOIL** : ⚠️ Erreur — 2 barres prix ≤ 0 (WTI avril 2020), `load_asset()` rejette
+  - **BUND** : ⚠️ Pas de données — yfinance bloque tous les tickers (BUND, FGBL=F, BUND.DE)
+  - **Verdict** : 🔴 NO-GO — Donchian Breakout pur ne survit pas aux coûts réalistes v3. XAUUSD Sharpe 1.46 prometteur mais WR 22.5%. US30 WR 45.3% mais PnL/trade trop faible. Deux candidats méta-labeling (H10-H12).
+- **Problèmes rencontrés** :
+  - `ModuleNotFoundError: No module named 'app'` → corrigé par ajout `sys.path.insert(0, str(_PROJECT_ROOT))` dans le script
+  - `ModuleNotFoundError: No module named 'yfinance'` → `pip install yfinance` dans .venv
+  - `NameError: name 'pd' is not defined` → import pandas au niveau module dans download script
+  - yfinance colonnes minuscules → `auto_adjust=False` + normalisation PascalCase
+  - `load_asset()` attend TSV (`sep="\t"`) → `df.to_csv(sep="\t")` + flag `--force`
+  - `app/backtest/metrics.py` importait `from learning_machine_learning.core.logging` (cassé depuis renommage) → corrigé
+- **Vérifications** :
+  - ruff : ✅ All checks passed
+  - mypy : ✅ Success: no issues found
+  - pytest : ✅ 51 passed, 5 skipped
+  - snooping_check : ✅ TEST_SET_LOCK.json absent
+- **Hypothèses à explorer ensuite** : Prompt 08 (H07 stratégies alternatives sur US30), Prompt 10-11 (méta-labeling pour US30 et XAUUSD)
