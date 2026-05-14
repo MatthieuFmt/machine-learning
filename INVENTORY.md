@@ -18,11 +18,28 @@
 
 ## Actifs disponibles (`data/raw/`)
 
-| Actif | Timeframes | Première date | Dernière date |
-|---|---|---|---|
-| *(aucun CSV trouvé)* | — | — | — |
+| Actif | Timeframes | Fichier exemple |
+|---|---|---|
+| BTCUSD | D1, H1, H4 | BTCUSD_D1.csv |
+| ETHUSD | D1, H1, H4 | ETHUSD_D1.csv |
+| EURUSD | D1, H1, H4 | EURUSD_D1.csv |
+| GBPUSD | D1, H1, H4 | GBPUSD_D1.csv |
+| US30 | D1, H1, H4 | USA30IDXUSD_D1.csv |
+| USDCHF | D1, H1, H4 | USDCHF_D1.csv |
+| XAUUSD | D1, H1, H4 | XAUUSD_D1.csv |
 
-**Note** : `data/raw/` contient uniquement un sous-dossier `economic_calendar/` vide. Aucun CSV d'actif présent. Les scripts v2 référencent `cleaned-data/XAUUSD_H4_cleaned.csv` et autres — ces fichiers sont dans `cleaned-data/` (dossier non listé explicitement, potentiellement dans `.gitignore` ou `.rooignore`). L'utilisateur devra fournir les CSV dans `data/raw/<ASSET>/<TF>.csv` selon la constitution §3.
+**Format** : Tab-separated, colonnes `Time, Open, High, Low, Close, Volume` (+ `Spread` optionnelle). Découverts par [`app.data.registry.discover_assets()`](app/data/registry.py).
+**Calendrier** : Jours fériés XTB dans [`app.config.calendar.XTB_HOLIDAYS`](app/config/calendar.py).
+
+## Couche Data (`app/data/`)
+
+| Fichier | Rôle |
+|---|---|
+| [`app/data/loader.py`](app/data/loader.py) | `load_asset(asset, tf)` — chargement + validation OHLCV, lecture adaptative 6/7 colonnes, gap analysis |
+| [`app/data/registry.py`](app/data/registry.py) | `discover_assets()` — scan `data/raw/` sans lire le contenu des CSV |
+| [`app/data/calendar_loader.py`](app/data/calendar_loader.py) | `load_calendar()` — calendrier économique macro (ForexFactory) |
+| [`app/config/calendar.py`](app/config/calendar.py) | `XTB_HOLIDAYS`, `is_market_open()`, `is_normal_gap()` — jours fériés XTB par actif |
+| [`app/core/exceptions.py`](app/core/exceptions.py) | `DataValidationError(PipelineError)` — exception de validation |
 
 ## Scripts `run_*.py` à la racine
 

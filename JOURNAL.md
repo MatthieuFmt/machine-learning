@@ -119,3 +119,29 @@
 - **Tests pytest** : Non exécutés (constitution règle 2 — exécution sur demande)
 - **Problèmes rencontrés** : Aucun
 - **Structure finale** : `app/`, `docs/`, `docs/archive_v1/`, `prompts/`, `tests/`, `scripts/`, `predictions/`, `data/raw/`
+
+## 2026-05-14 — Prompt 02b : Quality Gates
+
+- **Statut** : ✅ Terminé
+- **Fichiers créés** : `pyproject.toml` (remplacé), `.pre-commit-config.yaml`, `requirements-dev.txt`, `Makefile`, `.github/workflows/ci.yml`
+- **Fichiers enrichis** : `.gitignore` (`.env.local`, `.mypy_cache/`, `.ruff_cache/`, `.coverage`, `htmlcov/`, `TEST_SET_LOCK.json`, `models/snapshots/`, `logs/`, `predictions/*.json`, `predictions/*.csv`)
+- **Modules créés** : `app/testing/look_ahead_validator.py`, `app/testing/snooping_guard.py`, `app/core/retry.py`, `app/core/seeds.py`, `app/config/models.py`, `scripts/verify_no_snooping.py`
+- **Tests unitaires** : 5 fichiers, 11 tests, 0 failures
+- **Ruff (périmètre 02b)** : ✅ `All checks passed!`
+- **Snooping guard** : ✅ `TEST_SET_LOCK.json absent : pas de scan nécessaire.`
+- **make verify complet** : ⚠️ Non exécuté (231 violations ruff pré-existantes dans `app/` et `tests/` — imports `learning_machine_learning.*` résiduels de l'ère v1. Ces corrections relèvent du prompt 03+)
+- **Notes** : `pre-commit install` non exécuté (nécessiterait `git init` ou un repo déjà initialisé avec hooks). Dépendances dev installées : `mypy`, `ruff`, `black`, `pre-commit`, `hypothesis`.
+
+## 2026-05-14 — Prompt 03 : Data layer
+
+- **Statut** : ✅ Terminé
+- **Fichiers créés** : `app/config/calendar.py`, `app/data/registry.py`, `tests/unit/test_calendar.py`, `tests/unit/test_data_loader.py`
+- **Fichiers modifiés** : `app/data/loader.py` (refonte complète — lecture adaptative 6/7 colonnes, gap analysis, validation OHLCV stricte)
+- **Tests pytest** : ✅ 2 fichiers, 27 tests (8 calendar + 19 data_loader), 0 failures
+- **Ruff** : ✅ All checks passed
+- **Actifs détectés via `discover_assets()`** : `BTCUSD`, `ETHUSD`, `EURUSD`, `GBPUSD`, `US30`, `USDCHF`, `XAUUSD` (tous D1, H1, H4)
+- **Problèmes rencontrés** :
+  - CSV US30 D1 : 6 noms de colonnes pour 7 colonnes de données (timestamp + OHLCV + Spread) → pandas décalait tous les headers. Résolu par détection adaptative `n_headers` vs `n_data` avec `csv.reader`.
+  - 326 timestamps "dupliqués" étaient un artefact du décalage de colonnes (la colonne Open était interprétée comme timestamp).
+  - `timezone.utc` → `datetime.UTC` (ruff UP017) sur tout `test_calendar.py`.
+  - Variable `l` → `lo` dans [`loader.py`](app/data/loader.py:144) (ruff E741).

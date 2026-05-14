@@ -19,6 +19,20 @@ __pycache__/
 .pytest_cache/
 .ipynb_checkpoints/
 .env
+.env.local
+
+# Quality gates
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+TEST_SET_LOCK.json
+
+# Modèles et logs
+models/snapshots/
+logs/
+predictions/*.json
+predictions/*.csv
 
 # OS / IDE
 .idea/
