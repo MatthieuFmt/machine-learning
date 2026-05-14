@@ -21,7 +21,7 @@ if str(ROOT) not in sys.path:
 
 def setup_logging() -> None:
     """Configure le logging structuré."""
-    from learning_machine_learning_v2.core.logging import setup_logging as _setup
+    from app.core.logging import setup_logging as _setup
 
     _setup(level=logging.INFO)
 
@@ -29,8 +29,8 @@ def setup_logging() -> None:
 def main() -> int:
     setup_logging()
 
-    from learning_machine_learning_v2.core.logging import get_logger
-    from learning_machine_learning_v2.pipelines.xauusd import XauUsdPipeline
+    from app.core.logging import get_logger
+    from app.pipelines.xauusd import XauUsdPipeline
 
     logger = get_logger("run_pipeline_xauusd")
 

@@ -25,10 +25,10 @@ ROOT = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from learning_machine_learning_v2.backtest.meta_labeling import compute_meta_labels
-from learning_machine_learning_v2.backtest.walk_forward import run_walk_forward
-from learning_machine_learning_v2.pipelines.us30 import Us30Pipeline
-from learning_machine_learning_v2.strategies.donchian import DonchianBreakout
+from app.backtest.meta_labeling import compute_meta_labels
+from app.backtest.walk_forward import run_walk_forward
+from app.pipelines.us30 import Us30Pipeline
+from app.strategies.donchian import DonchianBreakout
 
 # ── Configuration figée ex ante (H03 + H04 + H05) ──
 TP_PIPS = 200.0

@@ -23,10 +23,10 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from learning_machine_learning_v2.strategies import ALL_STRATEGIES_V3
-from learning_machine_learning_v2.strategies.donchian import DonchianBreakout
-from learning_machine_learning_v2.backtest.grid_search import grid_search_asset
-from learning_machine_learning_v2.backtest.deterministic import run_deterministic_backtest
+from app.strategies import ALL_STRATEGIES_V3
+from app.strategies.donchian import DonchianBreakout
+from app.backtest.grid_search import grid_search_asset
+from app.backtest.deterministic import run_deterministic_backtest
 
 # -- Actifs D1 disponibles (tout ce qui est dans data/) -----------------
 # US30 exclu de H06 car déjà GO en v2. Il reste la baseline.

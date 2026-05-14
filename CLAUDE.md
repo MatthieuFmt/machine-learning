@@ -8,7 +8,7 @@
 ## 1. Architecture Globale
 
 ```
-learning_machine_learning/
+app/
 ├── config/          # Dataclasses gelées (frozen) — config par domaine
 │   ├── instruments.py   # InstrumentConfig (EURUSD, BTCUSD), TargetMode literal
 │   ├── model.py         # ModelConfig (RF + GBM params)
@@ -146,7 +146,7 @@ Le routing se fait à 4 niveaux :
 Toutes les configs sont immutables. Pour dériver : `dataclasses.replace(config, champ=valeur)`.
 
 ### 4b. Extraction du noyau stateful
-[`_simulate_stateful_core()`](learning_machine_learning/backtest/simulator.py:29) est une fonction pure partagée entre `simulate_trades()` (classifieur) et `simulate_trades_continuous()` (régression). Elle implémente "un seul trade à la fois", gère TP/SL/timeout, retourne un DataFrame de trades.
+[`_simulate_stateful_core()`](app/backtest/simulator.py:29) est une fonction pure partagée entre `simulate_trades()` (classifieur) et `simulate_trades_continuous()` (régression). Elle implémente "un seul trade à la fois", gère TP/SL/timeout, retourne un DataFrame de trades.
 
 ### 4c. Dispatch par target_mode
 Chaque composant route selon `instrument.target_mode` plutôt que via des if/else dispersés. Pattern :
@@ -162,7 +162,7 @@ else:
 - `SignalFilter` : `apply(df, mask_long, mask_short) -> (mask_long, mask_short, n_rejected)`
 
 ### 4e. Split temporel strict (jamais de shuffle)
-[`train_test_split_purge()`](learning_machine_learning/model/training.py:36) : split chronologique avec purge gap de 48h entre train et test. Les années sont fixes : train ≤ 2023, val=2024, test=2025.
+[`train_test_split_purge()`](app/model/training.py:36) : split chronologique avec purge gap de 48h entre train et test. Les années sont fixes : train ≤ 2023, val=2024, test=2025.
 
 ---
 
@@ -262,7 +262,7 @@ matplotlib, tqdm, numba, colorama
 
 ## 9. Comment Ajouter un Nouvel Instrument
 
-1. Créer une sous-classe dans [`instruments.py`](learning_machine_learning/config/instruments.py:85) :
+1. Créer une sous-classe dans [`instruments.py`](app/config/instruments.py:85) :
 ```python
 @dataclass(frozen=True)
 class GbpUsdConfig(InstrumentConfig):
@@ -270,14 +270,14 @@ class GbpUsdConfig(InstrumentConfig):
     pip_size: float = 0.0001
     # ... etc
 ```
-2. Enregistrer dans [`ConfigRegistry._instruments`](learning_machine_learning/config/registry.py:39)
-3. Créer un pipeline concret dans `pipelines/` héritant de [`BasePipeline`](learning_machine_learning/pipelines/base.py:23)
+2. Enregistrer dans [`ConfigRegistry._instruments`](app/config/registry.py:39)
+3. Créer un pipeline concret dans `pipelines/` héritant de [`BasePipeline`](app/pipelines/base.py:23)
 
 ## 10. Comment Ajouter un Nouveau TargetMode
 
-1. Ajouter le literal dans [`TargetMode`](learning_machine_learning/config/instruments.py:13)
-2. Ajouter la fonction cible dans [`triple_barrier.py`](learning_machine_learning/features/triple_barrier.py:296)
-3. Router dans [`build_ml_ready()`](learning_machine_learning/features/pipeline.py:39)
+1. Ajouter le literal dans [`TargetMode`](app/config/instruments.py:13)
+2. Ajouter la fonction cible dans [`triple_barrier.py`](app/features/triple_barrier.py:296)
+3. Router dans [`build_ml_ready()`](app/features/pipeline.py:39)
 4. Si nouveau type de modèle → router dans `train_model()`, `evaluate_model()`, `run_backtest()`
 5. Ajouter les tests unitaires
 

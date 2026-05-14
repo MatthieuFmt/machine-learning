@@ -16,8 +16,8 @@ from typing import Any
 
 import pandas as pd
 
-from learning_machine_learning_v2.strategies import ALL_STRATEGIES
-from learning_machine_learning_v2.backtest.grid_search import grid_search_asset
+from app.strategies import ALL_STRATEGIES
+from app.backtest.grid_search import grid_search_asset
 
 # ── Configuration des actifs (spec H03 §1.4) ────────────────────────────
 ASSETS: list[dict[str, Any]] = [

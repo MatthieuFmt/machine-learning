@@ -22,12 +22,12 @@ from typing import Any
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 
-from learning_machine_learning_v2.backtest.cpcv import run_cpcv_meta_vs_baseline
-from learning_machine_learning_v2.backtest.deterministic import run_deterministic_backtest
-from learning_machine_learning_v2.backtest.meta_labeling import compute_meta_labels
-from learning_machine_learning_v2.models.meta_rf import calibrate_threshold, train_meta_rf
-from learning_machine_learning_v2.pipelines.us30 import Us30Pipeline
-from learning_machine_learning_v2.strategies.donchian import DonchianBreakout
+from app.backtest.cpcv import run_cpcv_meta_vs_baseline
+from app.backtest.deterministic import run_deterministic_backtest
+from app.backtest.meta_labeling import compute_meta_labels
+from app.models.meta_rf import calibrate_threshold, train_meta_rf
+from app.pipelines.us30 import Us30Pipeline
+from app.strategies.donchian import DonchianBreakout
 
 # -- Configuration figee ex ante -------------------------------------------
 TRAIN_END = pd.Timestamp("2022-12-31")
