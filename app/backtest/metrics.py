@@ -3,14 +3,20 @@
 Toutes les métriques sont calculées à partir d'un DataFrame de trades.
 Aucune dépendance à l'instrument ou à la configuration — les paramètres
 sont passés explicitement.
+
+Pivot v4 A1 : compute_metrics() supporte AssetConfig pour equity €,
+DD borné [−100%, 0%], Sharpe sur retours quotidiens du capital.
 """
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pandas as pd
+
+if TYPE_CHECKING:
+    from app.config.instruments import AssetConfig
 
 
 def _pips_to_return(
@@ -127,19 +133,30 @@ def compute_metrics(
     pip_value_eur: float = 1.0,
     initial_capital: float = 10_000.0,
     pip_size: float = 0.0001,
+    asset_cfg: AssetConfig | None = None,
+    capital_eur: float = 10_000.0,
 ) -> dict:
     """Métriques agrégées sur un DataFrame de trades.
 
+    Deux modes :
+    - Pivot v4 A1 (asset_cfg non-None) : equity en €, DD borné [−100%, 0%],
+      Sharpe sur retours quotidiens du capital, PnL via position_size_lots.
+    - Legacy (asset_cfg None) : comportement inchangé (pips → € via
+      pip_value_eur / initial_capital).
+
     Args:
-        trades_df: DataFrame indexé par Time avec colonnes Pips_Nets, Pips_Bruts, Weight, result.
+        trades_df: DataFrame indexé par Time avec colonnes Pips_Nets, Pips_Bruts,
+            Weight, result. En mode A1, colonne 'position_size_lots' requise.
         annee: Année du backtest (pour le rapport).
         df: DataFrame d'entrée du backtest avec 'Close' (pour B&H benchmark).
-        pip_value_eur: Valeur d'un pip en EUR.
-        initial_capital: Capital de référence.
-        pip_size: Taille d'un pip.
+        pip_value_eur: [Legacy] Valeur d'un pip en EUR.
+        initial_capital: [Legacy] Capital de référence.
+        pip_size: [Legacy] Taille d'un pip.
+        asset_cfg: Pivot v4 A1 — config actif. Active le mode equity € si fourni.
+        capital_eur: Pivot v4 A1 — capital initial en €.
 
     Returns:
-        Dict de métriques.
+        Dict de métriques. Inclut 'blowup_detected' en mode A1.
     """
     base: dict = {
         "annee": annee,
@@ -158,10 +175,92 @@ def compute_metrics(
     }
 
     if trades_df.empty:
+        if asset_cfg is not None:
+            base["profit_net_eur"] = 0.0
+            base["final_equity_eur"] = capital_eur
+            base["blowup_detected"] = False
         return base
 
     n_trades = len(trades_df)
     win_rate = (trades_df["Pips_Bruts"] > 0).mean() * 100
+
+    # ── Pivot v4 A1 : mode equity € ──────────────────────────────────
+    if asset_cfg is not None:
+        if "position_size_lots" not in trades_df.columns:
+            raise ValueError(
+                "trades_df doit contenir 'position_size_lots'. "
+                "Re-run le simulator avec sizing au risque 2 %."
+            )
+
+        from app.backtest.sizing import expected_pnl_eur
+
+        pnl_eur: np.ndarray = expected_pnl_eur(  # type: ignore[assignment]
+            trades_df["Pips_Nets"].values,
+            trades_df["position_size_lots"].values,
+            asset_cfg,
+        )
+        pnl_eur_series = pd.Series(pnl_eur, index=trades_df.index)
+
+        equity = capital_eur + pnl_eur_series.cumsum()
+        # Protection blow-up : equity ne descend pas sous 0.01 €
+        blowup_detected = bool((equity < 0.01).any())
+        equity = equity.clip(lower=0.01)
+
+        # Drawdown borné [−1, 0]
+        cummax = equity.cummax()
+        dd_series = (equity / cummax) - 1.0
+        max_dd_pct = float(dd_series.min()) * 100  # négatif, borné à −100 %
+
+        # Resample daily pour Sharpe
+        try:
+            equity_daily = equity.resample("D").last().ffill()
+            daily_returns = equity_daily.pct_change().dropna()
+            sharpe = sharpe_ratio(daily_returns, annual_factor=252.0)
+        except (TypeError, ValueError):
+            # Index non-DatetimeIndex → fallback sur per-trade
+            sharpe = 0.0
+
+        # Sharpe per-trade (annualisé par n_trades)
+        if n_trades > 1:
+            per_trade_returns = pnl_eur / equity.shift(1).fillna(capital_eur).values
+            sharpe_per_trade = sharpe_ratio(
+                per_trade_returns, annual_factor=float(max(n_trades, 1))
+            )
+        else:
+            sharpe_per_trade = 0.0
+
+        profit_net_eur = float(pnl_eur.sum())
+        total_return_pct = (float(equity.iloc[-1]) / capital_eur - 1.0) * 100
+        final_equity_eur = float(equity.iloc[-1])
+        profit_net_pips = float(trades_df["Pips_Nets"].sum())
+        dd_pips = max_drawdown(trades_df["Pips_Nets"].cumsum())
+
+        # B&H benchmark (en €)
+        bh_pips = buy_and_hold_pips(df, asset_cfg.pip_size) if df is not None else 0.0
+        bh_return_pct = (bh_pips * asset_cfg.pip_value_eur / capital_eur) * 100 if df is not None else 0.0
+        alpha_pips = profit_net_pips - bh_pips
+        alpha_return_pct = total_return_pct - bh_return_pct
+
+        return {
+            "annee": annee,
+            "profit_net": profit_net_pips,
+            "profit_net_eur": profit_net_eur,
+            "dd": dd_pips,
+            "trades": n_trades,
+            "win_rate": win_rate,
+            "sharpe": sharpe,
+            "sharpe_per_trade": sharpe_per_trade,
+            "total_return_pct": total_return_pct,
+            "max_dd_pct": max_dd_pct,
+            "bh_pips": bh_pips,
+            "bh_return_pct": bh_return_pct,
+            "alpha_pips": alpha_pips,
+            "alpha_return_pct": alpha_return_pct,
+            "final_equity_eur": final_equity_eur,
+            "blowup_detected": blowup_detected,
+        }
+
+    # ── Mode legacy (asset_cfg None) ─────────────────────────────────
     profit_net = trades_df["Pips_Nets"].sum()
     cum = trades_df["Pips_Nets"].cumsum()
     dd = max_drawdown(cum)

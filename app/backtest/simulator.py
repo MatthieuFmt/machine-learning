@@ -6,17 +6,20 @@ Extrait de backtest_utils.py original, réarchitecturé avec :
 - simulate_trades_continuous : wrapper régression (Predicted_Return)
 - Injection des filtres (FilterPipeline)
 - Injection du weight_func (WeightFunction Protocol)
+- Pivot v4 A1 : sizing au risque 2 % injecté dans _simulate_stateful_core.
 """
 
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 import numpy as np
 import pandas as pd
-
 from learning_machine_learning.backtest.filters import FilterPipeline
 from learning_machine_learning.core.logging import get_logger
+
+from app.backtest.sizing import compute_position_size
+from app.config.instruments import AssetConfig
 
 logger = get_logger(__name__)
 
@@ -41,6 +44,9 @@ def _simulate_stateful_core(
     spread_cost_base: float,
     window: int,
     pip_size: float,
+    asset_cfg: AssetConfig | None = None,
+    capital_eur: float = 10_000.0,
+    risk_pct: float = 0.02,
 ) -> list[dict]:
     """Boucle stateful pure — zéro dépendance aux colonnes de prédiction.
 
@@ -57,9 +63,12 @@ def _simulate_stateful_core(
         spread_cost_base: Coût de base (commission + slippage) en pips.
         window: Horizon max en barres.
         pip_size: Taille d'un pip.
+        asset_cfg: Pivot v4 A1 — config actif pour sizing. Si None, pas de sizing.
+        capital_eur: Capital en € pour le sizing.
+        risk_pct: Risque par trade (0.02 = 2 %).
 
     Returns:
-        Liste de dicts (un par trade).
+        Liste de dicts (un par trade). Inclut 'position_size_lots' si asset_cfg fourni.
     """
     trades: list[dict] = []
     i = 0
@@ -79,6 +88,22 @@ def _simulate_stateful_core(
             else:
                 tp = entry_price - tp_dist
                 sl = entry_price + sl_dist
+
+            # ── Pivot v4 A1 : sizing au risque 2 % ─────────────────────
+            position_lots: float = 1.0
+            if asset_cfg is not None:
+                try:
+                    position_lots = compute_position_size(
+                        entry_price=entry_price,
+                        stop_loss_price=sl,
+                        capital_eur=capital_eur,
+                        risk_pct=risk_pct,
+                        asset_cfg=asset_cfg,
+                    )
+                except ValueError:
+                    # SL invalide (ex: SL == entry) — skip ce trade
+                    i += 1
+                    continue
 
             pips_brut = 0.0
             result_type = "loss_timeout"
@@ -123,14 +148,17 @@ def _simulate_stateful_core(
                 i += window
                 result_type = "loss_timeout"
 
-            trades.append({
+            trade: dict = {
                 "Time": entry_time,
                 "Pips_Nets": pips_brut * weight,
                 "Pips_Bruts": pips_brut,
                 "Weight": weight,
                 "result": result_type,
                 "filter_rejected": entry_filter_rejected,
-            })
+            }
+            if asset_cfg is not None:
+                trade["position_size_lots"] = position_lots
+            trades.append(trade)
             continue
         i += 1
 
@@ -163,6 +191,9 @@ def simulate_trades(
     commission_pips: float = 0.5,
     slippage_pips: float = 1.0,
     filter_pipeline: FilterPipeline | None = None,
+    asset_cfg: AssetConfig | None = None,
+    capital_eur: float = 10_000.0,
+    risk_pct: float = 0.02,
 ) -> tuple[pd.DataFrame, int, dict[str, int]]:
     """Simule la stratégie en mode classifieur (Prediction_Modele).
 
@@ -179,6 +210,9 @@ def simulate_trades(
         commission_pips: Commission broker aller-retour.
         slippage_pips: Slippage estimé.
         filter_pipeline: Optionnel — pipeline de filtres de régime.
+        asset_cfg: Pivot v4 A1 — config actif pour sizing 2 %. Si None, pas de sizing.
+        capital_eur: Capital en € pour le sizing.
+        risk_pct: Risque par trade (0.02 = 2 %).
 
     Returns:
         Tuple (trades_df, n_signaux, n_filtres_appliques).
@@ -236,12 +270,16 @@ def simulate_trades(
         spread_cost_base=commission_pips + slippage_pips,
         window=window,
         pip_size=pip_size,
+        asset_cfg=asset_cfg,
+        capital_eur=capital_eur,
+        risk_pct=risk_pct,
     )
 
     if not trades:
-        empty = pd.DataFrame(
-            columns=["Time", "Pips_Nets", "Pips_Bruts", "Weight", "result", "filter_rejected"]
-        )
+        columns = ["Time", "Pips_Nets", "Pips_Bruts", "Weight", "result", "filter_rejected"]
+        if asset_cfg is not None:
+            columns.append("position_size_lots")
+        empty = pd.DataFrame(columns=columns)
         return empty.set_index("Time"), n_signaux, n_filtres_appliques
 
     return pd.DataFrame(trades).set_index("Time"), n_signaux, n_filtres_appliques
@@ -258,6 +296,9 @@ def simulate_trades_continuous(
     commission_pips: float = 0.5,
     slippage_pips: float = 1.0,
     filter_pipeline: FilterPipeline | None = None,
+    asset_cfg: AssetConfig | None = None,
+    capital_eur: float = 10_000.0,
+    risk_pct: float = 0.02,
 ) -> tuple[pd.DataFrame, int, dict[str, int]]:
     """Simule la stratégie en mode régression (Predicted_Return).
 
@@ -278,6 +319,9 @@ def simulate_trades_continuous(
         commission_pips: Commission broker aller-retour.
         slippage_pips: Slippage estimé.
         filter_pipeline: Optionnel — pipeline de filtres de régime.
+        asset_cfg: Pivot v4 A1 — config actif pour sizing 2 %. Si None, pas de sizing.
+        capital_eur: Capital en € pour le sizing.
+        risk_pct: Risque par trade (0.02 = 2 %).
 
     Returns:
         Tuple (trades_df, n_signaux, n_filtres_appliques).
@@ -330,12 +374,16 @@ def simulate_trades_continuous(
         spread_cost_base=commission_pips + slippage_pips,
         window=window,
         pip_size=pip_size,
+        asset_cfg=asset_cfg,
+        capital_eur=capital_eur,
+        risk_pct=risk_pct,
     )
 
     if not trades:
-        empty = pd.DataFrame(
-            columns=["Time", "Pips_Nets", "Pips_Bruts", "Weight", "result", "filter_rejected"]
-        )
+        columns = ["Time", "Pips_Nets", "Pips_Bruts", "Weight", "result", "filter_rejected"]
+        if asset_cfg is not None:
+            columns.append("position_size_lots")
+        empty = pd.DataFrame(columns=columns)
         return empty.set_index("Time"), n_signaux, n_filtres_appliques
 
     return pd.DataFrame(trades).set_index("Time"), n_signaux, n_filtres_appliques

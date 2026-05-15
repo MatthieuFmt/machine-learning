@@ -486,7 +486,7 @@ def validate_edge(
     metrics["max_dd"] = dd
 
     if dd >= 0.15:
-        reasons.append(f"Max DD {dd:.1%} ≥ 15%")
+        reasons.append(f"Max DD {dd:.1%} >= 15%")
 
     # ── 4. Win rate ───────────────────────────────────────────────────────
     if "pnl" not in trades.columns:
@@ -499,7 +499,7 @@ def validate_edge(
     metrics["n_trades"] = float(n_trades)
 
     if wr <= 0.30:
-        reasons.append(f"WR {wr:.1%} ≤ 30%")
+        reasons.append(f"WR {wr:.1%} <= 30%")
 
     # ── 5. Trades par an ──────────────────────────────────────────────────
     if n_trades == 0 or equity.index is None or len(equity.index) < 2:

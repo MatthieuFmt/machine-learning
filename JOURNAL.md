@@ -76,6 +76,8 @@
 | baseline | v2 H05 | 1 | 21 | ✅ GO | +8.84 |
 | 03–06 | (phase data, pas d'hypothèse) | 0 | 21 | — | — |
 | 07 | H06 (Donchian multi-actif) | 1 | 22 | 🔴 NO-GO | 6 testés, 0 GO (US30 −0.09, XAUUSD +1.46, GER30 −1.01, US500 −0.85, XAGUSD 0.00, USOIL erreur) |
+| pivot | H1 (méta-labeling RF XAUUSD D1) | 1 | 23 | ❌ NO-GO | 0 trade méta — split structurel train ≤2022 non-profitable |
+| pivot | H5 (RSI(2) mean-reversion US30 H1) | 1 | 24 | ❌ NO-GO | Sharpe=−0.95, DSR=−59.2, DD=92.8% |
 | 08 | H07 (strats alt) | — | — | — | — |
 | 09 | H08 (portfolio equal-risk) | — | — | — | — |
 | 10 | H09 (régime detector) | — | — | — | — |
@@ -249,3 +251,115 @@
   - pytest : ⏳ À exécuter (Règle 2)
   - snooping_check : ✅ TEST_SET_LOCK.json absent
 - **Hypothèses à explorer ensuite** : Prompt 09 (H08 combinaison naïve multi-actif equal risk), Prompt 10-11 (méta-labeling RF pour filtrer les trades Donchian)
+
+## [PIVOT-PLAN] Post Phase-2 Pivot — 2026-05-14
+
+**n_trials_cumul**: 22 → 27 (prévu)
+
+### Constat
+Phase 2 (H06-H08) : 0 GO sur 10 combinaisons. Coûts v3 8× v2 tuent le trend-following pur D1.
+
+### Diagnostic
+Méta-labeling RF v2 (H05, Sharpe +8.84 WF) jamais retesté avec coûts v3. Roadmap H09-H18 dépendait de H06/H07 (stratégies pures sans méta-labeling) → toutes échouées.
+
+XAUUSD D1 : Sharpe brut +1.46, DSR +2.88 (p=0.002) → edge significatif. Seul WR (22.5%) et trades/an (18.1) bloquent.
+
+### Plan pivot (5 hypothèses, voir docs/pivot_plan_v3.md)
+
+| Ordre | ID | Actif | TF | Approche | Priorité | Dépend de |
+|--------|-----|-------|-----|----------|----------|-----------|
+| 1 | H1 | XAUUSD | D1 | Donchian + méta-labeling RF | P1 | — |
+| 2 | H2 | US30 | D1 | Donchian + méta-labeling RF | P1 | H1 |
+| 3 | H3 | US30/XAUUSD | H4 | Donchian + méta-labeling RF | P2 | H1,H2 |
+| 4 | H4 | BTCUSD/ETHUSD | D1 | Donchian + méta-labeling RF | P3 | H1 |
+| 5 | H5 | US30 | H1 | Mean-reversion RSI(2) | P4 | — |
+
+### Règles strictes
+1. Pas de stratégie pure sans méta-labeling
+2. Sweep seuil méta sur TRAIN UNIQUEMENT
+3. Pas de features contexte de marché dans méta-modèle
+4. RF uniquement (pas GBM)
+5. Split figé, test set 1×, validate_edge() systématique
+6. Sharpe sur pct_change equity curve
+
+### Prochaine étape
+Exécuter H1 : méta-labeling RF sur XAUUSD D1 Donchian(N=100, M=20).
+
+---
+
+## [H1-NO-GO] Méta-labeling RF XAUUSD D1 — 2026-05-14
+
+- **Statut** : ❌ NO-GO
+- **Fichiers créés** : `scripts/run_h1_xauusd_meta.py`, `predictions/h1_xauusd_meta.json`
+- **n_trials** : 22 → 23
+
+### Résultats
+
+| Période | Sharpe | WR | Trades |
+|---------|--------|-----|--------|
+| Train base (≤2022) | +1.03 | 1.5% | 68 |
+| Val base (2023) | 0.00 | 0.0% | 4 |
+| Test base (≥2024) | +2.06 | 25.8% | 31 |
+| Test méta | 0.00 | 0.0% | 0 |
+
+### Critères GO/NO-GO
+- Sharpe test : 0.00 ✗ (< 1.0 requis)
+- WR : 0.0% ✗ (< 30%)
+- Trades/an : 0.0 ✗ (< 30)
+→ **NO-GO confirmé**
+
+### Cause racine
+Train ≤2022 structurellement non-profitable pour Donchian XAUUSD : 1 win / 68 samples. Le RF ne peut rien apprendre d'un échantillon quasi-monoclasse → rejette tous les signaux en test → 0 trade.
+
+Le split figé (train ≤2022, val=2023, test ≥2024) crée une **distribution inversée** pour XAUUSD D1 : la période rentable (test) est exclue de l'apprentissage, la période non-rentable (train) domine le méta-modèle. Ce split est viable pour US30 mais cassant pour XAUUSD.
+
+### Leçon
+Le split figé unique pour tous les actifs est un point de fragilité. Chaque actif a son propre régime de profitabilité temporelle. Une réévaluation du split par actif ou un walk-forward adaptatif est nécessaire avant de poursuivre les hypothèses D1.
+
+---
+
+## [H5-NO-GO] Mean-reversion RSI(2) extrême US30 H1 — 2026-05-15
+
+- **Statut** : ❌ NO-GO
+- **Fichiers créés** : `scripts/run_h5_rsi2_us30_h1.py`, `predictions/h5_rsi2_us30_h1.json`
+- **n_trials** : 23 → 24
+
+### Résultats
+
+| Période | Sharpe | WR | Trades | PnL (pts) | Max DD (pts) | T/an |
+|---------|--------|-----|--------|-----------|-------------|------|
+| Train (≤2022) | +0.16 | 53.8% | 6120 | −44,255 | −44,358 | 637 |
+| Val (2023) | −1.17 | 57.8% | 725 | −2,476 | −3,987 | 736 |
+| Test (≥2024) | −0.95 | 55.1% | 1765 | −7,074 | −10,392 | 748 |
+
+### Critères GO/NO-GO
+- Sharpe test : −0.95 ✗ (< 1.0 requis)
+- Trades/an : 748 ✓ (≥ 100)
+- Max DD : 92.8% ✗ (< 20%)
+→ **NO-GO confirmé**
+
+### Cause racine
+RSI(2) extrême = générateur de bruit, pas d'edge. 1765 trades, PnL moyen −4.0 pts/trade. 72% des sorties par RSI cross → le prix dérive contre la position.
+
+### Leçon
+Le mean-reversion RSI(2) extrême sur US30 H1 ne capture aucun edge directionnel. Même avec un méta-modèle RF en surcouche, la qualité du signal sous-jacent est trop faible pour être amplifiée. Les hypothèses de type mean-reversion sont à abandonner au profit d'approches trend-following (Donchian) avec méta-labeling.
+
+## 2026-05-15 — Pivot v4 A1 : Audit simulateur (sizing + DD + Sharpe)
+
+- **Statut** : ✅ Terminé
+- **Type** : Bug fix infrastructure (0 n_trial consommé)
+- **Fichiers créés** : `app/backtest/sizing.py`, `tests/unit/test_simulator_sizing.py`, `docs/simulator_audit_a1.md`
+- **Fichiers modifiés** : `app/backtest/metrics.py` (mode A1 equity € + legacy préservé), `app/backtest/simulator.py` (injection sizing dans `_simulate_stateful_core` + propagation wrappers `simulate_trades` / `simulate_trades_continuous`)
+- **Résultats clés** :
+  - DD désormais borné [−100 %, 0 %]
+  - Sizing au risque 2 % implémenté via `compute_position_size()`
+  - Sharpe sur retours du capital en € (equity curve), pas en pips
+  - Détection blow-up : flag `blowup_detected` dans les métriques
+  - Rétrocompatibilité : `asset_cfg=None` préserve le comportement legacy
+- **Tests** : 12/12 nouveaux tests + non-régression à vérifier
+- **Bugs corrigés** :
+  - DD calculé sur pips bruts → DD calculé sur equity €
+  - Pas de sizing → sizing 200 € de risque / SL en €
+  - Sharpe sur pips → Sharpe sur equity daily returns
+- **Notes** : Aucune stratégie modifiée. Aucune lecture du test set 2024+. Les scripts `run_*.py` existants continuent de fonctionner (mode legacy).
+- **Prochaine étape** : A2 — calibration coûts XTB réels.
