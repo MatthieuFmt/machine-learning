@@ -2,7 +2,7 @@
 
 ## Préalable obligatoire (à lire dans l'ordre)
 1. [00_README.md](00_README.md)
-2. [01_audit_simulator.md](01_audit_simulator.md), [02_calibration_costs.md](02_calibration_costs.md), [03_sharpe_low_frequency.md](03_sharpe_low_frequency.md) — **TOUS ✅ Terminés**
+2. [A1_audit_simulator.md](A1_audit_simulator.md), [A2_calibration_costs.md](A2_calibration_costs.md), [A3_sharpe_low_frequency.md](A3_sharpe_low_frequency.md) — **TOUS ✅ Terminés**
 3. [docs/v3_hypothesis_06.md](../../docs/v3_hypothesis_06.md), [docs/v3_hypothesis_07.md](../../docs/v3_hypothesis_07.md) — anciens résultats
 4. [../00_constitution.md](../00_constitution.md) — règle 9 (un seul regard OOS) + règle 14 (test set lock)
 
@@ -348,4 +348,4 @@ Si Donchian US30 baseline a Sharpe train +1.5 et val +1.2 → **bonne nouvelle**
 Si Donchian US30 baseline a Sharpe train −0.5 → **mauvaise nouvelle** : H_new1 a peu de chances. Considérer directement H_new3 (mean-reversion EURUSD).
 
 ## Fin du prompt A4.
-**Suivant** : [05_h_new1_meta_us30.md](05_h_new1_meta_us30.md)
+**Suivant** : [B1_meta_us30.md](B1_meta_us30.md)

@@ -417,4 +417,6 @@ Avec sizing 2 % :
 - Compound naturel sur l'equity curve
 
 ## Fin du prompt A1.
-**Suivant** : [02_calibration_costs.md](02_calibration_costs.md)
+**Suivant (ordre révisé)** : [A5_feature_generation.md](A5_feature_generation.md)
+
+> ⚠️ L'ordre original était A1 → A2 → A3 → A5… Il a été révisé en mai 2026 pour prioriser le pipeline ML. Nouvel ordre : A1 ✅ → **A5 → A6 → A7 → A8 → A9** → A2 → A3 → [A4 opt] → B1. Voir [00_README.md](00_README.md) section "Ordre d'exécution strict — RÉVISÉ".

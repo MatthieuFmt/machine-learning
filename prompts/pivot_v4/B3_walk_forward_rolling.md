@@ -3,8 +3,8 @@
 ## Préalable obligatoire (à lire dans l'ordre)
 1. [00_README.md](00_README.md)
 2. Phase A complète ✅
-3. [05_h_new1_meta_us30.md](05_h_new1_meta_us30.md) — verdict (GO ou NO-GO)
-4. [06_h_new3_eurusd_h4_meanrev.md](06_h_new3_eurusd_h4_meanrev.md) — verdict
+3. [B1_meta_us30.md](B1_meta_us30.md) — verdict (GO ou NO-GO)
+4. [B2_eurusd_h4_meanrev.md](B2_eurusd_h4_meanrev.md) — verdict
 5. [JOURNAL.md](../../JOURNAL.md) — note le diagnostic H1 pivot v3 (split mono-classe XAUUSD)
 6. [../00_constitution.md](../00_constitution.md)
 
@@ -460,5 +460,5 @@ Si **B1, B2 et B3 sont tous NO-GO**, alors la conclusion est :
 **Aucune de ces options n'est dans le scope du plan v4**. Elles nécessitent un plan v5.
 
 ## Fin du prompt B3.
-**Suivant si GO sur ≥ 1 actif** : `prompts/20_signal_engine.md` (Phase production) ou [08_h_new4_portfolio.md](08_h_new4_portfolio.md) si 2 actifs GO.
+**Suivant si GO sur ≥ 1 actif** : `prompts/20_signal_engine.md` (Phase production) ou [B4_portfolio.md](B4_portfolio.md) si 2 actifs GO.
 **Suivant si NO-GO** : Annexe A5 — décision avec l'utilisateur sur le pivot.

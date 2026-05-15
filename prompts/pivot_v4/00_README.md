@@ -2,6 +2,29 @@
 
 > **À LIRE EN PREMIER avant tout fichier de ce dossier.**
 
+## Carte des fichiers du dossier
+
+Tous les fichiers suivent maintenant la convention uniforme `AX_*.md` (phase A) ou `BX_*.md` (phase B).
+
+| Label | Fichier | Phase | Statut par défaut |
+|---|---|---|---|
+| **A1** | [A1_audit_simulator.md](A1_audit_simulator.md) | Infrastructure simulateur | ✅ déjà fait |
+| **A5** | [A5_feature_generation.md](A5_feature_generation.md) | ML — features (★ priorité) | À faire en premier |
+| **A6** | [A6_feature_ranking.md](A6_feature_ranking.md) | ML — ranking | Suit A5 |
+| **A7** | [A7_model_selection.md](A7_model_selection.md) | ML — model selection | Suit A6 |
+| **A8** | [A8_hyperparameter_tuning.md](A8_hyperparameter_tuning.md) | ML — hyperparams | Suit A7 |
+| **A9** | [A9_pipeline_lock.md](A9_pipeline_lock.md) | ML — lock SHA256 | Suit A8, fige tout |
+| **A2** | [A2_calibration_costs.md](A2_calibration_costs.md) | Simulateur — coûts XTB | Après A9 |
+| **A3** | [A3_sharpe_low_frequency.md](A3_sharpe_low_frequency.md) | Simulateur — Sharpe routing | Après A2 |
+| **A4** | [A4_replay_h06_h07.md](A4_replay_h06_h07.md) | Observation (replay) | 🟡 **OPTIONNEL** |
+| **B1** | [B1_meta_us30.md](B1_meta_us30.md) | OOS — méta-labeling US30 | +1 n_trial |
+| **B2** | [B2_eurusd_h4_meanrev.md](B2_eurusd_h4_meanrev.md) | OOS — EURUSD H4 | +1 n_trial |
+| **B3** | [B3_walk_forward_rolling.md](B3_walk_forward_rolling.md) | OOS — WF rolling | Conditionnel |
+| **B4** | [B4_portfolio.md](B4_portfolio.md) | OOS — portfolio multi-sleeves | Conditionnel |
+
+> **Ordre canonique révisé** : A1 ✅ → **A5 → A6 → A7 → A8 → A9** → A2 → A3 → [A4 opt] → B1 → B2 → [B3] → [B4]
+> Voir section "Ordre d'exécution strict — RÉVISÉ" plus bas pour les dépendances détaillées et les caveats méthodologiques.
+
 ## Contexte
 
 À la date du pivot v4, l'état du projet est :
@@ -31,39 +54,44 @@ Le test set 2024+ a été lu pour ces hypothèses → **elles sont brûlées en 
 
 ## Stratégie du pivot v4
 
-**Principe directeur** : on arrête de brûler des n_trials sur un simulateur cassé. On corrige d'abord (A1-A4), puis on construit un pipeline ML précis sur train uniquement (A5-A9), puis on teste sur OOS (B1-B4).
+**Principe directeur** : on arrête de brûler des n_trials sur un simulateur cassé. On corrige d'abord les bugs critiques (A1 ✅), puis on construit le pipeline ML sur train uniquement (A5-A9, priorité utilisateur), puis on finalise le simulateur (A2-A3), puis on teste sur OOS (B1-B4).
 
 > **Insight critique** : la méthodologie correcte selon López de Prado est de fixer **tout** (features, modèle, hyperparams, seuil) sur train AVANT toute lecture du test set. C'est ce que A5-A9 font. Une fois ce pipeline gelé, B1-B4 deviennent de vrais tests OOS au sens DSR.
 
-### Phase A — Audit / Correction simulateur (A1-A4)
+### Bloc 1 — Infrastructure simulateur critique (A1)
 
-| Fichier | Phase | Effort | n_trials | But |
-|---|---|---|---|---|
-| [01_audit_simulator.md](01_audit_simulator.md) | A1 | 0.5 j | 0 | Corriger sizing au risque 2 %, recalcul DD/Sharpe en € |
-| [02_calibration_costs.md](02_calibration_costs.md) | A2 | 0.5 j | 0 | Coûts XTB réels (factor × 3-80 à diviser) |
-| [03_sharpe_low_frequency.md](03_sharpe_low_frequency.md) | A3 | 0.3 j | 0 | Fix Sharpe pour stratégies < 100 trades/an |
-| [04_replay_h06_h07.md](04_replay_h06_h07.md) | A4 | 0.5 j | 0 | Replay H06/H07 sur train+val (test set interdit) |
+| Fichier | Phase | Effort | n_trials | Type | But |
+|---|---|---|---|---|---|
+| [A1_audit_simulator.md](A1_audit_simulator.md) | A1 | 0.5 j | 0 | ✅ FAIT | Corriger sizing au risque 2 %, recalcul DD/Sharpe en € — DD bornés [−100 %, 0 %] |
 
-### Phase A étendue — Construction du pipeline ML précis (A5-A9, train UNIQUEMENT)
+### Bloc 2 — Pipeline ML précis (A5-A9, train UNIQUEMENT, ★ priorité)
 
-| Fichier | Phase | Effort | n_trials | But |
-|---|---|---|---|---|
-| [A5_feature_generation.md](A5_feature_generation.md) | A5 | 1 j | 0 | Construire un superset de 50+ features (tech + éco + sessions + régime + price action + cross-asset) |
-| [A6_feature_ranking.md](A6_feature_ranking.md) | A6 | 0.5 j | 0 | Ranking train uniquement (mutual info + permutation + bootstrap stability) — top 15 figé par actif |
-| [A7_model_selection.md](A7_model_selection.md) | A7 | 1 j | 0 | Comparer RF / HistGBM / Stacking via CPCV train uniquement — modèle figé |
-| [A8_hyperparameter_tuning.md](A8_hyperparameter_tuning.md) | A8 | 0.5 j | 0 | Nested CPCV pour hyperparams du modèle retenu — hyperparams figés |
-| [A9_pipeline_lock.md](A9_pipeline_lock.md) | A9 | 0.3 j | 0 | Geler tout dans `app/config/ml_pipeline_v4.py` — pipeline immutable pour B1-B4 |
+| Fichier | Phase | Effort | n_trials | Type | But |
+|---|---|---|---|---|---|
+| [A5_feature_generation.md](A5_feature_generation.md) | A5 | 1 j | 0 | 🔴 OBLIGATOIRE | Superset de 70+ features (tech + éco + sessions + régime + price action + cross-asset) |
+| [A6_feature_ranking.md](A6_feature_ranking.md) | A6 | 0.5 j | 0 | 🔴 OBLIGATOIRE | Ranking train uniquement (mutual info + permutation + bootstrap stability) — top 15 figé par (asset, tf) |
+| [A7_model_selection.md](A7_model_selection.md) | A7 | 1 j | 0 | 🔴 OBLIGATOIRE | Comparer RF / HistGBM / Stacking via CPCV train uniquement — modèle figé |
+| [A8_hyperparameter_tuning.md](A8_hyperparameter_tuning.md) | A8 | 0.5 j | 0 | 🔴 OBLIGATOIRE | Nested CPCV pour hyperparams + seuil — figés |
+| [A9_pipeline_lock.md](A9_pipeline_lock.md) | A9 | 0.3 j | 0 | 🔴 OBLIGATOIRE | Geler tout dans `app/config/ml_pipeline_v4.py` + SHA256 — pipeline immutable pour B1-B4 |
 
-**Total Phase A : 5.1 jours, 0 n_trial. Le test set 2024+ N'EST PAS LU.**
+### Bloc 3 — Finition simulateur (A2-A3, après A9)
 
-### Phase B — Hypothèses OOS avec pipeline gelé
+| Fichier | Phase | Effort | n_trials | Type | But |
+|---|---|---|---|---|---|
+| [A2_calibration_costs.md](A2_calibration_costs.md) | A2 | 0.5 j | 0 | 🔴 OBLIGATOIRE | Coûts XTB réels (facteur × 3-80 à diviser) — applicable au simulateur utilisé en B1 |
+| [A3_sharpe_low_frequency.md](A3_sharpe_low_frequency.md) | A3 | 0.3 j | 0 | 🔴 OBLIGATOIRE | Fix Sharpe routing pour stratégies < 100 trades/an |
+| [A4_replay_h06_h07.md](A4_replay_h06_h07.md) | A4 | 0.5 j | 0 | 🟡 OPTIONNEL | Replay H06/H07 sur train+val avec sim corrigé — observation uniquement |
+
+**Total Phase A : 4.6 jours (sans A4) ou 5.1 jours (avec A4), 0 n_trial. Le test set 2024+ N'EST PAS LU.**
+
+### Bloc 4 — Hypothèses OOS avec pipeline gelé + simulateur fiable (B1-B4)
 
 | Fichier | Phase | Effort | n_trials | Priorité | Précondition |
 |---|---|---|---|---|---|
-| [05_h_new1_meta_us30.md](05_h_new1_meta_us30.md) | B1 | 1 j | +1 (23) | 🔴 P0 | Phase A complète (A1-A9) |
-| [06_h_new3_eurusd_h4_meanrev.md](06_h_new3_eurusd_h4_meanrev.md) | B2 | 1.5 j | +1 (24) | 🟠 P1 | Phase A complète |
-| [07_h_new2_walk_forward_rolling.md](07_h_new2_walk_forward_rolling.md) | B3 | 1.5 j | +1 (25) | 🟡 P2 | Conditionnelle : B1 NO-GO |
-| [08_h_new4_portfolio.md](08_h_new4_portfolio.md) | B4 | 1 j | +1 (26) | 🟡 P3 | Conditionnelle : ≥ 2 GO en B1/B2/B3 |
+| [B1_meta_us30.md](B1_meta_us30.md) | B1 | 1 j | +1 (23) | 🔴 P0 | A1 + A5-A9 + A2 + A3 ✅ |
+| [B2_eurusd_h4_meanrev.md](B2_eurusd_h4_meanrev.md) | B2 | 1.5 j | +1 (24) | 🟠 P1 | Idem |
+| [B3_walk_forward_rolling.md](B3_walk_forward_rolling.md) | B3 | 1.5 j | +1 (25) | 🟡 P2 | Conditionnelle : B1 NO-GO |
+| [B4_portfolio.md](B4_portfolio.md) | B4 | 1 j | +1 (26) | 🟡 P3 | Conditionnelle : ≥ 2 GO en B1/B2/B3 |
 
 **Total max : n_trials = 26 (au lieu de 28 dans le plan initial — économie de 2 trials grâce au pipeline gelé), effort ~11 jours.**
 
@@ -78,18 +106,92 @@ Une fois le pipeline gelé en A9, le **vrai** test statistique est B1 qui lit le
 
 C'est la méthodologie "Sanctity of the Test Set" de Bailey & López de Prado (2014) : tout le tuning sur train, une seule lecture OOS.
 
-## Ordre d'exécution strict
+## Ordre d'exécution strict — RÉVISÉ (mai 2026)
+
+> **Pivot d'ordre** : à la demande de l'utilisateur, l'ordre original a été modifié pour **prioriser la construction du pipeline ML (A5-A9) AVANT la finition du simulateur (A2-A3)**. Voir section "Pourquoi ce pivot d'ordre" ci-dessous pour les implications méthodologiques.
+
+### Ordre canonique (à suivre)
 
 ```
-A1 → A2 → A3 → A4 → A5 → A6 → A7 → A8 → A9 → B1 → B2 → [B3 si B1+B2 NO-GO] → [B4 si ≥ 2 GO]
+A1 ✅ → A5 → A6 → A7 → A8 → A9 → A2 → A3 → [A4 optionnel] → B1 → B2 → [B3] → [B4]
 ```
 
-**Aucun raccourci**. Si A1-A9 ne sont pas tous ✅ Terminés dans `JOURNAL.md`, ne PAS commencer B1.
+**Découpage** :
+- **Bloc ML (A5-A9)** : features + ranking + modèle + hyperparams + lock — tout sur train, classification metrics
+- **Bloc simulateur (A2-A3)** : coûts XTB + Sharpe routing — affine le simulateur AVANT les tests OOS
+- **Bloc observationnel (A4)** : optionnel, replay H06/H07 avec sim corrigé
+- **Bloc OOS (B1-B4)** : lit le test set avec pipeline gelé + simulateur corrigé
+
+### Tableau de dépendances RÉVISÉ
+
+| Phase | Dépend strictement de | Peut tourner sans (avec caveat) | Pourquoi |
+|---|---|---|---|
+| **A1** ✅ | — | — | Premier prompt, déjà fait |
+| **A5** | A1 | A2/A3 | Pure feature engineering, pas de simulateur requis |
+| **A6** | A5 | A2/A3 | Ranking par MI + permutation + Spearman — métriques classification, pas trading |
+| **A7** | A6 | A2/A3 ⚠️ | Sélection RF/HGBM/Stacking — utilise Sharpe en CPCV (caveat : Sharpe biaisé tant que A2 pas fait, mais **ranking entre modèles est préservé** car le biais coûts est uniforme) |
+| **A8** | A7 | A2/A3 ⚠️ | Tuning hyperparams — caveat similaire à A7. Le **seuil de calibration** peut être suboptimal post-A2, mais le modèle reste valide |
+| **A9** | A8 | A2/A3 | Lock structurel (features + modèle + hyperparams + seuil) — fige le pipeline ML |
+| **A2** | A1, A9 | — | Coûts XTB réels — applicable au simulateur utilisé en B1 |
+| **A3** | A2 | — | Sharpe routing — applicable aux métriques finales en B1 |
+| **A4** | A3 *(optionnel)* | — | Replay H06/H07 sur sim corrigé — observation uniquement |
+| **B1+** | A9 + A2 + A3 | — | Lit le test set 2024+ avec pipeline gelé + simulateur corrigé |
+
+### Pourquoi ce pivot d'ordre ?
+
+**Avantage** : on construit le pipeline ML (A5-A9) sur des **métriques de classification** (F1, AUC, MI, permutation importance) qui sont **insensibles aux coûts de trading**. La sélection du modèle (RF vs HGBM vs Stacking) ne dépend pas de la précision des coûts.
+
+**Caveat méthodologique** : le seuil de calibration choisi en A8 (ex: proba > 0.55) est optimisé sur Sharpe en CPCV. Si les coûts sont sur-estimés (cas actuel : facteur × 3-80), le seuil retenu sera **trop conservateur** (rejette trop de trades). Après A2 (coûts corrigés), le seuil pourrait gagner à être abaissé.
+
+**Mitigation** : la décision GO/NO-GO en B1-B4 ne dépend pas du seuil exact mais du fait que le pipeline produit un edge significatif (Sharpe > 1, DSR > 0). Si B1 est NO-GO uniquement à cause d'un seuil trop conservateur, on pourrait re-tuner. Mais ce serait un nouveau n_trial → à éviter.
+
+**Recommandation** : si possible, faire A2 (0.5j) en parallèle/intercalé avant A8 pour avoir un seuil optimal. Sinon, accepter le caveat.
+
+### Reprise après A1 (si tu as déjà commencé A1)
+
+Si A1 est ✅ Terminé dans `JOURNAL.md`, l'enchaînement à suivre est :
+
+```
+[✅ A1 fait]
+   ↓
+A5 (superset 70+ features)         ← 1 j      ★ priorité utilisateur
+   ↓
+A6 (ranking + top 15 figé)         ← 0.5 j
+   ↓
+A7 (sélection RF/HGBM/Stacking)    ← 1 j      ⚠ Sharpe biaisé (coûts non corrigés), ranking préservé
+   ↓
+A8 (nested CPCV hyperparams)       ← 0.5 j    ⚠ seuil suboptimal, voir caveat ci-dessus
+   ↓
+A9 (pipeline lock + SHA256)        ← 0.3 j    Pipeline ML figé
+   ↓
+A2 (calibration coûts XTB)         ← 0.5 j    Simulateur finalisé pour B1
+   ↓
+A3 (Sharpe routing low-frequency)  ← 0.3 j    Métriques finalisées
+   ↓
+[A4 optionnel : replay observation]
+   ↓
+B1 (méta-labeling US30 D1)         ← +1 n_trial
+   ↓
+B2 (EURUSD H4 mean-rev)            ← +1 n_trial
+```
+
+**Aucun raccourci**. Si A2-A9 ne sont pas tous ✅ Terminés dans `JOURNAL.md`, ne PAS commencer B1.
 
 **Verrouillage progressif** :
-- Après A6 : la liste des features est FIGÉE. Toute modification post-A6 = data snooping.
-- Après A7 : le modèle ML est FIGÉ. Pas de "essayons XGBoost en plus" sans nouveau n_trial.
-- Après A9 : tout le pipeline est immutable. B1-B4 utilisent ce pipeline tel quel.
+- Après **A6** : la liste des features est FIGÉE dans `app/config/features_selected.py`. Toute modification post-A6 = data snooping.
+- Après **A7** : le modèle ML est FIGÉ dans `app/config/model_selected.py`. Pas de "essayons XGBoost en plus" sans nouveau n_trial.
+- Après **A8** : les hyperparams sont FIGÉS dans `app/config/hyperparams_tuned.py`.
+- Après **A9** : tout le pipeline est immutable (SHA256 dans `TEST_SET_LOCK.json`). B1-B4 utilisent ce pipeline tel quel.
+
+### Que faire si Deepseek/Roo Code se perd ?
+
+Au début de **CHAQUE** prompt de cette phase, Deepseek doit :
+1. Lire [00_README.md](00_README.md) (ce fichier) — section "Tableau de dépendances".
+2. Lire `JOURNAL.md` à la racine du projet pour identifier les phases ✅ Terminées.
+3. Vérifier que **toutes les dépendances** de la phase courante sont ✅ Terminées.
+4. Si une dépendance manque → **STOP**, demander à l'utilisateur si elle doit être faite d'abord.
+
+Exemple concret : si tu lances A7 et que A3 n'est pas dans `JOURNAL.md` comme ✅ Terminé, A7 doit refuser de démarrer.
 
 ## Critères d'arrêt définitifs
 
@@ -145,7 +247,7 @@ Chaque prompt de ce dossier suit ce template :
 - Spécifications techniques, formules, références externes.
 ```
 
-## Vue d'ensemble graphique
+## Vue d'ensemble graphique (ordre RÉVISÉ)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -154,11 +256,23 @@ Chaque prompt de ce dossier suit ce template :
 │                   Test set 2024+ JAMAIS lu                              │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│  A1 ─→ A2 ─→ A3 ─→ A4    │    A5 ─→ A6 ─→ A7 ─→ A8 ─→ A9               │
-│  (audit sim. + coûts)    │    (pipeline ML construit sur train)        │
-│       ↓                          ↓                                      │
-│  simulateur fiable               pipeline ML gelé (features + modèle    │
-│  + Sharpe routing                + hyperparams + seuil de calibration)  │
+│  [A1 ✅] sizing + DD bornés                                              │
+│       │                                                                 │
+│       ▼                                                                 │
+│  ─────────── pipeline ML (★ priorité utilisateur) ──────────            │
+│  A5 ─→ A6 ─→ A7 ─→ A8 ─→ A9                                            │
+│  (features → ranking → modèle → hyperparams → lock SHA256)              │
+│       │                                                                 │
+│       ▼                                                                 │
+│  pipeline ML immutable (features + modèle + hyperparams + seuil figés)  │
+│       │                                                                 │
+│       ▼                                                                 │
+│  ─────────── finition simulateur (avant tests OOS) ──────────           │
+│  A2 ─→ A3      [A4 optionnel : replay observation]                      │
+│  (coûts XTB réels + Sharpe routing low-frequency)                       │
+│       │                                                                 │
+│       ▼                                                                 │
+│  pipeline ML gelé + simulateur fiable                                   │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
                                   │
@@ -200,4 +314,4 @@ Chaque prompt de ce dossier suit ce template :
 
 ---
 
-**Suivant** : [01_audit_simulator.md](01_audit_simulator.md)
+**Suivant (puisque A1 ✅)** : [A5_feature_generation.md](A5_feature_generation.md)

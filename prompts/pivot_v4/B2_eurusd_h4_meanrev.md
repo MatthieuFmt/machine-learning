@@ -3,7 +3,7 @@
 ## Préalable obligatoire (à lire dans l'ordre)
 1. [00_README.md](00_README.md)
 2. Phase A complète (A1-A4) ✅
-3. [05_h_new1_meta_us30.md](05_h_new1_meta_us30.md) — peut être en GO ou NO-GO, mais doit être terminé
+3. [B1_meta_us30.md](B1_meta_us30.md) — peut être en GO ou NO-GO, mais doit être terminé
 4. [../00_constitution.md](../00_constitution.md) — toutes règles
 5. [JOURNAL.md](../../JOURNAL.md) — vérifier n_trials_cumul actuel
 
@@ -402,7 +402,7 @@ walk-forward 6M, donne-t-il un Sharpe ≥ 1.0 sur 2024+ après coûts XTB réels
 ## Critères go/no-go
 
 - **GO Phase production** si TOUS les 5 critères passent.
-- **NO-GO, bascule H_new2** ([07_h_new2_walk_forward_rolling.md](07_h_new2_walk_forward_rolling.md)) si :
+- **NO-GO, bascule H_new2** ([B3_walk_forward_rolling.md](B3_walk_forward_rolling.md)) si :
   - Sharpe < 0.5 ET pas d'amélioration nette vs baseline = pas la peine de continuer mean-reversion
   - WR < 50 % → mean-reversion ne capture pas
   - DD > 20 % → trop volatile
@@ -450,4 +450,4 @@ Pour mean-rev, timeout court (vs Donchian 120h = 5 jours sur D1). Calibré pour 
 
 ## Fin du prompt B2.
 **Suivant si GO** : `prompts/20_signal_engine.md` (Phase 4 production)
-**Suivant si NO-GO** : [07_h_new2_walk_forward_rolling.md](07_h_new2_walk_forward_rolling.md)
+**Suivant si NO-GO** : [B3_walk_forward_rolling.md](B3_walk_forward_rolling.md)

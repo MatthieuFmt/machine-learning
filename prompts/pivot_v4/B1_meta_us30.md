@@ -1,10 +1,12 @@
 # Pivot v4 — B1 : H_new1 — Méta-labeling RF sur Donchian US30 D1
 
 ## Préalable obligatoire (à lire dans l'ordre)
-1. [00_README.md](00_README.md)
-2. [04_replay_h06_h07.md](04_replay_h06_h07.md) — **DOIT ÊTRE TERMINÉ** + Phase A complète ✅
-3. [../00_constitution.md](../00_constitution.md) — toutes les règles 1-15
-4. [JOURNAL.md](../../JOURNAL.md) — vérifier que n_trials_cumul = 22 et que A1-A4 sont ✅
+1. [00_README.md](00_README.md) — section "Ordre d'exécution strict — RÉVISÉ"
+2. [A9_pipeline_lock.md](A9_pipeline_lock.md) — **DOIT ÊTRE ✅ Terminé** (pipeline ML gelé)
+3. [A2_calibration_costs.md](A2_calibration_costs.md) + [A3_sharpe_low_frequency.md](A3_sharpe_low_frequency.md) — **DOIVENT ÊTRE ✅ Terminés** (simulateur finalisé)
+4. [A4_replay_h06_h07.md](A4_replay_h06_h07.md) — *(optionnel — observation uniquement)*
+5. [../00_constitution.md](../00_constitution.md) — toutes les règles 1-15
+6. [JOURNAL.md](../../JOURNAL.md) — vérifier que n_trials_cumul = 22 et que **A1, A5-A9, A2, A3 sont ✅**
 5. **Code v2 H05** (référence historique, à porter dans `app/`) :
    - `learning_machine_learning_v2/models/meta_labeling.py` (si encore présent, sinon recréer)
    - `learning_machine_learning_v2/backtest/walk_forward.py`
@@ -556,4 +558,4 @@ XAUUSD était NO-GO en H06 v3 (WR 22.5 % + trades/an 18) et a échoué en H1 piv
 
 ## Fin du prompt B1.
 **Suivant si GO** : `prompts/20_signal_engine.md` (Phase 4 production)
-**Suivant si NO-GO** : [06_h_new3_eurusd_h4_meanrev.md](06_h_new3_eurusd_h4_meanrev.md) ou [07_h_new2_walk_forward_rolling.md](07_h_new2_walk_forward_rolling.md)
+**Suivant si NO-GO** : [B2_eurusd_h4_meanrev.md](B2_eurusd_h4_meanrev.md) ou [B3_walk_forward_rolling.md](B3_walk_forward_rolling.md)

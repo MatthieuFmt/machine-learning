@@ -1,8 +1,11 @@
 # Pivot v4 — A2 : Calibration des coûts XTB réels
 
 ## Préalable obligatoire (à lire dans l'ordre)
-1. [00_README.md](00_README.md)
-2. [01_audit_simulator.md](01_audit_simulator.md) — **DOIT ÊTRE TERMINÉ AVANT**
+1. [00_README.md](00_README.md) — section "Ordre d'exécution strict — RÉVISÉ"
+2. [A1_audit_simulator.md](A1_audit_simulator.md) — **DOIT ÊTRE ✅ Terminé**
+3. [A9_pipeline_lock.md](A9_pipeline_lock.md) — **DOIT ÊTRE ✅ Terminé** (ordre révisé : ML d'abord)
+
+> 📌 **Note ordre révisé** : A2 vient maintenant APRÈS le bloc ML (A5-A9). Le pipeline ML est déjà figé ; ici on finalise le simulateur (coûts XTB) avant B1.
 3. [../00_constitution.md](../00_constitution.md) — règle 13 (anti-hallucination API)
 4. [app/config/instruments.py](../../app/config/instruments.py) — table `ASSET_CONFIGS` à corriger
 5. [docs/v3_hypothesis_06.md](../../docs/v3_hypothesis_06.md) — anciens coûts qui ont tué H06
@@ -365,4 +368,4 @@ XTB Standard Account : spreads variables, **pas de commission**. Toutes les fric
 XTB Pro Account : spreads serrés (~0.1 pt US30), **commission ~3.5 USD/lot**. À paramétrer si l'utilisateur passe en Pro.
 
 ## Fin du prompt A2.
-**Suivant** : [03_sharpe_low_frequency.md](03_sharpe_low_frequency.md)
+**Suivant** : [A3_sharpe_low_frequency.md](A3_sharpe_low_frequency.md)

@@ -2,7 +2,7 @@
 
 ## Préalable obligatoire (à lire dans l'ordre)
 1. [00_README.md](00_README.md)
-2. [02_calibration_costs.md](02_calibration_costs.md) — **DOIT ÊTRE TERMINÉ AVANT**
+2. [A2_calibration_costs.md](A2_calibration_costs.md) — **DOIT ÊTRE TERMINÉ AVANT**
 3. [../00_constitution.md](../00_constitution.md) — règle 10 (Sharpe sur retours du capital)
 4. [app/backtest/metrics.py](../../app/backtest/metrics.py) — fonctions `sharpe_ratio`, `sharpe_daily_from_trades`
 
@@ -322,4 +322,4 @@ Validation : si on a 4 trades/mois (48/an) avec Sharpe per-trade 0.5, Sharpe ann
 Pour < 100 trades/an, on passe en weekly. Le seuil 30 trades/an pour passer à per-trade correspond au minimum statistique pour avoir un Sharpe per-trade significatif (~1 trade tous les 2 semaines).
 
 ## Fin du prompt A3.
-**Suivant** : [04_replay_h06_h07.md](04_replay_h06_h07.md)
+**Suivant** : [A4_replay_h06_h07.md](A4_replay_h06_h07.md)
