@@ -10,7 +10,7 @@ DD borné [−100%, 0%], Sharpe sur retours quotidiens du capital.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -90,6 +90,80 @@ def sharpe_daily_from_trades(
 
     daily_returns = equity_daily.pct_change().dropna()
     return sharpe_ratio(daily_returns, annual_factor=annual_factor)
+
+
+def sharpe_annualized(
+    equity: pd.Series,
+    trades_df: pd.DataFrame,
+    asset_cfg: AssetConfig | None = None,
+    capital_eur: float = 10_000.0,
+) -> tuple[float, Literal["daily", "weekly", "per_trade"]]:
+    """Sharpe annualisé, route selon la fréquence des trades.
+
+    Routing :
+        ≥ 100 trades/an → daily resample (√252)
+        30-99 trades/an → weekly resample (√52)
+        < 30 trades/an  → per-trade × √trades_per_year
+
+    Args:
+        equity: Courbe d'equity (index DatetimeIndex recommandé).
+        trades_df: DataFrame de trades avec Pips_Nets, position_size_lots.
+        asset_cfg: Config actif (requis pour per-trade).
+        capital_eur: Capital initial en €.
+
+    Returns:
+        (sharpe_annualized, method) — 0.0 si impossible à calculer.
+    """
+    if len(trades_df) < 2 or equity.empty:
+        return 0.0, "daily"
+
+    # Calculer la période en années
+    if isinstance(trades_df.index, pd.DatetimeIndex):
+        span_seconds = (trades_df.index[-1] - trades_df.index[0]).total_seconds()
+    else:
+        span_seconds = max(1, len(trades_df)) * 86400
+    years = max(span_seconds / (365.25 * 86400), 1e-3)
+    tpy = len(trades_df) / years
+
+    if tpy >= 100:
+        # Méthode daily : resample equity, pct_change
+        if isinstance(equity.index, pd.DatetimeIndex):
+            daily = equity.resample("D").last().ffill()
+        else:
+            daily = equity
+        returns = daily.pct_change().dropna()
+        sr = sharpe_ratio(returns, annual_factor=252.0)
+        return sr, "daily"
+
+    if tpy >= 30:
+        # Méthode weekly : meilleure pour Donchian D1 et H4
+        if isinstance(equity.index, pd.DatetimeIndex):
+            weekly = equity.resample("W-FRI").last().ffill()
+        else:
+            weekly = equity
+        returns = weekly.pct_change().dropna()
+        sr = sharpe_ratio(returns, annual_factor=52.0)
+        return sr, "weekly"
+
+    # Méthode per-trade : pour stratégies < 30 trades/an
+    if asset_cfg is None:
+        return 0.0, "per_trade"
+    if "position_size_lots" not in trades_df.columns:
+        per_trade_returns = (
+            trades_df["Pips_Nets"] * asset_cfg.pip_value_eur / capital_eur
+        )
+    else:
+        per_trade_returns = (
+            trades_df["Pips_Nets"]
+            * trades_df["position_size_lots"]
+            * asset_cfg.pip_value_eur
+            / capital_eur
+        )
+    if per_trade_returns.std() == 0 or len(per_trade_returns) < 2:
+        return 0.0, "per_trade"
+    sr_per_trade = float(per_trade_returns.mean() / per_trade_returns.std())
+    sr_annualized = sr_per_trade * np.sqrt(tpy)
+    return sr_annualized, "per_trade"
 
 
 def max_drawdown(pnl_series: pd.Series) -> float:
@@ -211,14 +285,10 @@ def compute_metrics(
         dd_series = (equity / cummax) - 1.0
         max_dd_pct = float(dd_series.min()) * 100  # négatif, borné à −100 %
 
-        # Resample daily pour Sharpe
-        try:
-            equity_daily = equity.resample("D").last().ffill()
-            daily_returns = equity_daily.pct_change().dropna()
-            sharpe = sharpe_ratio(daily_returns, annual_factor=252.0)
-        except (TypeError, ValueError):
-            # Index non-DatetimeIndex → fallback sur per-trade
-            sharpe = 0.0
+        # Sharpe routing par fréquence (pivot v4 A3)
+        sharpe, sharpe_method = sharpe_annualized(
+            equity, trades_df, asset_cfg, capital_eur
+        )
 
         # Sharpe per-trade (annualisé par n_trades)
         if n_trades > 1:
@@ -249,6 +319,7 @@ def compute_metrics(
             "trades": n_trades,
             "win_rate": win_rate,
             "sharpe": sharpe,
+            "sharpe_method": sharpe_method,
             "sharpe_per_trade": sharpe_per_trade,
             "total_return_pct": total_return_pct,
             "max_dd_pct": max_dd_pct,
@@ -292,6 +363,7 @@ def compute_metrics(
         "trades": n_trades,
         "win_rate": win_rate,
         "sharpe": sharpe,
+        "sharpe_method": "daily",
         "sharpe_per_trade": sharpe_per_trade,
         "total_return_pct": total_return_pct,
         "max_dd_pct": max_dd_pct,

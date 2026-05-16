@@ -12,6 +12,20 @@ extend-exclude = ["data", "ready-data", "cleaned-data", "models/snapshots"]
 select = ["E", "F", "I", "B", "W", "UP", "N", "SIM"]
 ignore = ["E501"]  # géré par black
 
+[tool.ruff.lint.per-file-ignores]
+# ML code convention: X (feature matrix), y (target) are uppercase
+"app/features/ranking.py" = ["N803", "N806"]
+"app/models/candidates.py" = ["N806"]
+"app/models/cpcv_evaluation.py" = ["N803", "N806"]
+"app/models/nested_tuning.py" = ["N803", "N806"]
+"scripts/run_a6_feature_ranking.py" = ["N803", "N806", "E402"]
+"scripts/run_a7_model_selection.py" = ["N803", "N806", "E402"]
+"scripts/run_a8_hyperparam_tuning.py" = ["N803", "N806", "E402"]
+"scripts/run_pivot_a4_replay.py" = ["N806", "E402"]
+"tests/unit/test_feature_ranking.py" = ["N803", "N806"]
+"tests/unit/test_model_selection.py" = ["N806"]
+"tests/unit/test_nested_tuning.py" = ["N803", "N806"]
+
 [tool.black]
 line-length = 100
 target-version = ["py312"]

@@ -1,4 +1,4 @@
-.PHONY: install test lint typecheck verify backtest snooping_check
+.PHONY: install test lint typecheck verify backtest snooping_check pipeline_check
 
 install:
 	pip install -r requirements.txt -r requirements-dev.txt
@@ -16,8 +16,11 @@ typecheck:
 snooping_check:
 	python scripts/verify_no_snooping.py
 
-verify: lint typecheck test snooping_check
-	@echo "✅ All quality gates passed."
+pipeline_check:
+	rtk pytest tests/integration/test_pipeline_integrity.py -v
+
+verify: lint typecheck test snooping_check pipeline_check
+	@echo "✅ All quality gates passed (including pipeline integrity)."
 
 backtest:
 	@echo "Lance manuellement un script run_*.py spécifique."

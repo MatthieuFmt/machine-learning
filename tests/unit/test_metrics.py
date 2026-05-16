@@ -200,7 +200,8 @@ class TestComputeMetrics:
         metrics = compute_metrics(trades_synthetic)
         expected_keys = {
             "annee", "profit_net", "dd", "trades", "win_rate",
-            "sharpe", "sharpe_per_trade", "total_return_pct", "max_dd_pct",
+            "sharpe", "sharpe_method", "sharpe_per_trade",
+            "total_return_pct", "max_dd_pct",
             "bh_pips", "bh_return_pct", "alpha_pips", "alpha_return_pct",
         }
         assert set(metrics.keys()) == expected_keys

@@ -1,67 +1,36 @@
-# Pivot v4 A1 — Audit Simulator : sizing + DD + Sharpe
+# Simulator Audit — Pivot v4
 
-> **Date** : 2026-05-15 | **n_trials consommés** : 0 | **Type** : Bug fix infrastructure
+## A1 — Equity € & Sizing 2 % (terminé)
 
-## Bug corrigés
+Calcul de l'equity en EUR via `position_size_lots`, drawdown borné [−100 %, 0 %], blowup detection.
 
-| # | Bug | Localisation | Avant | Après |
-|---|-----|-------------|-------|-------|
-| 1 | Sizing au risque non implémenté | [`app/backtest/simulator.py`](../../app/backtest/simulator.py) | `Pips_Nets = pips_brut × weight` (poids probabiliste 0-1) | `position_size_lots` calculé par `compute_position_size()` → risque 2% exact |
-| 2 | DD calculé sur PnL en pips | [`app/backtest/metrics.py`](../../app/backtest/metrics.py) | `max_dd_pct = dd_pips × pip_value / capital × 100` → pouvait dépasser −100% | `max_dd_pct = min(equity/cummax - 1) × 100` → borné [−100%, 0%] |
-| 3 | Sharpe sur retours en pips | [`app/backtest/metrics.py`](../../app/backtest/metrics.py) | `daily_returns = pips → € linéaire` | `equity_daily.pct_change()` sur equity en € |
-| 4 | Pas de détection blow-up | [`app/backtest/metrics.py`](../../app/backtest/metrics.py) | Equity peut devenir négative | `equity.clip(lower=0.01)` + flag `blowup_detected` |
+## A2 — Calibration des coûts (terminé)
 
-## Comparaison avant/après sur H06 US30 D1 (théorique)
+Coûts XTB Standard Account calibrés : US30 1.8 pts, EURUSD 0.9 pip, XAUUSD 0.35 USD, etc.
 
-| Métrique | Avant A1 | Après A1 (attendu) |
-|----------|----------|---------------------|
-| DD test | −362 % | [−100 %, 0 %] |
-| Sharpe test | −0.09 | Recalculé sur equity € |
-| PnL par trade | Variable (poids ML) | Proportionnel au risque 2% |
-| Blowup | Non détecté | Détecté si equity < 0.01 € |
+## A3 — Sharpe routing par fréquence
 
-> **Note** : Les valeurs "après" seront confirmées en A4 quand H06 sera rejoué avec le nouveau simulateur.
+Routing automatique selon `trades_per_year` (tpy) :
 
-## Fichiers créés/modifiés
+| Régime | Méthode | Annual factor |
+|---|---|---|
+| tpy ≥ 100 | resample daily | √252 |
+| 30 ≤ tpy < 100 | resample weekly | √52 |
+| tpy < 30 | per-trade | √tpy |
 
-| Fichier | Action |
-|---------|--------|
-| [`app/backtest/sizing.py`](../../app/backtest/sizing.py) | Créé — `compute_position_size()`, `expected_pnl_eur()` |
-| [`app/backtest/simulator.py`](../../app/backtest/simulator.py) | Modifié — injection `asset_cfg`, `capital_eur`, `risk_pct` dans `_simulate_stateful_core` + propagation wrappers |
-| [`app/backtest/metrics.py`](../../app/backtest/metrics.py) | Modifié — mode A1 (equity €, DD borné, blowup detection) + mode legacy préservé |
-| [`tests/unit/test_simulator_sizing.py`](../../tests/unit/test_simulator_sizing.py) | Créé — 12 tests |
+### Justification
 
-## Formule de sizing
+- **Daily** : valable si au moins 1 trade tous les 2-3 jours en moyenne. Sinon le ffill écrase la variance.
+- **Weekly** : valable pour Donchian D1 (~30-90 trades/an = ~0.6-1.7 trades/semaine).
+- **Per-trade** : valable pour Donchian H4 D1 multi-actif où chaque actif fait 10-30 trades/an. La méthode standard suppose i.i.d. ce qui est raisonnable pour des trades indépendants.
 
-```
-risk_eur = capital × risk_pct
-distance_pts = |entry - sl| / pip_size
-loss_1lot_eur = distance_pts × pip_value_eur
-lots = risk_eur / loss_1lot_eur
-lots = clamp(round(lots, 2), min_lot, max_lot)
-```
+### Impact sur résultats v3
 
-## Tests unitaires
+Donchian US30 D1 H06 avait 75 trades sur 16 mois = 56 trades/an = méthode weekly avec ce routing. L'ancien Sharpe daily était écrasé. Avec weekly, il devrait remonter de ~0.3.
 
-```
-tests/unit/test_simulator_sizing.py - 12 passed
-```
+### Métadonnées
 
-| Test | Vérification |
-|------|-------------|
-| `test_sizing_us30_100pt_sl` | 2.17 lots pour 200€ risque |
-| `test_sizing_eurusd_10pip_sl` | 2.0 lots pour 200€ risque |
-| `test_sizing_invalid_sl_equals_entry` | ValueError |
-| `test_sizing_min_lot_clamp` | Clamp à 0.01 |
-| `test_trade_sl_exact_minus2pct` | −200€ ≈ −2% |
-| `test_trade_tp_exact_4pct` | +400€ ≈ +4% (R:R 2:1) |
-| `test_dd_bounded_minus_100` | DD ≥ −100%, blowup détecté |
-| `test_sharpe_equity_plate_returns_zero` | Sharpe = 0.0 |
-| `test_10_sl_compound_dd` | DD ∈ [−22%, −18%] |
-| `test_equity_positive_after_wins` | Equity > capital initial |
-| `test_legacy_no_asset_cfg` | Rétrocompatibilité |
-| `test_missing_position_size_lots_raises` | ValueError |
-
-## Prochaine étape
-
-→ [A2 — Calibration coûts XTB réels](../prompts/pivot_v4/02_calibration_costs.md)
+- **Fonction** : `sharpe_annualized()` dans `app/backtest/metrics.py`
+- **Intégration** : `compute_metrics()` → `"sharpe_method"` dans le dict retour
+- **Tests** : `tests/unit/test_sharpe_routing.py` (6 tests)
+- **Rétrocompatibilité** : `sharpe_ratio()` et `sharpe_daily_from_trades()` conservés
