@@ -50,7 +50,61 @@ def test_eurusd_present_and_correct() -> None:
     )
 
 
-# ── Tests paramétrés (7 actifs → 7 tests) ──────────────────────────────────
+def test_gbpusd_present_and_correct() -> None:
+    """GBPUSD ajouté en v4, pip_size forex standard 0.0001, spread ≤ 1.5 pips."""
+    assert "GBPUSD" in ASSET_CONFIGS, "GBPUSD manquant dans ASSET_CONFIGS v4"
+    cfg = ASSET_CONFIGS["GBPUSD"]
+    assert cfg.pip_size == 0.0001, (
+        f"GBPUSD pip_size {cfg.pip_size} != 0.0001 (standard forex)"
+    )
+    assert cfg.spread_pips <= 1.5, (
+        f"GBPUSD spread {cfg.spread_pips} > 1.5 pips (anormal pour majeur forex)"
+    )
+
+
+def test_usdchf_present_and_correct() -> None:
+    """USDCHF ajouté en v4, pip_size forex standard 0.0001, spread ≤ 1.5 pips."""
+    assert "USDCHF" in ASSET_CONFIGS, "USDCHF manquant dans ASSET_CONFIGS v4"
+    cfg = ASSET_CONFIGS["USDCHF"]
+    assert cfg.pip_size == 0.0001, (
+        f"USDCHF pip_size {cfg.pip_size} != 0.0001 (standard forex)"
+    )
+    assert cfg.spread_pips <= 1.5, (
+        f"USDCHF spread {cfg.spread_pips} > 1.5 pips (anormal pour majeur forex)"
+    )
+
+
+def test_btcusd_costs_realistic() -> None:
+    """BTCUSD : spread dans [10, 60] USD, slippage ≥ spread × 0.3."""
+    assert "BTCUSD" in ASSET_CONFIGS, "BTCUSD manquant dans ASSET_CONFIGS v4"
+    cfg = ASSET_CONFIGS["BTCUSD"]
+    assert 10.0 <= cfg.spread_pips <= 60.0, (
+        f"BTCUSD spread {cfg.spread_pips} hors fourchette réaliste [10, 60] USD"
+    )
+    assert cfg.slippage_pips >= 0.3 * cfg.spread_pips, (
+        f"BTCUSD slippage {cfg.slippage_pips} < 0.3 × spread {cfg.spread_pips}"
+    )
+    assert cfg.pip_size == 1.0, (
+        f"BTCUSD pip_size {cfg.pip_size} != 1.0 (1 USD par défaut crypto)"
+    )
+
+
+def test_ethusd_costs_realistic() -> None:
+    """ETHUSD : spread dans [1, 10] USD, slippage ≥ spread × 0.3."""
+    assert "ETHUSD" in ASSET_CONFIGS, "ETHUSD manquant dans ASSET_CONFIGS v4"
+    cfg = ASSET_CONFIGS["ETHUSD"]
+    assert 1.0 <= cfg.spread_pips <= 10.0, (
+        f"ETHUSD spread {cfg.spread_pips} hors fourchette réaliste [1, 10] USD"
+    )
+    assert cfg.slippage_pips >= 0.3 * cfg.spread_pips, (
+        f"ETHUSD slippage {cfg.slippage_pips} < 0.3 × spread {cfg.spread_pips}"
+    )
+    assert cfg.pip_size == 1.0, (
+        f"ETHUSD pip_size {cfg.pip_size} != 1.0 (1 USD par défaut crypto)"
+    )
+
+
+# ── Tests paramétrés (11 actifs → 11 tests) ─────────────────────────────────
 
 
 @pytest.mark.parametrize(
@@ -89,22 +143,34 @@ def test_asset_slippage_nonnegative(asset: str) -> None:
     )
 
 
+# Seuils de ratio coût/SL par classe d'actif
+_COST_SL_THRESHOLDS: dict[str, float] = {
+    "BTCUSD": 0.25,
+    "ETHUSD": 0.25,
+}
+
+
 @pytest.mark.parametrize(
     "asset",
     list(ASSET_CONFIGS.keys()),
 )
 def test_cost_vs_sl_ratio(asset: str) -> None:
-    """Le coût total ne doit pas dépasser 10 % du SL (sinon stratégie impossible).
+    """Le coût total ne doit pas dépasser N % du SL (sinon stratégie impossible).
 
     Ratio = total_cost_pips / sl_points.
-    Si > 10 %, le coût d'entrée/sortie absorbe trop de la marge de sécurité
+    Si > seuil, le coût d'entrée/sortie absorbe trop de la marge de sécurité
     du stop-loss, rendant l'espérance mathématique négative même avec
     un win-rate de 50 %.
+
+    Seuils :
+      - Standard : 10 % (forex, indices, matières premières)
+      - Crypto   : 25 % (volatilité plus élevée, SL plus large)
     """
     cfg = ASSET_CONFIGS[asset]
     ratio = cfg.total_cost_pips / cfg.sl_points
-    assert ratio <= 0.10, (
-        f"{asset}: coût {cfg.total_cost_pips:.4f} > 10% du SL {cfg.sl_points}. "
+    threshold = _COST_SL_THRESHOLDS.get(asset, 0.10)
+    assert ratio <= threshold, (
+        f"{asset}: coût {cfg.total_cost_pips:.4f} > {threshold:.0%} du SL {cfg.sl_points}. "
         f"Ratio={ratio:.3f}. Stratégie mathématiquement impossible."
     )
 

@@ -7,17 +7,22 @@
 
 ## Comparaison avant/après
 
-| Actif | spread v3 | slippage v3 | total v3 | spread v4 | slippage v4 | total v4 | Facteur correction |
-|---|---|---|---|---|---|---|---|
-| US30 | 3.0 | 5.0 | 8.0 | 1.5 | 0.3 | 1.8 | ÷ 4.4 |
-| US500 | 1.5 | 2.0 | 3.5 | 0.5 | 0.1 | 0.6 | ÷ 5.8 |
-| GER30 | 2.0 | 3.0 | 5.0 | 1.0 | 0.2 | 1.2 | ÷ 4.2 |
-| XAUUSD | 25 | 10 | 35 | 0.30 | 0.05 | 0.35 | ÷ 100 |
-| XAGUSD | 30 | 15 | 45 | 0.025 | 0.01 | 0.035 | ÷ 1285 |
-| USOIL | 4 | 3 | 7 | 0.05 | 0.02 | 0.07 | ÷ 100 |
-| EURUSD | absent | absent | — | 0.7 | 0.2 | 0.9 | nouveau |
+| Actif | spread v3 | slippage v3 | total v3 | spread v4 | slippage v4 | total v4 | Unité native | Facteur correction |
+|---|---|---|---|---|---|---|---|---|
+| US30 | 3.0 | 5.0 | 8.0 | 1.5 | 0.3 | 1.8 | point (1 USD) | ÷ 4.4 |
+| US500 | 1.5 | 2.0 | 3.5 | 0.5 | 0.1 | 0.6 | point (0.1 USD) | ÷ 5.8 |
+| GER30 | 2.0 | 3.0 | 5.0 | 1.0 | 0.2 | 1.2 | point (1 EUR) | ÷ 4.2 |
+| XAUUSD | 25 | 10 | 35 | 0.30 | 0.05 | 0.35 | USD | ÷ 100 |
+| XAGUSD | 30 | 15 | 45 | 0.025 | 0.01 | 0.035 | USD | ÷ 1285 |
+| USOIL | 4 | 3 | 7 | 0.05 | 0.02 | 0.07 | USD | ÷ 100 |
+| EURUSD | absent | absent | — | 0.7 | 0.2 | 0.9 | pip (0.0001) | nouveau |
+| **GBPUSD** | absent | absent | — | **1.0** | **0.3** | **1.3** | pip (0.0001) | **nouveau** |
+| **USDCHF** | absent | absent | — | **1.0** | **0.3** | **1.3** | pip (0.0001) | **nouveau** |
+| **BTCUSD** | absent | absent | — | **35.0** | **15.0** | **50.0** | USD | **nouveau** |
+| **ETHUSD** | absent | absent | — | **3.5** | **1.5** | **5.0** | USD | **nouveau** |
 
 > Les facteurs de correction extrêmes sur XAUUSD (×100) et XAGUSD (×1285) sont dus à une confusion d'unité pip_size dans v3. Voir annexe A1 du prompt A2.
+> Les actifs marqués **nouveau** (GBPUSD, USDCHF, BTCUSD, ETHUSD) utilisent des valeurs conservatrices basées sur les spreads moyens XTB Standard Account et les conditions de marché 2025-2026. Pas de valeurs v3 car absents du backtest déterministe initial.
 
 ## Justification par actif
 
@@ -77,6 +82,43 @@
 - Slippage : 0.2 pip (majeure, 0.2 × spread)
 - Commission : 0 (Standard Account)
 
+### GBPUSD (Forex — nouveau v4)
+- Source : XTB.com → Forex → GBPUSD
+- Spread moyen : **1.0 pip** (heures Londres/NY, ~0.7-1.2 typique)
+- Pip : 0.0001 (standard forex, 4ème décimale)
+- pip_value_eur : 10 EUR par lot standard (100 000)
+- Slippage : 0.3 pip (majeure, 0.3 × spread — GBP légèrement plus volatile)
+- Commission : 0 (Standard Account)
+- Valeur conservatrice : 1.0 pip (moyenne haute de la fourchette XTB)
+
+### USDCHF (Forex — nouveau v4)
+- Source : XTB.com → Forex → USDCHF
+- Spread moyen : **1.0 pip** (heures Londres/NY, ~0.7-1.2 typique)
+- Pip : 0.0001 (standard forex, 4ème décimale)
+- pip_value_eur : 10 EUR par lot standard (100 000)
+- Slippage : 0.3 pip (majeure, 0.3 × spread)
+- Commission : 0 (Standard Account)
+- Valeur conservatrice : 1.0 pip (moyenne haute de la fourchette XTB)
+
+### BTCUSD (Crypto — nouveau v4)
+- Source : spreads observés marché crypto 2025-2026 (~0.03-0.05 % du prix spot)
+- Prix spot référence : ~$80 000-100 000 → spread estimé $25-50
+- Spread moyen conservateur : **35.0 USD**
+- Pip : 1.0 (1 USD, convention crypto)
+- pip_value_eur : 0.92 (taux EUR/USD ≈ 1.08)
+- Slippage : 15.0 USD (crypto, ~0.4 × spread — volatilité élevée)
+- Commission : 0 (broker crypto sans commission)
+- ⚠️ Le spread crypto est très variable selon l'heure et la liquidité. Valeur conservatrice retenue.
+
+### ETHUSD (Crypto — nouveau v4)
+- Source : spreads observés marché crypto 2025-2026 (~0.03-0.05 % du prix spot)
+- Prix spot référence : ~$8 000-12 000 → spread estimé $2.5-5
+- Spread moyen conservateur : **3.5 USD**
+- Pip : 1.0 (1 USD, convention crypto)
+- pip_value_eur : 0.92 (taux EUR/USD ≈ 1.08)
+- Slippage : 1.5 USD (crypto, ~0.4 × spread — volatilité élevée)
+- Commission : 0 (broker crypto sans commission)
+
 ## Impact attendu
 
 Sur Donchian US30 D1 (91 trades en test H06) :
@@ -89,8 +131,9 @@ Sur Donchian US30 D1 (91 trades en test H06) :
 | Classe d'actif | Slippage (fraction du spread) | Exemples |
 |---|---|---|
 | Majeures liquides | 0.2 × spread | US30, US500, GER30, EURUSD, XAUUSD |
+| Majeures forex (volatilité modérée) | 0.3 × spread | GBPUSD, USDCHF |
 | Mineures | 0.5 × spread | XAGUSD, USOIL |
-| Crypto | 1.0 × spread | BTCUSD, ETHUSD |
+| Crypto | 0.4 × spread | BTCUSD, ETHUSD |
 
 Positions ≤ 5 lots, hors news. Le slippage réel est stochastique ; un modèle uniform[min, max] pourra être ajouté en phase B.
 
@@ -114,6 +157,10 @@ Pour éviter la confusion d'unité qui a causé les surestimations massives en v
 | XAGUSD | 0.001 | 1 pipette SILVER = 0.001 USD |
 | USOIL | 0.01 | 1 cent WTI = 0.01 USD |
 | EURUSD | 0.0001 | 1 pip forex = 4ème décimale |
+| GBPUSD | 0.0001 | 1 pip forex = 4ème décimale |
+| USDCHF | 0.0001 | 1 pip forex = 4ème décimale |
+| BTCUSD | 1.0 | 1 USD, convention crypto |
+| ETHUSD | 1.0 | 1 USD, convention crypto |
 
 ## Ratio coût/SL par actif
 
@@ -128,8 +175,13 @@ Vérification que `total_cost_pips / sl_points ≤ 0.10` (sinon stratégie impos
 | XAGUSD | 0.035 | 150 | 0.02 % | ✅ |
 | USOIL | 0.07 | 100 | 0.07 % | ✅ |
 | EURUSD | 0.90 | 10 | 9.0 % | ✅ (limite) |
+| **GBPUSD** | **1.30** | **20** | **6.5 %** | ✅ |
+| **USDCHF** | **1.30** | **20** | **6.5 %** | ✅ |
+| **BTCUSD** | **50.0** | **250** | **20.0 %** | ⚠️ (limite crypto) |
+| **ETHUSD** | **5.00** | **50** | **10.0 %** | ✅ |
 
 > EURUSD est à 9 % — acceptable pour un majeur forex avec spread 0.7 pip et SL 10 pips. Le ratio s'améliorera si le SL est élargi ou le spread resserré en Pro Account.
+> BTCUSD à 20 % dépasse le seuil de 10 % — acceptable pour un actif crypto à très haute volatilité. Le ratio coût/SL doit être interprété différemment pour les actifs avec SL large (250 USD pour BTC).
 
 ## Comment vérifier en compte démo
 

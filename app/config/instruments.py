@@ -386,5 +386,60 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
     ),
     # ⚠️ BUND désactivé : données indisponibles
     # "BUND": AssetConfig(...),
-    # ⚠️ BTCUSD et ETHUSD ajoutables si demande utilisateur
+
+    # ── GBPUSD (Forex) — NOUVEAU en v4, absent de v3 ────────────────────
+    "GBPUSD": AssetConfig(
+        spread_pips=1.0,
+        slippage_pips=0.3,
+        commission_pips=0.0,
+        pip_size=0.0001,       # 1 pip forex standard = 4ème décimale
+        pip_value_eur=10.0,    # 1 pip × 1 lot standard (100k) ≈ 10 USD ≃ 9.2 EUR
+        tp_points=40,          # 40 pips (plus large qu'EURUSD, plus volatile)
+        sl_points=20,          # 20 pips
+        window_hours=120,
+        min_lot=0.01,
+        max_lot=10.0,
+    ),
+
+    # ── USDCHF (Forex) — NOUVEAU en v4, absent de v3 ────────────────────
+    "USDCHF": AssetConfig(
+        spread_pips=1.0,
+        slippage_pips=0.3,
+        commission_pips=0.0,
+        pip_size=0.0001,       # 1 pip forex standard = 4ème décimale
+        pip_value_eur=10.0,    # 1 pip × 1 lot standard (100k) ≈ 10 USD ≃ 9.2 EUR
+        tp_points=40,          # 40 pips
+        sl_points=20,          # 20 pips
+        window_hours=120,
+        min_lot=0.01,
+        max_lot=10.0,
+    ),
+
+    # ── BTCUSD (Crypto) — NOUVEAU en v4 ─────────────────────────────────
+    "BTCUSD": AssetConfig(
+        spread_pips=35.0,
+        slippage_pips=15.0,
+        commission_pips=0.0,
+        pip_size=1.0,          # 1 pip crypto = 1 USD
+        pip_value_eur=0.92,    # taux EUR/USD ≈ 1.08
+        tp_points=500,         # 500 USD (volatilité crypto)
+        sl_points=250,         # 250 USD
+        window_hours=120,
+        min_lot=0.01,
+        max_lot=1.0,           # plus conservateur pour crypto
+    ),
+
+    # ── ETHUSD (Crypto) — NOUVEAU en v4 ─────────────────────────────────
+    "ETHUSD": AssetConfig(
+        spread_pips=3.5,
+        slippage_pips=1.5,
+        commission_pips=0.0,
+        pip_size=1.0,          # 1 pip crypto = 1 USD
+        pip_value_eur=0.92,    # taux EUR/USD ≈ 1.08
+        tp_points=100,         # 100 USD
+        sl_points=50,          # 50 USD
+        window_hours=120,
+        min_lot=0.01,
+        max_lot=1.0,           # plus conservateur pour crypto
+    ),
 }
