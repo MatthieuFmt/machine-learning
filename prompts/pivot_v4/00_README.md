@@ -183,7 +183,7 @@ B2 (EURUSD H4 mean-rev)            ← +1 n_trial
 - Après **A8** : les hyperparams sont FIGÉS dans `app/config/hyperparams_tuned.py`.
 - Après **A9** : tout le pipeline est immutable (SHA256 dans `TEST_SET_LOCK.json`). B1-B4 utilisent ce pipeline tel quel.
 
-### Que faire si Deepseek/Roo Code se perd ?
+### Que faire si Deepseek/Zoo Code se perd ?
 
 Au début de **CHAQUE** prompt de cette phase, Deepseek doit :
 1. Lire [00_README.md](00_README.md) (ce fichier) — section "Tableau de dépendances".

@@ -7,7 +7,7 @@
 | Dossier | Rôle | Statut |
 |---|---|---|
 | `.claude/` | Configuration Claude (prompts système, règles) | À conserver |
-| `.roo/` | Configuration Roo (skills, modes) | À conserver |
+| `.zoo/` | Configuration Zoo (skills, modes) | À conserver |
 | `app/` | Code source principal (ex-`learning_machine_learning_v2/`) — Donchian Breakout + méta-labeling | Base active pour v3 |
 | `docs/` | Rapports d'hypothèses v2 (H01–H05), roadmap v3 | À conserver — référence |
 | `docs/archive_v1/` | Specs v1 obsolètes (step_*.md) — archivées | Archive — ne pas modifier |
