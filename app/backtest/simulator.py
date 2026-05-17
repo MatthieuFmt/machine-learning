@@ -15,8 +15,8 @@ from collections.abc import Callable
 
 import numpy as np
 import pandas as pd
-from learning_machine_learning.backtest.filters import FilterPipeline
-from learning_machine_learning.core.logging import get_logger
+from app.backtest.filters import FilterPipeline
+from app.core.logging import get_logger
 
 from app.backtest.sizing import compute_position_size
 from app.config.instruments import AssetConfig

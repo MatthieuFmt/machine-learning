@@ -40,8 +40,8 @@ def main() -> int:
     logger.info("=" * 60)
 
     # ── Vérification préalable des données ──
-    d1_path = Path("cleaned-data/USA30IDXUSD_D1_cleaned.csv")
-    h4_path = Path("cleaned-data/USA30IDXUSD_H4_cleaned.csv")
+    d1_path = Path("data/USA30IDXUSD_D1.csv")
+    h4_path = Path("data/USA30IDXUSD_H4.csv")
 
     if not d1_path.exists():
         logger.warning(

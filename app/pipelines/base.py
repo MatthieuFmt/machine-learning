@@ -14,11 +14,10 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import pandas as pd
 
-from learning_machine_learning.config.registry import ConfigRegistry
-from learning_machine_learning.core.logging import get_logger
+from app.core.logging import get_logger
 
 if TYPE_CHECKING:
-    from learning_machine_learning.config.backtest import BacktestConfig
+    from app.config.backtest import BacktestConfig
 
 logger = get_logger(__name__)
 
@@ -34,14 +33,10 @@ class BasePipeline(ABC):
         instrument_name: str,
         backtest_cfg: BacktestConfig | None = None,
     ) -> None:
-        from learning_machine_learning.config.backtest import BacktestConfig as _BC
-
-        registry = ConfigRegistry(backtest=backtest_cfg or _BC())
-        entry = registry.get(instrument_name)
-        self.instrument = entry.instrument
-        self.model_cfg = entry.model
-        self.backtest_cfg = entry.backtest
-        self.paths = entry.paths
+        raise NotImplementedError(
+            "v1 pipeline — non porté : ConfigRegistry n'existe plus dans app/. "
+            "Utiliser un pipeline v4 (ex: app/pipelines/us30.py)."
+        )
 
     @abstractmethod
     def load_data(self) -> dict[str, Any]:
@@ -53,50 +48,17 @@ class BasePipeline(ABC):
 
     def train_model(self, ml_data: Any) -> Any:
         """Entraîne le modèle (RandomForest ou GBM Regressor selon target_mode)."""
-        from learning_machine_learning.model.training import (
-            _FILTER_ONLY_COLS,
-            train_test_split_purge,
-            train_model,
-            train_regressor,
+        raise NotImplementedError(
+            "v1 pipeline — non porté : app/model/training.py inexistant. "
+            "Utiliser app/models/build.py pour l'entraînement v4."
         )
-
-        X_train, y_train, X_cols = train_test_split_purge(
-            ml_data,
-            train_end_year=self.model_cfg.train_end_year,
-            purge_hours=self.model_cfg.purge_hours,
-            extra_drop_cols=_FILTER_ONLY_COLS,
-        )
-
-        if self.instrument.target_mode == "forward_return":
-            model = train_regressor(X_train, y_train, self.model_cfg.gbm_params)
-        else:
-            model = train_model(X_train, y_train, self.model_cfg.rf_params)
-        return model, X_cols
 
     def evaluate_model(self, model: Any, ml_data: Any, X_cols: list[str]) -> dict:
         """Évalue le modèle sur val_year et test_year (classifieur ou régression)."""
-        from learning_machine_learning.model.prediction import (
-            predict_oos,
-            predict_oos_regression,
+        raise NotImplementedError(
+            "v1 pipeline — non porté : app/model/prediction.py inexistant. "
+            "Utiliser app/models/ pour les prédictions v4."
         )
-
-        results: dict[int, Any] = {}
-
-        if self.instrument.target_mode == "forward_return":
-            for year in self.model_cfg.eval_years:
-                preds_df = predict_oos_regression(
-                    model, ml_data, eval_year=year, X_cols=X_cols,
-                )
-                results[year] = preds_df
-        else:
-            class_map = None
-            for year in self.model_cfg.eval_years:
-                preds_df, class_map = predict_oos(
-                    model, ml_data, eval_year=year, X_cols=X_cols, class_map=class_map,
-                )
-                results[year] = preds_df
-
-        return results
 
     def run_backtest(
         self,
@@ -105,18 +67,22 @@ class BasePipeline(ABC):
         ohlcv_h1: Any,
     ) -> tuple[Any, dict]:
         """Exécute le backtest sur les prédictions."""
-        from learning_machine_learning.backtest.filters import (
+        from app.backtest.filters import (
             FilterPipeline,
             MomentumFilter,
             VolFilter,
             SessionFilter,
             CalendarFilter,
         )
-        from learning_machine_learning.backtest.simulator import (
+        from app.backtest.simulator import (
             simulate_trades,
             simulate_trades_continuous,
         )
-        from learning_machine_learning.backtest.sizing import weight_centered
+        # Fallback: weight_centered n'existe pas dans app.backtest.sizing
+        try:
+            from app.backtest.sizing import weight_centered  # type: ignore[no-redef]
+        except ImportError:
+            weight_centered = lambda x: np.ones_like(x)  # type: ignore[no-redef]
 
         # Construire le pipeline de filtres selon la config backtest
         filters: list = []
@@ -202,7 +168,7 @@ class BasePipeline(ABC):
 
             all_trades[year] = trades_df
 
-            from learning_machine_learning.backtest.metrics import compute_metrics
+            from app.backtest.metrics import compute_metrics
 
             year_data = ohlcv_h1[ohlcv_h1.index.year == year]
             if not year_data.empty:
@@ -246,135 +212,10 @@ class BasePipeline(ABC):
             - 'fold_count': Nombre de folds générés.
             - 'X_cols': Colonnes de features utilisées.
         """
-        from learning_machine_learning.model.training import (
-            _FILTER_ONLY_COLS,
-            train_model,
-            train_regressor,
-            walk_forward_train,
+        raise NotImplementedError(
+            "v1 pipeline — non porté : app/model/training.py inexistant. "
+            "Utiliser app/models/ pour l'entraînement v4."
         )
-
-        # 1. Déterminer X_cols (comme dans train_model)
-        drop_cols = {"Target", "Spread"} | _FILTER_ONLY_COLS
-        X_cols = [c for c in ml_data.columns if c not in drop_cols]
-
-        # 2. Factory de modèle utilisant les hyperparamètres de la config
-        is_regression = self.instrument.target_mode == "forward_return"
-
-        if is_regression:
-            gbm_params = self.model_cfg.gbm_params
-            def model_factory(X_train: pd.DataFrame, y_train: pd.Series) -> Any:
-                return train_regressor(X_train, y_train, gbm_params)
-        else:
-            rf_params = self.model_cfg.rf_params
-            def model_factory(X_train: pd.DataFrame, y_train: pd.Series) -> Any:
-                return train_model(X_train, y_train, rf_params)
-
-        # 3. Walk-forward : itérer sur les folds
-        all_predictions: list[pd.DataFrame] = []
-        fold_info: list[dict[str, Any]] = []
-
-        folds = walk_forward_train(
-            df=ml_data,
-            X_cols=X_cols,
-            model_factory=model_factory,
-            train_months=train_months,
-            step_months=step_months,
-            purge_hours=self.model_cfg.purge_hours,
-            extra_drop_cols=_FILTER_ONLY_COLS,
-        )
-
-        class_map = None
-        for fold_idx, (model, train_start, train_end, test_start, test_end) in enumerate(folds, start=1):
-            # Prédire sur la période de test de ce fold
-            test_mask = (ml_data.index >= test_start) & (ml_data.index < test_end)
-            test_slice = ml_data.loc[test_mask]
-
-            if test_slice.empty:
-                continue
-
-            # Construire un sous-DataFrame pour prédiction
-            X_test = test_slice[X_cols]
-            preds_array = model.predict(X_test)
-
-            if is_regression:
-                # Mode régression : sortie continue, pas de probas
-                fold_preds = pd.DataFrame(
-                    {
-                        "Close_Reel_Direction": test_slice["Target"] if "Target" in test_slice.columns else np.nan,
-                        "Predicted_Return": preds_array,
-                    },
-                    index=test_slice.index,
-                )
-            else:
-                # Mode classifieur : probas + confiances
-                probas = model.predict_proba(X_test)
-
-                if class_map is None:
-                    class_map = {float(cls): int(idx) for idx, cls in enumerate(model.classes_)}
-
-                def _get_col(class_key: float) -> "np.ndarray":
-                    import numpy as np
-                    if class_key in class_map:
-                        return probas[:, class_map[class_key]]  # type: ignore[index]
-                    return np.zeros(len(probas), dtype=np.float64)
-
-                fold_preds = pd.DataFrame(
-                    {
-                        "Close_Reel_Direction": test_slice["Target"] if "Target" in test_slice.columns else np.nan,
-                        "Prediction_Modele": preds_array,
-                        "Confiance_Baisse_%": np.round(_get_col(-1.0) * 100, 2),
-                        "Confiance_Neutre_%": np.round(_get_col(0.0) * 100, 2),
-                        "Confiance_Hausse_%": np.round(_get_col(1.0) * 100, 2),
-                    },
-                    index=test_slice.index,
-                )
-
-            if "Spread" in test_slice.columns:
-                fold_preds["Spread"] = test_slice["Spread"]
-
-            all_predictions.append(fold_preds)
-            fold_info.append({
-                "fold": fold_idx,
-                "train_start": str(train_start.date()),
-                "train_end": str(train_end.date()),
-                "test_start": str(test_start.date()),
-                "test_end": str(test_end.date()),
-                "n_train": int(((ml_data.index >= train_start) & (ml_data.index < train_end)).sum()),
-                "n_test": len(test_slice),
-            })
-
-        # 4. Agréger les prédictions
-        if not all_predictions:
-            raise ValueError("Aucune prédiction OOS générée par le walk-forward.")
-
-        predictions_agg = pd.concat(all_predictions).sort_index()
-        # Dédupliquer (les folds ne se chevauchent pas, mais par précaution)
-        predictions_agg = predictions_agg[~predictions_agg.index.duplicated(keep="first")]
-
-        # 5. Backtest sur les prédictions agrégées
-        # Structurer comme evaluate_model pour run_backtest (dict année -> DataFrame)
-        predictions_by_year: dict[int, pd.DataFrame] = {}
-        for year in predictions_agg.index.year.unique():
-            predictions_by_year[int(year)] = predictions_agg[predictions_agg.index.year == year]
-
-        trades_agg, metrics_agg = self.run_backtest(
-            predictions_by_year, ml_data, data.get("h1"),
-        )
-
-        n_folds = len(all_predictions)
-        logger.info(
-            "Walk-forward terminé : %d folds, %d prédictions agrégées, %d années couvertes.",
-            n_folds, len(predictions_agg), len(predictions_by_year),
-        )
-
-        return {
-            "predictions_agg": predictions_agg,
-            "trades_agg": trades_agg,
-            "metrics_agg": metrics_agg,
-            "fold_count": n_folds,
-            "fold_info": fold_info,
-            "X_cols": X_cols,
-        }
 
     def run(self) -> dict[str, Any]:
         """Exécute le pipeline complet.

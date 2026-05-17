@@ -24,7 +24,7 @@ ASSETS: list[dict[str, Any]] = [
     {
         "name": "XAUUSD",
         "tf": "H4",
-        "csv": "cleaned-data/XAUUSD_H4_cleaned.csv",
+        "csv": "data/XAUUSD_H4.csv",
         "tp_pips": 300,
         "sl_pips": 150,
         "window_hours": 96,
@@ -35,7 +35,7 @@ ASSETS: list[dict[str, Any]] = [
     {
         "name": "USA30IDXUSD",
         "tf": "D1",
-        "csv": "cleaned-data/USA30IDXUSD_D1_cleaned.csv",
+        "csv": "data/USA30IDXUSD_D1.csv",
         "tp_pips": 200,
         "sl_pips": 100,
         "window_hours": 120,
@@ -46,7 +46,7 @@ ASSETS: list[dict[str, Any]] = [
     {
         "name": "EURUSD",
         "tf": "H1",
-        "csv": "cleaned-data/EURUSD_H1_cleaned.csv",
+        "csv": "data/EURUSD_H1.csv",
         "tp_pips": 30,
         "sl_pips": 10,
         "window_hours": 24,
@@ -57,7 +57,7 @@ ASSETS: list[dict[str, Any]] = [
     {
         "name": "BTCUSD",
         "tf": "H1",
-        "csv": "cleaned-data/BTCUSD_H1_cleaned.csv",
+        "csv": "data/BTCUSD_H1.csv",
         "tp_pips": 30,
         "sl_pips": 10,
         "window_hours": 24,

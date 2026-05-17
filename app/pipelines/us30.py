@@ -40,73 +40,6 @@ VAL_END = pd.Timestamp("2023-12-31")
 TEST_START = pd.Timestamp("2024-01-01")
 
 
-def _rsi(close: np.ndarray, period: int = 14) -> np.ndarray:
-    """RSI vectorisé — Wilder's smoothing."""
-    n = len(close)
-    delta = np.diff(close, prepend=close[0])
-    gain = np.where(delta > 0, delta, 0.0)
-    loss = np.where(delta < 0, -delta, 0.0)
-
-    avg_gain = np.full(n, np.nan)
-    avg_loss = np.full(n, np.nan)
-    avg_gain[period] = gain[1 : period + 1].mean()
-    avg_loss[period] = loss[1 : period + 1].mean()
-
-    alpha = 1.0 / period
-    for i in range(period + 1, n):
-        avg_gain[i] = (1 - alpha) * avg_gain[i - 1] + alpha * gain[i]
-        avg_loss[i] = (1 - alpha) * avg_loss[i - 1] + alpha * loss[i]
-
-    rs = np.where(avg_loss > 0, avg_gain / avg_loss, 0.0)
-    rsi_arr = 100.0 - (100.0 / (1.0 + rs))
-    return rsi_arr
-
-
-def _adx(high: np.ndarray, low: np.ndarray, close: np.ndarray, period: int = 14) -> np.ndarray:
-    """ADX vectorisé — indicateur de force de tendance."""
-    n = len(close)
-    prev_close = np.empty(n)
-    prev_close[0] = close[0]
-    prev_close[1:] = close[:-1]
-
-    tr1 = high - low
-    tr2 = np.abs(high - prev_close)
-    tr3 = np.abs(low - prev_close)
-    tr = np.maximum(np.maximum(tr1, tr2), tr3)
-
-    up_move = high - np.roll(high, 1)
-    down_move = np.roll(low, 1) - low
-    up_move[0] = 0.0
-    down_move[0] = 0.0
-
-    plus_dm = np.where((up_move > down_move) & (up_move > 0), up_move, 0.0)
-    minus_dm = np.where((down_move > up_move) & (down_move > 0), down_move, 0.0)
-
-    atr_arr = np.full(n, np.nan)
-    atr_arr[period - 1] = tr[:period].mean()
-    plus_di = np.full(n, np.nan)
-    minus_di = np.full(n, np.nan)
-    plus_di[period - 1] = plus_dm[:period].mean()
-    minus_di[period - 1] = minus_dm[:period].mean()
-
-    alpha = 1.0 / period
-    for i in range(period, n):
-        atr_arr[i] = (1 - alpha) * atr_arr[i - 1] + alpha * tr[i]
-        plus_di[i] = (1 - alpha) * plus_di[i - 1] + alpha * plus_dm[i]
-        minus_di[i] = (1 - alpha) * minus_di[i - 1] + alpha * minus_dm[i]
-
-    plus_di_norm = 100.0 * plus_di / atr_arr
-    minus_di_norm = 100.0 * minus_di / atr_arr
-    dx = 100.0 * np.abs(plus_di_norm - minus_di_norm) / (plus_di_norm + minus_di_norm + 1e-10)
-
-    adx_arr = np.full(n, np.nan)
-    adx_arr[2 * period - 2] = dx[period - 1 : 2 * period - 1].mean()
-    for i in range(2 * period - 1, n):
-        adx_arr[i] = (1 - alpha) * adx_arr[i - 1] + alpha * dx[i]
-
-    return adx_arr
-
-
 class Us30Pipeline:
     """Pipeline US30 D1 — v2 Hypothesis 01.
 
@@ -189,10 +122,20 @@ class Us30Pipeline:
         )
 
         # ── Feature 1 : RSI_14 ──
-        ml["RSI_14"] = _rsi(close, 14)
+        from app.features.indicators import rsi as _rsi_vec
+
+        ml["RSI_14"] = _rsi_vec(pd.Series(close, index=d1.index), 14)
 
         # ── Feature 2 : ADX_14 ──
-        ml["ADX_14"] = _adx(high, low, close, 14)
+        from app.features.indicators import adx as _adx_vec
+
+        adx_df = _adx_vec(
+            pd.Series(high, index=d1.index),
+            pd.Series(low, index=d1.index),
+            pd.Series(close, index=d1.index),
+            14,
+        )
+        ml["ADX_14"] = adx_df["adx_line"]
 
         # ── Feature 3 : Dist_SMA50 (%) ──
         sma50 = pd.Series(close).rolling(50, min_periods=1).mean().values

@@ -15,6 +15,7 @@ from app.strategies.dual_ma import DualMovingAverage
 from app.strategies.keltner import KeltnerChannel
 from app.strategies.chandelier import ChandelierExit
 from app.strategies.parabolic import ParabolicSAR
+from app.strategies.mean_reversion import MeanReversionRSIBB
 
 ALL_STRATEGIES: list[tuple[type[BaseStrategy], dict[str, list]]] = [
     (SmaCrossover, {"fast": [5, 10, 20], "slow": [20, 50, 100]}),
@@ -45,4 +46,5 @@ __all__ = [
     "KeltnerChannel",
     "ChandelierExit",
     "ParabolicSAR",
+    "MeanReversionRSIBB",
 ]
