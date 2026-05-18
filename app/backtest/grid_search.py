@@ -54,7 +54,7 @@ def grid_search_asset(
     best_train_result: dict[str, Any] = {}
 
     for combo in itertools.product(*param_values):
-        params = dict(zip(param_names, combo))
+        params = dict(zip(param_names, combo, strict=False))
 
         try:
             strategy = strategy_class(**params)

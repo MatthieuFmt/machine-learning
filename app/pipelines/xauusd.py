@@ -283,7 +283,7 @@ class XauUsdPipeline:
         model.fit(X_train, y_train)
 
         importances = sorted(
-            zip(X_cols, model.feature_importances_),
+            zip(X_cols, model.feature_importances_, strict=False),
             key=lambda x: x[1],
             reverse=True,
         )
@@ -317,10 +317,14 @@ class XauUsdPipeline:
                 float(cls): int(idx) for idx, cls in enumerate(model.classes_)
             }
 
-            def _get_col(class_key: float) -> np.ndarray:
-                if class_key in class_map:
-                    return probas[:, class_map[class_key]]
-                return np.zeros(len(probas), dtype=np.float64)
+            def _get_col(
+                class_key: float,
+                cm: dict[float, int] = class_map,
+                p: np.ndarray = probas,
+            ) -> np.ndarray:
+                if class_key in cm:
+                    return p[:, cm[class_key]]
+                return np.zeros(len(p), dtype=np.float64)
 
             pred_df = pd.DataFrame(
                 {

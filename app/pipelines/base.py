@@ -12,7 +12,6 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
-import pandas as pd
 
 from app.core.logging import get_logger
 
@@ -27,6 +26,11 @@ class BasePipeline(ABC):
 
     Chaque instrument concret hérite et fournit ses propres config/data/features.
     """
+
+    # Attributs définis par les sous-classes (mypy ne peut pas les inférer
+    # car __init__ lève NotImplementedError).
+    instrument: Any
+    backtest_cfg: Any
 
     def __init__(
         self,
@@ -68,21 +72,17 @@ class BasePipeline(ABC):
     ) -> tuple[Any, dict]:
         """Exécute le backtest sur les prédictions."""
         from app.backtest.filters import (
+            CalendarFilter,
             FilterPipeline,
             MomentumFilter,
-            VolFilter,
             SessionFilter,
-            CalendarFilter,
+            VolFilter,
         )
         from app.backtest.simulator import (
             simulate_trades,
             simulate_trades_continuous,
         )
-        # Fallback: weight_centered n'existe pas dans app.backtest.sizing
-        try:
-            from app.backtest.sizing import weight_centered  # type: ignore[no-redef]
-        except ImportError:
-            weight_centered = lambda x: np.ones_like(x)  # type: ignore[no-redef]
+        from app.backtest.sizing import weight_centered
 
         # Construire le pipeline de filtres selon la config backtest
         filters: list = []
@@ -130,7 +130,7 @@ class BasePipeline(ABC):
                 "signal_threshold": cfg.continuous_signal_threshold,
             }
         else:
-            simulate_func = simulate_trades
+            simulate_func = simulate_trades  # type: ignore[assignment]
             simulate_kwargs = {"seuil_confiance": cfg.confidence_threshold}
 
         for year, preds_df in predictions.items():

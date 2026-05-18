@@ -91,10 +91,7 @@ def compute_directional_clean(
     # On estime le delta temporel médian
     if len(df) >= 2:
         median_delta = df.index.to_series().diff().median()
-        if pd.notna(median_delta):
-            hours_per_bar = median_delta.total_seconds() / 3600.0
-        else:
-            hours_per_bar = 24.0
+        hours_per_bar = median_delta.total_seconds() / 3600.0 if pd.notna(median_delta) else 24.0
     else:
         hours_per_bar = 24.0
 
@@ -188,10 +185,7 @@ def compute_triple_barrier(
     # Estimation du nombre de barres par heure
     if len(df) >= 2:
         median_delta = df.index.to_series().diff().median()
-        if pd.notna(median_delta):
-            hours_per_bar = median_delta.total_seconds() / 3600.0
-        else:
-            hours_per_bar = 24.0
+        hours_per_bar = median_delta.total_seconds() / 3600.0 if pd.notna(median_delta) else 24.0
     else:
         hours_per_bar = 24.0
 

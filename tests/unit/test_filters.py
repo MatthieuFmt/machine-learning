@@ -4,14 +4,13 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from learning_machine_learning.backtest.filters import (
-    TrendFilter,
-    MomentumFilter,
-    VolFilter,
-    SessionFilter,
+from app.backtest.filters import (
     FilterPipeline,
+    MomentumFilter,
+    SessionFilter,
+    TrendFilter,
+    VolFilter,
 )
-
 
 # ── Fixtures ──────────────────────────────────────────────
 
@@ -32,7 +31,6 @@ def df_basic() -> pd.DataFrame:
 @pytest.fixture
 def signals(df_basic: pd.DataFrame) -> tuple[pd.Series, pd.Series]:
     """Masques LONG/SHORT uniformes (toutes les barres sont des signaux)."""
-    n = len(df_basic)
     mask_long = pd.Series(True, index=df_basic.index)
     mask_short = pd.Series(True, index=df_basic.index)
     return mask_long, mask_short

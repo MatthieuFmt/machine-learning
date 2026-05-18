@@ -1,7 +1,14 @@
 import json
+
 import pytest
+
 from app.testing.snooping_guard import (
-    is_locked, read_oos, lock, check_unlocked, TestSetSnoopingError, LOCK_PATH
+    LOCK_PATH,
+    TestSetSnoopingError,
+    check_unlocked,
+    is_locked,
+    lock,
+    read_oos,
 )
 
 

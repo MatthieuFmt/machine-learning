@@ -1,5 +1,6 @@
 import pytest
-from app.config.models import Sleeve, ProductionConfig
+
+from app.config.models import ProductionConfig, Sleeve
 
 
 def test_sleeve_ok():

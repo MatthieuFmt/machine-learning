@@ -6,12 +6,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from learning_machine_learning.backtest.simulator import (
+from app.backtest.simulator import (
     _simulate_stateful_core,
-    simulate_trades,
     simulate_trades_continuous,
 )
-
 
 # ── Weight function de test ──────────────────────────────────────────────
 

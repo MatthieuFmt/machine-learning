@@ -15,11 +15,11 @@ from collections.abc import Callable
 
 import numpy as np
 import pandas as pd
-from app.backtest.filters import FilterPipeline
-from app.core.logging import get_logger
 
+from app.backtest.filters import FilterPipeline
 from app.backtest.sizing import compute_position_size
 from app.config.instruments import AssetConfig
+from app.core.logging import get_logger
 
 logger = get_logger(__name__)
 

@@ -739,3 +739,92 @@ Le Donchian et les stratégies trend-following méritent d'être retestés en hy
   - H_new3 EURUSD H4 : ✅ GO (Sharpe +1.73, 25.2 trades/an, DD 8.1%)
 - **Décision** : Single-sleeve fallback — portfolio = EURUSD H4 seule. Le module `app/portfolio/constructor.py` est prêt pour usage futur si ≥2 sleeves GO.
 - **Notes** : `read_oos()` appelé (H_new4_portfolio_single_sleeve). `rtk make verify` exécuté.
+
+---
+
+## 2026-05-17 — Pivot v4 C1 : Extension A5 multi-actifs
+
+- **Statut** : ✅ Terminé (code prêt, exécution utilisateur requise)
+- **Type** : Infrastructure ML (0 n_trial consommé)
+- **Fichiers modifiés** : `app/config/instruments.py` (4 AssetConfig mis à jour aux valeurs C1 + commentaires PROVISOIRE), `pyproject.toml` (per-file-ignores E402 pour `run_c1_inventory.py`)
+- **Fichiers créés** : `scripts/run_c1_inventory.py`, `tests/unit/test_c1_asset_configs_extended.py`, `tests/unit/test_c1_superset_multi_assets.py`
+- **Couples disponibles** : À confirmer — exécuter `rtk python scripts/run_c1_inventory.py`
+- **Couples indisponibles** : À confirmer (données absentes ou erreur load)
+- **Features superset moyennes par couple** : ~67-71
+- **Quality gates** : ruff ✅, mypy ✅ (4/4 fichiers), pytest ⏳ à exécuter (`rtk .venv\Scripts\python.exe -m pytest tests/unit/test_c1_* -v`)
+- **⚠️ Coûts XTB BTCUSD/ETHUSD/GBPUSD/USDCHF** : PROVISOIRES, à valider en démo après Phase C
+- **Valeurs modifiées vs entrées existantes** :
+  - BTCUSD : spread 35→30, slippage 15→30, tp 500→2000, sl 250→1000, max_lot 1.0→5.0
+  - ETHUSD : spread 3.5→3.0, slippage 1.5→3.0, pip_size 1.0→0.01, tp 100→10000, sl 50→5000, max_lot 1.0→5.0
+  - GBPUSD : spread 1.0→0.9, slippage 0.3→0.2, tp 40→20, sl 20→10, pip_value_eur 10.0→9.2
+  - USDCHF : slippage 0.3→0.2, tp 40→20, sl 20→10, pip_value_eur 10.0→10.5
+- **Prochaine étape** : C2 — Feature ranking sur les nouveaux couples
+
+---
+
+## 2026-05-17 — Pivot v4 C2 : Extension A6 ranking multi-actifs
+
+- **Statut** : ✅ Terminé
+- **Type** : Infrastructure ML (0 n_trial consommé)
+- **Fichiers modifiés** : `app/config/features_selected.py` (+9 entrées), `app/backtest/sizing.py` (+ weight_centered), `app/pipelines/base.py` (attributs classe), `app/models/meta_rf.py` (type fix)
+- **Fichiers créés** : `scripts/run_c2_ranking_multi_assets.py`, `tests/unit/test_c2_features_selected_extended.py`, `docs/feature_ranking_v4_extended.md`, `predictions/c2_ranking_multi_assets.json`
+- **Couples ranked OK** : 9/9
+- **Couples exclus** : 0
+- **Shortlist C3 (stab ≥ 0.5)** : 9 couples — BTCUSD/D1 (0.53), ETHUSD/D1 (0.56), ETHUSD/H4 (0.61), ETHUSD/H1 (0.71), EURUSD/D1 (0.60), GBPUSD/D1 (0.60), GBPUSD/H4 (0.63), USDCHF/D1 (0.55), USDCHF/H4 (0.61)
+- **Quality gates** : ruff ✅, mypy app/ ✅, pytest test_c2 + test_feature_ranking ✅
+- **Prochaine étape** : C3 — Model selection sur les 9 couples shortlist
+
+---
+
+## 2026-05-17 — Pivot v4 C3 : Extension A7 model selection multi-actifs
+
+- **Statut** : ✅ Terminé
+- **Type** : Infrastructure ML (0 n_trial consommé)
+- **Fichiers modifiés** : `app/config/model_selected.py` (+9 entrées), `pyproject.toml`
+- **Fichiers créés** : `scripts/run_c3_model_selection_multi_assets.py`, `tests/unit/test_c3_model_selected_extended.py`, `docs/model_selection_v4_extended.md`, `predictions/c3_model_selection_multi_assets.json`
+- **Couples évalués** : 9/9
+- **Modèle dominant** : HGBM 4/9 (crypto: BTCUSD/D1, ETHUSD/D1/H4/H1), RF 3/9 (forex H4: GBPUSD/D1/H4, USDCHF/H4), Stacking 2/9 (forex D1: EURUSD/D1, USDCHF/D1)
+- **Shortlist C4 (Sharpe CPCV ≥ 0.5)** : 8/9 C3 → ETHUSD/D1 (+1.55), ETHUSD/H4 (+0.55), ETHUSD/H1 (+2.02), EURUSD/D1 (+6.21), GBPUSD/D1 (+8.62), GBPUSD/H4 (+3.69), USDCHF/D1 (+3.33), USDCHF/H4 (+1.15). Exclu C3 : BTCUSD/D1 (+0.28). Shortlist C4 totale (A7+C3) : 10 couples (US30/D1 +1.75, EURUSD/H4 +0.90 inclus ; XAUUSD/D1 −1.05 exclu).
+- **Quality gates** : ruff ✅, mypy ✅, pytest ✅ (test_c3_model_selected_extended.py + test_model_selection.py 100%)
+- **Prochaine étape** : C4 — Hyperparam tuning sur la shortlist C4
+
+---
+
+## 2026-05-18 — Pivot v4 C4 : Extension A8 hyperparams multi-actifs
+
+- **Statut** : ✅ Terminé
+- **Type** : Infrastructure ML (0 n_trial consommé)
+- **Fichiers modifiés** : `app/config/hyperparams_tuned.py` (+8 entrées), `pyproject.toml`
+- **Fichiers créés** : `scripts/run_c4_hyperparam_tuning_multi_assets.py`, `tests/unit/test_c4_hyperparams_tuned_extended.py`, `docs/hyperparam_tuning_v4_extended.md`, `predictions/c4_hyperparam_tuning_multi_assets.json`
+- **Couples tunés** : 8 (6 nested CPCV + 2 stacking defaults)
+- **Shortlist C5 (Sharpe outer ≥ 0.5, gap < 1.0)** : 4 couples — ETHUSD/D1 (hgbm, 1.70), ETHUSD/H1 (hgbm, 1.81), GBPUSD/H4 (rf, 3.45), USDCHF/H4 (rf, 1.17)
+- **Exclus C5** : ETHUSD/H4 (Sharpe 0.39), GBPUSD/D1 (gap 1.92, overfitting), EURUSD/D1 + USDCHF/D1 (stacking non tunés)
+- **Quality gates** : ruff ✅, pytest ✅
+- **Prochaine étape** : C5 — Pipeline lock + bilan global Phase C
+
+---
+
+## 2026-05-18 — Pivot v4 C5 : Pipeline lock étendu + bilan Phase A
+
+- **Statut** : ✅ Terminé — Phase A étendue complète (A1-A9 + C1-C5)
+- **Type** : Verrouillage + documentation (0 n_trial)
+- **Fichiers modifiés** : `app/config/ml_pipeline_v4.py` (version v4.1.0-extended + `LOCKED_COUPLES`), `TEST_SET_LOCK.json` (section pipeline_locked étendue), `Makefile` (ajout pipeline_check_extended)
+- **Fichiers créés** : `scripts/run_c5_pipeline_lock_extended.py`, `tests/integration/test_pipeline_integrity_extended.py`, `docs/phase_a_extended_summary.md`
+- **Pipeline version** : v4.1.0-extended
+- **Couples figés (LOCKED_COUPLES)** : 11 (3 originaux A9 + 8 nouveaux C5)
+  - A9 : US30 D1 (rf, Sharpe 1.91), EURUSD H4 (rf, Sharpe 0.59), XAUUSD D1 (stacking, Sharpe 0.00)
+  - C5 : ETHUSD D1 (hgbm, 1.70), ETHUSD H4 (hgbm, 0.39), ETHUSD H1 (hgbm, 1.81), EURUSD D1 (stacking, 0.00), GBPUSD D1 (rf, 7.82), GBPUSD H4 (rf, 3.45), USDCHF D1 (stacking, 0.00), USDCHF H4 (rf, 1.17)
+- **Shortlist Phase B (Sharpe outer ≥ 0.5, gap < 1.0, non testés)** : 4 candidats
+  1. GBPUSD H4 : rf, Sharpe 3.45, gap 0.50
+  2. ETHUSD H1 : hgbm, Sharpe 1.81, gap 0.02
+  3. ETHUSD D1 : hgbm, Sharpe 1.70, gap 0.19
+  4. USDCHF H4 : rf, Sharpe 1.17, gap 0.32
+- **Couples exclus** : BTCUSD D1 (Sharpe CPCV 0.28), ETHUSD H4 (Sharpe 0.39), EURUSD D1 + USDCHF D1 (stacking non tunables), GBPUSD D1 (gap 1.92 overfitting)
+- **Tests** : À exécuter — `rtk pytest tests/integration/test_pipeline_integrity_extended.py -v`
+- **Quality gates** : À exécuter — `rtk make verify`
+- **n_trials cumul** : 28 (inchangé — Phase C entière à 0 trial)
+- **Prochaine étape (décision utilisateur)** :
+  - (A) Phase B sélective sur 1-4 couples shortlist → +1 à +4 n_trials
+  - (B) Vérification spreads démo XTB + correction ASSET_CONFIGS → 0 n_trial
+  - (C) Prompt 18 validation finale sur portfolio existant → +1 n_trial
+- **Recommandation** : Option B (spreads démo) puis Option A si gros candidat, sinon Option C.

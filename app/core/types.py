@@ -6,7 +6,7 @@ pour éviter les imports circulaires.
 
 from __future__ import annotations
 
-from typing import Protocol, TypeAlias, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 import numpy as np
 import pandas as pd
@@ -14,19 +14,19 @@ import pandas as pd
 # ── TypeAliases ──────────────────────────────────────────────────────────────
 
 #: DataFrame OHLCV standard (index datetime, colonnes Open/High/Low/Close/Volume/Spread)
-OHLCVDataFrame: TypeAlias = pd.DataFrame
+type OHLCVDataFrame = pd.DataFrame
 
 #: DataFrame ML-ready (index datetime, Target + features)
-MLReadyDataFrame: TypeAlias = pd.DataFrame
+type MLReadyDataFrame = pd.DataFrame
 
 #: DataFrame de trades (index datetime d'entrée, colonnes Pips_Nets/Pips_Bruts/Weight/result)
-TradesDataFrame: TypeAlias = pd.DataFrame
+type TradesDataFrame = pd.DataFrame
 
 #: NumPy array 1D de float64
-FloatArray: TypeAlias = np.ndarray[tuple[int], np.dtype[np.float64]]
+type FloatArray = np.ndarray[tuple[int], np.dtype[np.float64]]
 
 #: NumPy array 1D d'entiers
-IntArray: TypeAlias = np.ndarray[tuple[int], np.dtype[np.int64]]
+type IntArray = np.ndarray[tuple[int], np.dtype[np.int64]]
 
 
 # ── Protocols ────────────────────────────────────────────────────────────────

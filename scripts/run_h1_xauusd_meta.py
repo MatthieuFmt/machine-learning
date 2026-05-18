@@ -449,7 +449,7 @@ def main() -> None:
     # Feature importance
     feat_names = list(X_train_all.columns)
     importances = sorted(
-        zip(feat_names, rf.feature_importances_),
+        zip(feat_names, rf.feature_importances_, strict=False),
         key=lambda x: x[1], reverse=True,
     )
     logger.info("Feature importance :")
@@ -578,10 +578,10 @@ def main() -> None:
     print("\n" + "=" * 72)
     print("  H1 — Méta-labeling RF sur XAUUSD D1 (Donchian N=100, M=20)")
     print("=" * 72)
-    print(f"  Split         : train ≤ 2022-12-31 | val = 2023 | test ≥ 2024-01-01")
-    print(f"  Coûts         : spread=25 pips + slippage=10 pips (total 35 pips)")
-    print(f"  TP/SL         : 600/300 pips, window=120h (D1)")
-    print(f"  Direction     : LONG uniquement")
+    print("  Split         : train ≤ 2022-12-31 | val = 2023 | test ≥ 2024-01-01")
+    print("  Coûts         : spread=25 pips + slippage=10 pips (total 35 pips)")
+    print("  TP/SL         : 600/300 pips, window=120h (D1)")
+    print("  Direction     : LONG uniquement")
     print(f"  RF            : {RF_PARAMS['n_estimators']} arbres, max_depth={RF_PARAMS['max_depth']}, "
           f"class_weight={RF_PARAMS['class_weight']}")
     print(f"  Seuil optimal : {best_threshold:.2f} (sweepé sur train uniquement, "

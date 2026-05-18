@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+
 from app.testing.look_ahead_validator import assert_no_look_ahead
 
 

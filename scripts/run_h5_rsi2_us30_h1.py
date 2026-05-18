@@ -217,10 +217,7 @@ def run_rsi2_backtest(
                 entry_price = closes[i]
                 sl_atr_entry = atr_vals[i]
                 sl_dist = SL_ATR_MULT * sl_atr_entry
-                if position_type == 1:  # LONG
-                    sl_price = entry_price - sl_dist
-                else:  # SHORT
-                    sl_price = entry_price + sl_dist
+                sl_price = entry_price - sl_dist if position_type == 1 else entry_price + sl_dist
             i += 1
             continue
 
@@ -234,11 +231,15 @@ def run_rsi2_backtest(
 
         if position_type == 1:  # LONG
             # RSI traverse 50 vers le haut
-            if not np.isnan(curr_rsi) and not np.isnan(prev_rsi):
-                if curr_rsi > RSI_EXIT and prev_rsi <= RSI_EXIT:
-                    exit_now = True
-                    exit_type = "rsi_cross"
-                    exit_price = closes[i]
+            if (
+                not np.isnan(curr_rsi)
+                and not np.isnan(prev_rsi)
+                and curr_rsi > RSI_EXIT
+                and prev_rsi <= RSI_EXIT
+            ):
+                exit_now = True
+                exit_type = "rsi_cross"
+                exit_price = closes[i]
             # SL touché (intra-barre)
             if not exit_now and lows[i] <= sl_price:
                 exit_now = True
@@ -246,11 +247,15 @@ def run_rsi2_backtest(
                 exit_price = sl_price
         else:  # SHORT
             # RSI traverse 50 vers le bas
-            if not np.isnan(curr_rsi) and not np.isnan(prev_rsi):
-                if curr_rsi < RSI_EXIT and prev_rsi >= RSI_EXIT:
-                    exit_now = True
-                    exit_type = "rsi_cross"
-                    exit_price = closes[i]
+            if (
+                not np.isnan(curr_rsi)
+                and not np.isnan(prev_rsi)
+                and curr_rsi < RSI_EXIT
+                and prev_rsi >= RSI_EXIT
+            ):
+                exit_now = True
+                exit_type = "rsi_cross"
+                exit_price = closes[i]
             # SL touché (intra-barre)
             if not exit_now and highs[i] >= sl_price:
                 exit_now = True
@@ -619,9 +624,9 @@ def main() -> None:
     print("\n" + "=" * 72)
     print("  H5 - Mean-reversion RSI(2) extreme sur US30 H1")
     print("=" * 72)
-    print(f"  Split         : train <= 2022-12-31 | val = 2023 | test >= 2024-01-01")
-    print(f"  RSI(2)        : LONG < 10, SHORT > 90, exit traverse 50")
-    print(f"  Filtre ATR    : ATR(14) > 2x mediane ATR 20j -> NO TRADE")
+    print("  Split         : train <= 2022-12-31 | val = 2023 | test >= 2024-01-01")
+    print("  RSI(2)        : LONG < 10, SHORT > 90, exit traverse 50")
+    print("  Filtre ATR    : ATR(14) > 2x mediane ATR 20j -> NO TRADE")
     print(f"  SL            : {SL_ATR_MULT}x ATR(14) entree")
     print(f"  Couts         : {COST_POINTS:.0f} points/trade (spread 3 + slippage 5)")
     print(f"  Barres H1     : {len(df):,} total")

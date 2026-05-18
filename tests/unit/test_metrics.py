@@ -4,14 +4,13 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from learning_machine_learning.backtest.metrics import (
-    sharpe_ratio,
-    max_drawdown,
+from app.backtest.metrics import (
+    _pips_to_return,
     buy_and_hold_pips,
     compute_metrics,
-    _pips_to_return,
+    max_drawdown,
+    sharpe_ratio,
 )
-
 
 # ── _pips_to_return ───────────────────────────────────────
 

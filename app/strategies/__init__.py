@@ -6,16 +6,16 @@ Exporte ALL_STRATEGIES (v2) et ALL_STRATEGIES_V3 (H07 — trend-following additi
 from __future__ import annotations
 
 from app.strategies.base import BaseStrategy
-from app.strategies.sma_crossover import SmaCrossover
-from app.strategies.donchian import DonchianBreakout
-from app.strategies.rsi_contrarian import RsiContrarian
 from app.strategies.bollinger import BollingerBands
-from app.strategies.ts_momentum import TsMomentum
+from app.strategies.chandelier import ChandelierExit
+from app.strategies.donchian import DonchianBreakout
 from app.strategies.dual_ma import DualMovingAverage
 from app.strategies.keltner import KeltnerChannel
-from app.strategies.chandelier import ChandelierExit
-from app.strategies.parabolic import ParabolicSAR
 from app.strategies.mean_reversion import MeanReversionRSIBB
+from app.strategies.parabolic import ParabolicSAR
+from app.strategies.rsi_contrarian import RsiContrarian
+from app.strategies.sma_crossover import SmaCrossover
+from app.strategies.ts_momentum import TsMomentum
 
 ALL_STRATEGIES: list[tuple[type[BaseStrategy], dict[str, list]]] = [
     (SmaCrossover, {"fast": [5, 10, 20], "slow": [20, 50, 100]}),

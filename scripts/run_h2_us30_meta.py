@@ -643,7 +643,7 @@ def run_config(
     # Feature importance
     feat_names = list(X_train_all.columns)
     importances = sorted(
-        zip(feat_names, rf.feature_importances_),
+        zip(feat_names, rf.feature_importances_, strict=False),
         key=lambda x: x[1], reverse=True,
     )
     logger.info("Feature importance :")
@@ -914,10 +914,7 @@ def main() -> None:
             best_sharpe_test = sr
             best_result = res
 
-    if best_result is not None:
-        test_trades = best_result.get("_test_meta_trades", [])
-    else:
-        test_trades = []
+    test_trades = best_result.get("_test_meta_trades", []) if best_result is not None else []
 
     # ── 5. read_oos + validate_edge ──────────────────────────────────────
     sr_for_edge = best_result["test"]["meta"]["sharpe"] if best_result else 0.0
@@ -939,12 +936,11 @@ def main() -> None:
 
     # ── 6. Rapport comparatif console ─────────────────────────────────────
     n_years_test = max((df[df.index >= TEST_START].index[-1] - df[df.index >= TEST_START].index[0]).days / 365.25, 0.01)
-    df_test_period = df[df.index >= TEST_START]
 
     print("\n" + "=" * 80)
     print("  H2 — Méta-labeling RF sur US30 D1 (Donchian, 2 configs)")
     print("=" * 80)
-    print(f"  Split         : train ≤ 2022-12-31 | val = 2023 | test ≥ 2024-01-01")
+    print("  Split         : train ≤ 2022-12-31 | val = 2023 | test ≥ 2024-01-01")
     print(f"  Coûts         : {COST_TOTAL_POINTS:.0f} points/trade (spread 3.0 + slippage 5.0)")
     print(f"  TP/SL         : {TP_ATR_MULT:.0f}x/{SL_ATR_MULT:.0f}x ATR({ATR_PERIOD}), timeout {TIMEOUT_BARS} barres D1")
     print(f"  RF            : {RF_PARAMS['n_estimators']} arbres, max_depth={RF_PARAMS['max_depth']}, "

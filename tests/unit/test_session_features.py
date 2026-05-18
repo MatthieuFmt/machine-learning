@@ -11,13 +11,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from learning_machine_learning.features.regime import (
+from app.features.regime import (
+    SessionVolatilityScaler,
+    compute_relative_position_in_session,
     compute_session_id,
     compute_session_open_range,
-    compute_relative_position_in_session,
-    SessionVolatilityScaler,
 )
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────
 
@@ -168,7 +167,6 @@ class TestComputeSessionOpenRange:
         # Vérifier qu'à chaque reset, le range est ≤ range de la 1ère barre
         # (donc nettement plus petit que le max cumulé de la session précédente)
         for i in range(1, len(change_idx)):
-            before_segment = sor.loc[change_idx[i - 1]:change_idx[i - 1] + pd.Timedelta(hours=1)]
             first_bar_range = (high.loc[change_idx[i]] - low.loc[change_idx[i]])
             new_range = sor.loc[change_idx[i]]
             # Le range de la 1ère barre doit être égal au high-low local
@@ -360,8 +358,13 @@ class TestSessionVolatilityScaler:
 # ── Intégration pipeline ──────────────────────────────────────────────
 
 class TestPipelineIntegration:
-    """Vérifie que build_ml_ready inclut les colonnes session."""
+    """Vérifie que build_ml_ready inclut les colonnes session.
 
+    NOTE: EurUsdConfig et build_ml_ready n'existent plus dans app/ (v4).
+    Tests conservés pour référence, seront réactivés quand le module pipeline sera recréé.
+    """
+
+    @pytest.mark.skip(reason="EurUsdConfig et build_ml_ready n'existent plus dans app/ (v4)")
     def test_build_ml_ready_adds_session_columns(self) -> None:
         """Les colonnes session doivent être présentes dans la sortie."""
         from learning_machine_learning.config.instruments import EurUsdConfig
@@ -402,6 +405,7 @@ class TestPipelineIntegration:
         assert "session_open_range" in ml.columns
         assert "relative_position_in_session" in ml.columns
 
+    @pytest.mark.skip(reason="EurUsdConfig et build_ml_ready n'existent plus dans app/ (v4)")
     def test_one_hot_encoding_columns_present(self) -> None:
         """Avec encoding='one_hot', les 4 dummies doivent être présentes."""
         from learning_machine_learning.config.instruments import EurUsdConfig
@@ -445,6 +449,7 @@ class TestPipelineIntegration:
                 f"{col} n'est pas binaire: {valid.unique()}"
             )
 
+    @pytest.mark.skip(reason="EurUsdConfig et build_ml_ready n'existent plus dans app/ (v4)")
     def test_ordinal_encoding_no_dummies(self) -> None:
         """Avec encoding='ordinal', pas de dummies, seulement session_id."""
         from learning_machine_learning.config.instruments import EurUsdConfig
@@ -482,6 +487,7 @@ class TestPipelineIntegration:
         assert "session_London" not in ml.columns
         assert "session_NY" not in ml.columns
 
+    @pytest.mark.skip(reason="EurUsdConfig et build_ml_ready n'existent plus dans app/ (v4)")
     def test_train_end_separation(self) -> None:
         """train_end=None vs train_end='2023-12-31' donne des z-scores différents."""
         from learning_machine_learning.config.instruments import EurUsdConfig

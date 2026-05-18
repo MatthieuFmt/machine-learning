@@ -222,14 +222,14 @@ class MomentumFilter:
 
 class FilterPipeline:
     """Composite : applique une séquence ordonnée de filtres.
-    
+
     Chaque filtre réduit les masques LONG/SHORT. L'ordre d'application
     est préservé — le premier filtre de la liste est appliqué en premier.
     """
-    
+
     def __init__(self, filters: list) -> None:
         self.filters = filters
-    
+
     def apply(
         self,
         df: pd.DataFrame,
@@ -237,12 +237,12 @@ class FilterPipeline:
         mask_short: pd.Series,
     ) -> tuple[pd.Series, pd.Series, dict[str, int], pd.Series]:
         """Applique tous les filtres séquentiellement.
-        
+
         Args:
             df: DataFrame avec les colonnes nécessaires aux filtres.
             mask_long: Série booléenne des signaux LONG candidats.
             mask_short: Série booléenne des signaux SHORT candidats.
-        
+
         Returns:
             Tuple (mask_long filtré, mask_short filtré,
                    dict {nom_filtre: n_rejetés},
@@ -250,17 +250,19 @@ class FilterPipeline:
         """
         all_rejected: dict[str, int] = {}
         rejection_reason = pd.Series("", index=df.index, dtype=str)
-        
+
         for f in self.filters:
             mask_long_before = mask_long.copy()
             mask_short_before = mask_short.copy()
             mask_long, mask_short, n = f.apply(df, mask_long, mask_short)
             all_rejected[f.name] = n
-            
+
             # Marque les barres rejetées par ce filtre
             rejected = (mask_long_before & ~mask_long) | (mask_short_before & ~mask_short)
-            rejection_reason.loc[rejected] = rejection_reason.loc[rejected].apply(
-                lambda x: f"{x};{f.name}" if x else f.name
-            )
-        
+
+            def _format_reason(x: str, filter_name: str = f.name) -> str:
+                return f"{x};{filter_name}" if x else filter_name
+
+            rejection_reason.loc[rejected] = rejection_reason.loc[rejected].apply(_format_reason)
+
         return mask_long, mask_short, all_rejected, rejection_reason

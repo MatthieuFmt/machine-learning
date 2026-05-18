@@ -70,3 +70,8 @@ def expected_pnl_eur(
         PnL en euros (float si scalaire, np.ndarray si vectoriel).
     """
     return pips_net * position_size_lots * asset_cfg.pip_value_eur
+
+
+def weight_centered(x: np.ndarray) -> np.ndarray:
+    """Poids égal pour chaque trade (fallback quand aucun sizing spécifique n'est défini)."""
+    return np.ones_like(x)

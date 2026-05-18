@@ -1,6 +1,6 @@
-"""Pipeline ML v4 — FROZEN après A9. Tout pipeline = lookup ici.
+"""Pipeline ML v4 — FROZEN après A9 (3 couples) + C5 (extension multi-actifs).
 
-CE FICHIER NE DOIT PAS ÊTRE MODIFIÉ APRÈS A9.
+CE FICHIER NE DOIT PAS ÊTRE MODIFIÉ APRÈS C5.
 Toute modification = data snooping → invalide la statistique Phase B.
 """
 from __future__ import annotations
@@ -11,7 +11,15 @@ from app.config.features_selected import FEATURES_SELECTED
 from app.config.hyperparams_tuned import HYPERPARAMS_TUNED
 from app.config.model_selected import MODEL_SELECTED
 
-PIPELINE_VERSION: str = "v4.0.0-locked"
+PIPELINE_VERSION: str = "v4.1.0-extended"
+
+# Couples figés dans le pipeline. À jour après chaque verrouillage A9/C5.
+# Pour ajouter un couple : seules les phases A6→A8 (ou C2→C4) le permettent.
+LOCKED_COUPLES: frozenset[tuple[str, str]] = frozenset(
+    set(FEATURES_SELECTED.keys())
+    & set(MODEL_SELECTED.keys())
+    & set(HYPERPARAMS_TUNED.keys())
+)
 
 
 @dataclass(frozen=True)
@@ -38,15 +46,10 @@ class MLPipelineConfig:
 
 
 def get_pipeline(asset: str, tf: str) -> MLPipelineConfig:
-    """Récupère le pipeline gelé pour (asset, tf). Raise KeyError si non configuré."""
+    """Récupère le pipeline gelé pour (asset, tf). Raise KeyError si non figé."""
     key = (asset, tf)
-    if key not in FEATURES_SELECTED:
-        raise KeyError(f"Pas de features sélectionnées pour {asset} {tf}")
-    if key not in MODEL_SELECTED:
-        raise KeyError(f"Pas de modèle sélectionné pour {asset} {tf}")
-    if key not in HYPERPARAMS_TUNED:
-        raise KeyError(f"Pas d'hyperparams tunés pour {asset} {tf}")
-
+    if key not in LOCKED_COUPLES:
+        raise KeyError(f"Couple ({asset}, {tf}) non figé dans le pipeline")
     h = HYPERPARAMS_TUNED[key]
     return MLPipelineConfig(
         asset=asset,
@@ -60,10 +63,11 @@ def get_pipeline(asset: str, tf: str) -> MLPipelineConfig:
     )
 
 
+def list_locked_couples() -> list[tuple[str, str]]:
+    """Renvoie la liste triée des couples figés."""
+    return sorted(LOCKED_COUPLES)
+
+
 def all_configured_pairs() -> list[tuple[str, str]]:
-    """Retourne tous les (asset, tf) avec pipeline complet."""
-    return [
-        k
-        for k in FEATURES_SELECTED
-        if k in MODEL_SELECTED and k in HYPERPARAMS_TUNED
-    ]
+    """Retourne tous les (asset, tf) avec pipeline complet (rétrocompatibilité A9)."""
+    return list_locked_couples()

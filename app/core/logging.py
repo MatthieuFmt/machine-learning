@@ -8,13 +8,13 @@ from __future__ import annotations
 
 import logging
 import sys
-from typing import Optional, TextIO
+from typing import TextIO
 
 
 def setup_logging(
     level: int = logging.INFO,
-    fmt: Optional[str] = None,
-    stream: Optional[TextIO] = None,
+    fmt: str | None = None,
+    stream: TextIO | None = None,
 ) -> None:
     """Configure le logger racine une fois au démarrage.
 

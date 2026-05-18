@@ -387,59 +387,62 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
     # ⚠️ BUND désactivé : données indisponibles
     # "BUND": AssetConfig(...),
 
-    # ── GBPUSD (Forex) — NOUVEAU en v4, absent de v3 ────────────────────
+    # ── GBPUSD (Forex) — NOUVEAU C1, PROVISOIRE ──────────────────────────
+    # ⚠️ PROVISOIRE — à valider en démo MT5 (Symbol Specifications)
     "GBPUSD": AssetConfig(
-        spread_pips=1.0,
-        slippage_pips=0.3,
+        spread_pips=0.9,       # ≈ 0.9 pip XTB Standard
+        slippage_pips=0.2,     # majeure : 0.2× spread
         commission_pips=0.0,
-        pip_size=0.0001,       # 1 pip forex standard = 4ème décimale
-        pip_value_eur=10.0,    # 1 pip × 1 lot standard (100k) ≈ 10 USD ≃ 9.2 EUR
-        tp_points=40,          # 40 pips (plus large qu'EURUSD, plus volatile)
-        sl_points=20,          # 20 pips
+        pip_size=0.0001,       # 1 pip forex = 4ème décimale
+        pip_value_eur=9.2,     # 1 pip × 1 lot standard ≈ 10 USD ≈ 9.2 EUR
+        tp_points=20,
+        sl_points=10,
         window_hours=120,
         min_lot=0.01,
         max_lot=10.0,
     ),
-
-    # ── USDCHF (Forex) — NOUVEAU en v4, absent de v3 ────────────────────
+    # ── USDCHF (Forex) — NOUVEAU C1, PROVISOIRE ──────────────────────────
+    # ⚠️ PROVISOIRE — à valider en démo
     "USDCHF": AssetConfig(
         spread_pips=1.0,
-        slippage_pips=0.3,
+        slippage_pips=0.2,
         commission_pips=0.0,
-        pip_size=0.0001,       # 1 pip forex standard = 4ème décimale
-        pip_value_eur=10.0,    # 1 pip × 1 lot standard (100k) ≈ 10 USD ≃ 9.2 EUR
-        tp_points=40,          # 40 pips
-        sl_points=20,          # 20 pips
+        pip_size=0.0001,
+        pip_value_eur=10.5,    # CHF base, valeur EUR variable selon taux
+        tp_points=20,
+        sl_points=10,
         window_hours=120,
         min_lot=0.01,
         max_lot=10.0,
     ),
 
-    # ── BTCUSD (Crypto) — NOUVEAU en v4 ─────────────────────────────────
+    # ── BTCUSD (Bitcoin spot) — NOUVEAU C1, PROVISOIRE ───────────────────
+    # Source : XTB.com → Crypto → BITCOIN — spread variable selon marché
+    # ⚠️ PROVISOIRE — à valider en démo MT5 (Symbol Specifications)
     "BTCUSD": AssetConfig(
-        spread_pips=35.0,
-        slippage_pips=15.0,
+        spread_pips=30.0,      # ≈ 30 USD spread typique heures actives
+        slippage_pips=30.0,    # crypto : 1.0× spread (forte volatilité)
         commission_pips=0.0,
-        pip_size=1.0,          # 1 pip crypto = 1 USD
-        pip_value_eur=0.92,    # taux EUR/USD ≈ 1.08
-        tp_points=500,         # 500 USD (volatilité crypto)
-        sl_points=250,         # 250 USD
+        pip_size=1.0,          # 1 pip BTC = 1 USD (big figure)
+        pip_value_eur=0.92,    # 1 USD ≈ 0.92 EUR
+        tp_points=2000,        # 2000 USD soit ~3-5% du prix BTC typique
+        sl_points=1000,
         window_hours=120,
         min_lot=0.01,
-        max_lot=1.0,           # plus conservateur pour crypto
+        max_lot=5.0,
     ),
-
-    # ── ETHUSD (Crypto) — NOUVEAU en v4 ─────────────────────────────────
+    # ── ETHUSD (Ethereum spot) — NOUVEAU C1, PROVISOIRE ──────────────────
+    # ⚠️ PROVISOIRE — à valider en démo
     "ETHUSD": AssetConfig(
-        spread_pips=3.5,
-        slippage_pips=1.5,
+        spread_pips=3.0,       # ≈ 3 USD spread typique
+        slippage_pips=3.0,     # crypto : 1.0× spread
         commission_pips=0.0,
-        pip_size=1.0,          # 1 pip crypto = 1 USD
-        pip_value_eur=0.92,    # taux EUR/USD ≈ 1.08
-        tp_points=100,         # 100 USD
-        sl_points=50,          # 50 USD
+        pip_size=0.01,         # 1 pip ETH = 0.01 USD (cotation au centime)
+        pip_value_eur=0.92,
+        tp_points=10000,       # 100 USD soit ~3-5% du prix ETH typique
+        sl_points=5000,
         window_hours=120,
         min_lot=0.01,
-        max_lot=1.0,           # plus conservateur pour crypto
+        max_lot=5.0,
     ),
 }

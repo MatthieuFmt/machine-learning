@@ -10,11 +10,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from learning_machine_learning.backtest.simulator import simulate_trades
-from learning_machine_learning.backtest.filters import (
-    TrendFilter,
+from app.backtest.filters import (
     FilterPipeline,
+    TrendFilter,
 )
+from app.backtest.simulator import simulate_trades
 
 
 def _make_signal_df(
@@ -46,7 +46,7 @@ def _make_signal_df(
 
     # Signaux
     prediction = np.zeros(n, dtype=int)
-    for pos, val in zip(signal_positions, signal_values):
+    for pos, val in zip(signal_positions, signal_values, strict=False):
         prediction[pos] = val
 
     # Confiance uniforme à 60%

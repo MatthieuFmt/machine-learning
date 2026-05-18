@@ -4,11 +4,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from learning_machine_learning.features.regime import (
-    calc_volatilite_realisee,
+from app.features.regime import (
+    calc_dist_sma200_d1,
     calc_range_atr_ratio,
     calc_rsi_d1_delta,
-    calc_dist_sma200_d1,
+    calc_volatilite_realisee,
 )
 
 

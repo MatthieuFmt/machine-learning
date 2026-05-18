@@ -67,7 +67,7 @@ def calibrate_threshold(
     slippage_pips: float = 5.0,
     pip_size: float = 1.0,
     thresholds: list[float] | None = None,
-) -> tuple[float, dict[str, Any]]:
+) -> tuple[float, dict[float, Any]]:
     """Calibre le seuil de probabilité RF qui maximise le Sharpe sur train.
 
     Pour chaque seuil :
@@ -109,7 +109,7 @@ def calibrate_threshold(
     class1_idx = list(rf.classes_).index(1) if 1 in rf.classes_ else 1
     proba_win = proba_class1[:, class1_idx]
 
-    results: dict[str, Any] = {}
+    results: dict[float, Any] = {}
 
     for threshold in thresholds:
         # Filtre : signal Donchian pris seulement si proba > threshold
@@ -137,9 +137,6 @@ def calibrate_threshold(
         }
 
     # Meilleur seuil = celui qui maximise le Sharpe
-    if results:
-        best_threshold = max(results, key=lambda t: results[t]["sharpe"])
-    else:
-        best_threshold = 0.50
+    best_threshold = max(results, key=lambda t: results[t]["sharpe"]) if results else 0.5
 
     return best_threshold, results
