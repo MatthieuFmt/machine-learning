@@ -240,6 +240,14 @@ class AssetConfig:
     sl_points: float = 100
     window_hours: int = 120
 
+    # ── Audit v6 F1 — Swap overnight (audit_v6_data_gaps.md §4) ─────────
+    # Charge appliquée par nuit de détention. Convention signée :
+    #   > 0 → crédit (carry favorable, ex: long AUDJPY ≈ +1.5 pip/nuit)
+    #   < 0 → débit  (carry défavorable, ex: long EURUSD ≈ -0.5 pip/nuit)
+    # Le PnL final est : pips_brut + nights_held × swap_*_pips_per_night.
+    swap_long_pips_per_night: float = 0.0
+    swap_short_pips_per_night: float = 0.0
+
     def __post_init__(self) -> None:
         if self.spread_pips < 0:
             raise ValueError(f"spread_pips doit être >= 0, reçu {self.spread_pips}")

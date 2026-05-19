@@ -107,6 +107,7 @@ def _simulate_stateful_core(
 
             pips_brut = 0.0
             result_type = "loss_timeout"
+            exit_time = entry_time  # F1: tracking pour swap (fix par défaut: 0 nuit)
 
             for j in range(1, window + 1):
                 idx = i + j
@@ -119,22 +120,26 @@ def _simulate_stateful_core(
                     if curr_low <= sl:
                         pips_brut = sl_pips(pip_size, sl_dist, spread_cost)
                         result_type = "loss_sl"
+                        exit_time = dates[idx]
                         i = idx
                         break
                     elif curr_high >= tp:
                         pips_brut = tp_pips_net(pip_size, tp_dist, spread_cost)
                         result_type = "win"
+                        exit_time = dates[idx]
                         i = idx
                         break
                 else:
                     if curr_high >= sl:
                         pips_brut = sl_pips(pip_size, sl_dist, spread_cost)
                         result_type = "loss_sl"
+                        exit_time = dates[idx]
                         i = idx
                         break
                     elif curr_low <= tp:
                         pips_brut = tp_pips_net(pip_size, tp_dist, spread_cost)
                         result_type = "win"
+                        exit_time = dates[idx]
                         i = idx
                         break
             else:
@@ -145,8 +150,21 @@ def _simulate_stateful_core(
                     pips_brut = (exit_price - entry_price) / pip_size - spread_cost
                 else:
                     pips_brut = (entry_price - exit_price) / pip_size - spread_cost
+                exit_time = dates[exit_idx]
                 i += window
                 result_type = "loss_timeout"
+
+            # ── Audit v6 F1 — Charge swap overnight ────────────────────
+            # nights_held = nombre de jours civils entre entry et exit.
+            # Convention V1 simple : pas de triple-swap mercredi (à raffiner V2).
+            nights_held = max(0, (exit_time.normalize() - entry_time.normalize()).days)
+            if asset_cfg is not None and nights_held > 0:
+                swap_per_night = (
+                    asset_cfg.swap_long_pips_per_night
+                    if signal == 1
+                    else asset_cfg.swap_short_pips_per_night
+                )
+                pips_brut += nights_held * swap_per_night
 
             trade: dict = {
                 "Time": entry_time,
@@ -155,6 +173,7 @@ def _simulate_stateful_core(
                 "Weight": weight,
                 "result": result_type,
                 "filter_rejected": entry_filter_rejected,
+                "nights_held": int(nights_held),
             }
             if asset_cfg is not None:
                 trade["position_size_lots"] = position_lots
@@ -276,7 +295,10 @@ def simulate_trades(
     )
 
     if not trades:
-        columns = ["Time", "Pips_Nets", "Pips_Bruts", "Weight", "result", "filter_rejected"]
+        columns = [
+            "Time", "Pips_Nets", "Pips_Bruts", "Weight", "result",
+            "filter_rejected", "nights_held",
+        ]
         if asset_cfg is not None:
             columns.append("position_size_lots")
         empty = pd.DataFrame(columns=columns)
@@ -380,7 +402,10 @@ def simulate_trades_continuous(
     )
 
     if not trades:
-        columns = ["Time", "Pips_Nets", "Pips_Bruts", "Weight", "result", "filter_rejected"]
+        columns = [
+            "Time", "Pips_Nets", "Pips_Bruts", "Weight", "result",
+            "filter_rejected", "nights_held",
+        ]
         if asset_cfg is not None:
             columns.append("position_size_lots")
         empty = pd.DataFrame(columns=columns)

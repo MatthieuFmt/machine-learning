@@ -28,6 +28,8 @@ def run_deterministic_backtest(
     commission_pips: float,
     slippage_pips: float,
     pip_size: float = 1.0,
+    swap_long_pips_per_night: float = 0.0,
+    swap_short_pips_per_night: float = 0.0,
 ) -> dict[str, Any]:
     """Backtest bar-by-bar avec TP/SL fixes, moteur stateful.
 
@@ -40,6 +42,9 @@ def run_deterministic_backtest(
         commission_pips: Commission en pips (aller-retour par trade).
         slippage_pips: Slippage estimé en pips.
         pip_size: Taille d'un pip (ex: 0.0001 pour EURUSD, 1.0 pour XAUUSD).
+        swap_long_pips_per_night: Audit v6 F1 — charge swap par nuit, position long.
+            Convention signée : > 0 = crédit, < 0 = débit. Défaut 0 (legacy).
+        swap_short_pips_per_night: Idem, position short.
 
     Returns:
         dict avec clés:
@@ -189,6 +194,21 @@ def run_deterministic_backtest(
             result_type = "loss_timeout"
             i += window_bars
 
+        # ── Audit v6 F1 — Charge swap overnight ────────────────────────
+        # nights_held = nombre de jours civils entre entry et exit (V1 simple).
+        if isinstance(entry_time, pd.Timestamp) and isinstance(exit_time, pd.Timestamp):
+            nights_held = max(0, (exit_time.normalize() - entry_time.normalize()).days)
+        else:
+            # Fallback : conversion via pd.Timestamp (gère datetime nu, str ISO).
+            _et = pd.Timestamp(entry_time)
+            _xt = pd.Timestamp(exit_time)
+            nights_held = max(0, (_xt.normalize() - _et.normalize()).days)
+        swap_per_night = (
+            swap_long_pips_per_night if signal == 1 else swap_short_pips_per_night
+        )
+        if nights_held > 0 and swap_per_night != 0.0:
+            pips_net += nights_held * swap_per_night
+
         trades.append({
             "entry_time": str(entry_time),
             "exit_time": str(exit_time),
@@ -197,6 +217,7 @@ def run_deterministic_backtest(
             "exit_price": float(exit_price),
             "pips_net": float(pips_net),
             "result": result_type,
+            "nights_held": int(nights_held),
         })
         continue
 

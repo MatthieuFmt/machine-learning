@@ -10,7 +10,9 @@
       "Bash(Get-ChildItem -Path \"d:\\\\Documents\\\\learning-machine-learning\" -Force)",
       "Bash(Select-Object -Property Name, PSIsContainer)",
       "Bash(Format-Table -AutoSize)",
-      "Bash(grep -E \"\\\\.py$\")"
+      "Bash(grep -E \"\\\\.py$\")",
+      "WebSearch",
+      "WebFetch(domain:www.xtb.com)"
     ]
   }
 }
