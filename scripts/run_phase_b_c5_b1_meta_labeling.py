@@ -73,6 +73,39 @@ def _build_target_winner(_df: pd.DataFrame, pnl_brut: pd.Series) -> pd.Series:
     return (pnl_brut > 0).astype(int)
 
 
+def _generate_bootstrap_signals(df: pd.DataFrame) -> pd.Series:
+    """Génère les signaux bootstrap basés sur les terciles du trend score.
+
+    Top 20% trend → LONG, bottom 20% → SHORT. Utilisé comme générateur
+    primaire pour le flow méta-labeling B1 (équivalent du Donchian dans
+    les autres scripts c5).
+
+    Args:
+        df: DataFrame OHLC.
+
+    Returns:
+        Série 1/-1/0 même index que df.
+    """
+    features = _build_features_for_split(df)
+    if features.empty:
+        return pd.Series(0, index=df.index, dtype=int)
+
+    trend_cols = [
+        c for c in ["slope_sma_20", "slope_sma_50", "dist_sma_200"]
+        if c in features.columns
+    ]
+    if not trend_cols:
+        return pd.Series(0, index=df.index, dtype=int)
+
+    trend_score = features[trend_cols].mean(axis=1)
+    signals = pd.Series(0, index=df.index, dtype=int)
+    q80 = trend_score.quantile(0.80)
+    q20 = trend_score.quantile(0.20)
+    signals.loc[features.index[trend_score > q80]] = 1
+    signals.loc[features.index[trend_score < q20]] = -1
+    return signals
+
+
 def _train_primary_model(
     X_train: pd.DataFrame,
     y_train: pd.Series,
@@ -92,46 +125,42 @@ def _train_primary_model(
     return model
 
 
-def _primary_signals(df: pd.DataFrame, model: RandomForestClassifier) -> pd.Series:
-    """Génère les signaux directionnels (1=LONG, -1=SHORT) depuis le modèle primaire.
+def _primary_signals(
+    df: pd.DataFrame,
+    model: RandomForestClassifier,
+    primary_signals: pd.Series | None = None,
+) -> pd.Series:
+    """Fix F1 : primary RF filtre les signaux bootstrap (jamais directionnel).
 
-    Le modèle prédit P(win) à chaque barre. Les signaux sont générés quand
-    prob > threshold_c5. La direction est déduite des features de tendance
-    (dist_sma_200, slope_sma_20, slope_sma_50).
+    La direction provient EXCLUSIVEMENT du signal bootstrap (top/bottom 20%
+    du trend score). Le RF primaire filtre par P(winner) > threshold.
+    La MetaLabelingRF en aval ajoute un second niveau de filtrage.
+
+    Args:
+        df: DataFrame OHLC.
+        model: RF primaire entraîné sur (features à entrée bootstrap, y=winner).
+        primary_signals: Signaux bootstrap sur df. Si None, ils sont générés
+            ici via _generate_bootstrap_signals(df).
     """
+    from app.models.meta_labeling_pipeline import filter_signals_by_meta_proba
+
     hp = HYPERPARAMS_TUNED[COUPLE_KEY]
     threshold = hp["threshold"]
+
+    if primary_signals is None:
+        primary_signals = _generate_bootstrap_signals(df)
 
     features = _build_features_for_split(df)
     if features.empty:
         return pd.Series(0, index=df.index, dtype=int)
 
-    common_idx = df.index.intersection(features.index)
-    if len(common_idx) == 0:
-        return pd.Series(0, index=df.index, dtype=int)
-
-    features_aligned = features.loc[common_idx]
-    proba = model.predict_proba(features_aligned.values)[:, 1]
-
-    signals = pd.Series(0, index=df.index, dtype=int)
-
-    # Direction : utiliser les features de tendance si disponibles
-    trend_cols = [c for c in ["slope_sma_20", "slope_sma_50", "dist_sma_200"] if c in features_aligned.columns]
-    if trend_cols:
-        # Direction = signe de la moyenne des features de tendance
-        trend_sign = features_aligned[trend_cols].mean(axis=1).apply(np.sign)
-    else:
-        trend_sign = pd.Series(1, index=features_aligned.index)
-
-    # Signal LONG quand proba > threshold et tendance haussière
-    # Signal SHORT quand proba > threshold et tendance baissière
-    long_mask = (proba > threshold) & (trend_sign > 0)
-    short_mask = (proba > threshold) & (trend_sign < 0)
-
-    signals.loc[common_idx[long_mask]] = 1
-    signals.loc[common_idx[short_mask]] = -1
-
-    return signals
+    return filter_signals_by_meta_proba(
+        df=df,
+        primary_signals=primary_signals,
+        features=features,
+        model=model,
+        threshold=threshold,
+    )
 
 
 def _trades_to_dataframe(

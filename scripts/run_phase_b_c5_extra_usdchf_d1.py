@@ -24,7 +24,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from sklearn.calibration import CalibratedClassifierCV
+from app.models.candidates import TimeSeriesHoldoutStacking  # noqa: E402  # type-hint
 
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
@@ -85,7 +85,7 @@ def _build_target_winner(pnl_net: pd.Series) -> pd.Series:
 def _train_stacking_model(
     X_train: pd.DataFrame,
     y_train: pd.Series,
-) -> CalibratedClassifierCV:
+) -> TimeSeriesHoldoutStacking:
     """Entraîne le modèle stacking (RF+HGBM+LogReg) avec les defaults sklearn."""
     model = build_stacking(seed=42)
     model.fit(X_train.values, y_train.values)
@@ -94,43 +94,23 @@ def _train_stacking_model(
 
 def _generate_model_signals(
     df: pd.DataFrame,
-    model: CalibratedClassifierCV,
+    model: TimeSeriesHoldoutStacking,
+    primary_signals: pd.Series,
 ) -> pd.Series:
-    """Génère les signaux directionnels (1=LONG, -1=SHORT) depuis le modèle stacking.
-
-    Le modèle prédit P(win) à chaque barre. Les signaux sont générés quand
-    prob > threshold. La direction est déduite des features de tendance
-    (dist_sma_200, slope_sma_20, slope_sma_50).
-    """
-    threshold = STACKING_THRESHOLD
+    """Méta-labeling fidèle (fix F1) : filtre les signaux Donchian primaires."""
+    from app.models.meta_labeling_pipeline import filter_signals_by_meta_proba
 
     features = _build_features_for_split(df)
     if features.empty:
         return pd.Series(0, index=df.index, dtype=int)
 
-    common_idx = df.index.intersection(features.index)
-    if len(common_idx) == 0:
-        return pd.Series(0, index=df.index, dtype=int)
-
-    features_aligned = features.loc[common_idx]
-    proba = model.predict_proba(features_aligned.values)[:, 1]
-
-    signals = pd.Series(0, index=df.index, dtype=int)
-
-    # Direction : utiliser les features de tendance si disponibles
-    trend_cols = [c for c in ["slope_sma_20", "slope_sma_50", "dist_sma_200"] if c in features_aligned.columns]
-    if trend_cols:
-        trend_sign = features_aligned[trend_cols].mean(axis=1).apply(np.sign)
-    else:
-        trend_sign = pd.Series(1, index=features_aligned.index)
-
-    long_mask = (proba > threshold) & (trend_sign > 0)
-    short_mask = (proba > threshold) & (trend_sign < 0)
-
-    signals.loc[common_idx[long_mask]] = 1
-    signals.loc[common_idx[short_mask]] = -1
-
-    return signals
+    return filter_signals_by_meta_proba(
+        df=df,
+        primary_signals=primary_signals,
+        features=features,
+        model=model,
+        threshold=STACKING_THRESHOLD,
+    )
 
 
 def _trades_to_dataframe(
@@ -259,9 +239,14 @@ def main() -> int:
     features_test_full = _build_features_for_split(df_test_with_history)
     features_test = features_test_full.loc[features_test_full.index.isin(df_test.index)]
 
-    signals_test = _generate_model_signals(df_test, model)
+    # Fix F1 : signaux primaires Donchian sur test
+    donchian_signals_test = _generate_donchian_signals(df_test)
+    n_primary_test = int((donchian_signals_test != 0).sum())
+    print(f"  {n_primary_test} signaux Donchian primaires sur test")
+
+    signals_test = _generate_model_signals(df_test, model, donchian_signals_test)
     n_test_signals = int((signals_test != 0).sum())
-    print(f"  {n_test_signals} signaux générés sur test")
+    print(f"  {n_test_signals} signaux conservés après méta-filter")
 
     if n_test_signals == 0:
         logger.warning("Aucun signal sur test.")

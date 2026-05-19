@@ -18,7 +18,6 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from sklearn.calibration import CalibratedClassifierCV
 from sklearn.ensemble import (
     HistGradientBoostingClassifier,
     RandomForestClassifier,
@@ -44,7 +43,11 @@ from app.data.loader import load_asset  # noqa: E402
 from app.features.superset import build_superset  # noqa: E402
 from app.models.candidates import build_stacking  # noqa: E402
 from app.strategies.donchian import DonchianBreakout  # noqa: E402
-from app.testing.snooping_guard import read_oos  # noqa: E402
+from app.testing.snooping_guard import (  # noqa: E402
+    n_trials_from_history,
+    n_unique_hypotheses,
+    read_oos,
+)
 
 logger = get_logger(__name__)
 
@@ -53,12 +56,23 @@ logger = get_logger(__name__)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 TRAIN_CUTOFF = pd.Timestamp("2022-12-31", tz="UTC")
+# Fix F14 : 2023 est la validation set (constitution §3). Utilisé pour
+# calibrer le seuil de probabilité sans consommer de n_trials sur le test.
+VAL_START = pd.Timestamp("2023-01-01", tz="UTC")
+VAL_END = pd.Timestamp("2023-12-31", tz="UTC")
 TEST_START = pd.Timestamp("2024-01-01", tz="UTC")
 CAPITAL_EUR = 10_000.0
 RISK_PCT = 0.02
 DONCHIAN_N = 20
 DONCHIAN_M = 20
-N_TRIALS_CUMUL = 29  # 28 (JOURNAL.md C5) + 1 (prompt 18)
+
+# Si True, le seuil de probabilité est calibré sur 2023 (val set) plutôt
+# que d'utiliser HYPERPARAMS_TUNED[(asset, tf)]["threshold"]. Fix F14.
+CALIBRATE_THRESHOLD_ON_VAL = False
+# Fix F5 : n_trials calculé dynamiquement depuis read_history plutôt
+# qu'une constante hardcodée. La valeur historique 29 est utilisée comme
+# plancher si l'historique n'a pas été correctement maintenu.
+N_TRIALS_FLOOR = 29
 
 # 6 stratégies GO validées
 STRATEGIES_DONCHIAN_ML: list[dict[str, Any]] = [
@@ -191,8 +205,28 @@ def _generate_model_signals(
     model: Any,
     asset: str,
     tf: str,
+    primary_signals: pd.Series | None = None,
 ) -> pd.Series:
-    """Génère signaux directionnels (1=LONG, -1=SHORT) depuis le modèle."""
+    """Méta-labeling fidèle (fix F1) : filtre des signaux primaires par P(winner).
+
+    Args:
+        df: DataFrame OHLC du segment évalué.
+        model: Modèle entraîné sur (features à l'entrée, y=winner).
+        asset, tf: Identifiant du couple (pour features_selected / threshold).
+        primary_signals: Signaux primaires Donchian (1/-1/0). REQUIS — la
+            distribution test doit correspondre à la distribution train.
+
+    Returns:
+        Série identique à primary_signals avec les signaux dont la probabilité
+        de winner est sous le threshold remis à 0. La DIRECTION provient
+        toujours du signal primaire, jamais d'un trend_sign synthétique.
+    """
+    if primary_signals is None:
+        raise ValueError(
+            "primary_signals est requis (fix F1). Ne pas appeler "
+            "_generate_model_signals sans signaux primaires Donchian."
+        )
+
     key = (asset, tf)
     hp = HYPERPARAMS_TUNED.get(key, {})
     threshold = hp.get("threshold", 0.5)
@@ -201,27 +235,109 @@ def _generate_model_signals(
     if features.empty:
         return pd.Series(0, index=df.index, dtype=int)
 
-    common_idx = df.index.intersection(features.index)
-    if len(common_idx) == 0:
-        return pd.Series(0, index=df.index, dtype=int)
-
-    features_aligned = features.loc[common_idx]
-    proba = model.predict_proba(features_aligned.values)[:, 1]
-
     signals = pd.Series(0, index=df.index, dtype=int)
+    primary_mask = primary_signals.reindex(df.index, fill_value=0) != 0
+    candidate_idx = df.index[primary_mask].intersection(features.index)
+    if len(candidate_idx) == 0:
+        return signals
 
-    trend_cols = [c for c in ["slope_sma_20", "slope_sma_50", "dist_sma_200"] if c in features_aligned.columns]
-    if trend_cols:
-        trend_sign = features_aligned[trend_cols].mean(axis=1).apply(np.sign)
-    else:
-        trend_sign = pd.Series(1, index=features_aligned.index)
+    X_candidates = features.loc[candidate_idx]
+    proba = model.predict_proba(X_candidates.values)[:, 1]
+    keep_mask = proba > threshold
 
-    long_mask = (proba > threshold) & (trend_sign > 0)
-    short_mask = (proba > threshold) & (trend_sign < 0)
-
-    signals.loc[common_idx[long_mask]] = 1
-    signals.loc[common_idx[short_mask]] = -1
+    kept_idx = candidate_idx[keep_mask]
+    signals.loc[kept_idx] = primary_signals.loc[kept_idx].astype(int)
     return signals
+
+
+def _calibrate_threshold_on_val(
+    df_full: pd.DataFrame,
+    model: Any,
+    asset: str,
+    tf: str,
+    cfg: Any,
+    half_cost: float,
+    threshold_candidates: tuple[float, ...] = (0.45, 0.50, 0.55, 0.60, 0.65, 0.70),
+) -> tuple[float, dict[float, float]]:
+    """Fix F14 : calibre le seuil de probabilité sur 2023 (val set).
+
+    Pour chaque seuil candidat :
+    1. Génère les signaux Donchian sur le val set (2023).
+    2. Filtre par P(winner) > threshold.
+    3. Backtest, calcule Sharpe linéaire (fix F2 via sharpe_daily_from_trades).
+    4. Retient le seuil maximisant le Sharpe sur 2023.
+
+    Le test set ≥ 2024 n'est JAMAIS consulté ici → pas de consommation de n_trials.
+
+    Args:
+        df_full: DataFrame OHLC complet (assez d'historique pour les features).
+        model: Modèle déjà entraîné sur train ≤ 2022.
+        asset, tf: Identifiant du couple.
+        cfg: AssetConfig pour costs/TP/SL.
+        half_cost: spread+slippage divisé par 2.
+        threshold_candidates: Seuils à tester.
+
+    Returns:
+        (best_threshold, dict {threshold: sharpe_val}). Si val vide ou aucun
+        signal, retourne (0.50, {}).
+    """
+    df_val = df_full.loc[VAL_START:VAL_END]
+    if df_val.empty:
+        logger.warning("Val 2023 vide pour %s %s — fallback threshold=0.50", asset, tf)
+        return 0.50, {}
+
+    donchian_val = _generate_donchian_signals(df_val)
+    if (donchian_val != 0).sum() < 5:
+        logger.warning(
+            "Trop peu de signaux Donchian sur val 2023 (%d) — fallback 0.50",
+            int((donchian_val != 0).sum()),
+        )
+        return 0.50, {}
+
+    val_scores: dict[float, float] = {}
+    for t in threshold_candidates:
+        # Override temporaire via kwargs : on appelle filter_signals_by_meta_proba directement
+        from app.models.meta_labeling_pipeline import filter_signals_by_meta_proba
+        features_val = _build_features(df_full, asset, tf)
+        if features_val.empty:
+            continue
+        signals_val = filter_signals_by_meta_proba(
+            df=df_val,
+            primary_signals=donchian_val,
+            features=features_val.loc[features_val.index.isin(df_val.index)],
+            model=model,
+            threshold=t,
+        )
+        if (signals_val != 0).sum() < 3:
+            val_scores[t] = float("-inf")
+            continue
+
+        bt = run_deterministic_backtest(
+            df=df_val, signals=signals_val,
+            tp_pips=cfg.tp_points, sl_pips=cfg.sl_points,
+            window_hours=cfg.window_hours,
+            commission_pips=cfg.commission_pips,
+            slippage_pips=half_cost, pip_size=cfg.pip_size,
+        )
+        trades = bt.get("trades", [])
+        if len(trades) < 3:
+            val_scores[t] = float("-inf")
+            continue
+        val_scores[t] = float(sharpe_ratio(
+            pd.Series([t["pips_net"] for t in trades]) / cfg.sl_points,
+            annual_factor=252.0,
+        ))
+
+    finite_scores = {k: v for k, v in val_scores.items() if np.isfinite(v)}
+    if not finite_scores:
+        logger.warning("Aucun seuil viable sur val 2023 — fallback 0.50")
+        return 0.50, val_scores
+    best_t = max(finite_scores, key=finite_scores.get)
+    logger.info(
+        "Seuil calibré sur val 2023 pour %s %s : %.2f (Sharpe val=%.3f)",
+        asset, tf, best_t, finite_scores[best_t],
+    )
+    return best_t, val_scores
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -298,14 +414,32 @@ def backtest_donchian_ml(
     acc_train = float((model.predict(X_train.values) == y_train.values).mean())
     print(f"  Accuracy train: {acc_train:.3f}")
 
-    # Test: signaux + backtest
+    # Fix F14 : calibration optionnelle du seuil sur 2023 (val set).
+    if CALIBRATE_THRESHOLD_ON_VAL:
+        calibrated_threshold, val_scores = _calibrate_threshold_on_val(
+            df_full=df, model=model, asset=asset, tf=tf,
+            cfg=cfg, half_cost=half_cost,
+        )
+        print(f"  Seuil calibré sur val 2023 : {calibrated_threshold:.2f}")
+        print(f"    Scores Sharpe val par seuil : {val_scores}")
+        # Override le seuil HYPERPARAMS_TUNED pour ce couple, en mémoire
+        HYPERPARAMS_TUNED.setdefault(key, {})["threshold"] = calibrated_threshold
+
+    # Test: signaux Donchian → filtrage par méta-labeling (fix F1)
     df_test_with_history = df.loc[:df_test.index[-1]]
     features_test = _build_features(df_test_with_history, asset, tf)
     features_test = features_test.loc[features_test.index.isin(df_test.index)]
 
-    signals_test = _generate_model_signals(df_test, model, asset, tf)
+    donchian_signals_test = _generate_donchian_signals(df_test)
+    n_primary_test = int((donchian_signals_test != 0).sum())
+    print(f"  Signaux Donchian test (primaires): {n_primary_test}")
+
+    signals_test = _generate_model_signals(
+        df_test, model, asset, tf,
+        primary_signals=donchian_signals_test,
+    )
     n_test_signals = int((signals_test != 0).sum())
-    print(f"  Signaux test: {n_test_signals}")
+    print(f"  Signaux test (après meta-filter): {n_test_signals}")
 
     if n_test_signals == 0:
         logger.warning("0 signal sur test pour %s %s", asset, tf)
@@ -434,8 +568,12 @@ def backtest_wf_meta_labeling(
         primary_model = _train_model(X_primary, y_primary, model_type, asset, tf)
         n_train_total += len(X_primary)
 
-        # Signaux primaires sur OOS
-        signals_primary = _generate_model_signals(df_oos, primary_model, asset, tf)
+        # Signaux primaires sur OOS : Donchian (fix F1) puis filtre meta-label
+        donchian_oos = _generate_donchian_signals(df_oos)
+        signals_primary = _generate_model_signals(
+            df_oos, primary_model, asset, tf,
+            primary_signals=donchian_oos,
+        )
         n_primary = int((signals_primary != 0).sum())
 
         # Méta-labeling sur signaux primaires
@@ -623,59 +761,131 @@ def buy_and_hold_benchmark(
 
 
 def monte_carlo_random_benchmark(
-    n_iter: int = 1000,
-    signal_freq: float = 0.05,
+    sleeve_specs: list[dict[str, Any]],
+    sleeve_trade_rates: dict[str, float],
+    n_iter: int = 500,
     start: str = "2024-01-01",
 ) -> np.ndarray:
-    """Simule 1000 stratégies random sur US30 D1.
+    """Fix F6 : Monte Carlo représentatif du portfolio réel.
 
-    signal_freq: probabilité de signal à chaque barre.
-    direction: bernoulli 50/50.
-    Mêmes coûts que le pipeline réel.
+    Pour chaque itération :
+      1. Pour chaque sleeve (asset, tf) du portfolio, génère des signaux
+         aléatoires à la même FRÉQUENCE observée que la stratégie réelle.
+      2. Backteste chacun → equity en €.
+      3. Combine en portfolio equal-weight (même schéma que build_portfolio).
+      4. Calcule le Sharpe daily linéaire (fix F2) sur le portfolio random.
+
+    Args:
+        sleeve_specs: liste de dicts {"asset": ..., "tf": ...} (une par sleeve).
+        sleeve_trade_rates: dict {"ASSET_TF": trades_per_bar}. Calibre la
+            fréquence de signal pour chaque sleeve. Par défaut 0.05 si absent.
+        n_iter: Nombre d'itérations Monte Carlo.
+        start: Date de début OOS.
+
+    Returns:
+        Array des Sharpe portfolio random (longueur n_iter).
     """
-    asset = "US30"
-    tf = "D1"
-    cfg = ASSET_CONFIGS[asset]
-    half_cost = (cfg.spread_pips + cfg.slippage_pips) / 2.0
+    # Pré-charger les df par sleeve
+    sleeve_data: dict[str, tuple[pd.DataFrame, Any, float]] = {}
+    for spec in sleeve_specs:
+        asset, tf = spec["asset"], spec["tf"]
+        cfg = ASSET_CONFIGS[asset]
+        try:
+            df = load_asset(asset, tf).loc[start:]
+            if df.empty:
+                continue
+            sleeve_data[f"{asset}_{tf}"] = (df, cfg, (cfg.spread_pips + cfg.slippage_pips) / 2.0)
+        except Exception as exc:
+            logger.warning("MC: skip %s %s: %s", asset, tf, exc)
 
-    df = load_asset(asset, tf)
-    df = df.loc[start:]
-
-    if df.empty:
-        logger.warning("Pas de données US30 pour MC benchmark.")
+    if not sleeve_data:
+        logger.warning("Aucune donnée sleeve dispo pour Monte Carlo.")
         return np.array([])
 
-    n_bars = len(df)
     sharpes = np.zeros(n_iter, dtype=float)
 
     for i in range(n_iter):
         rng = np.random.default_rng(seed=i)
-        # Signaux aléatoires: 1=LONG, -1=SHORT, 0=pas de trade
-        direction = rng.choice([1, -1], size=n_bars)
-        entry_mask = rng.random(n_bars) < signal_freq
-        signals = np.where(entry_mask, direction, 0)
-        signals_series = pd.Series(signals, index=df.index, dtype=int)
 
-        bt = run_deterministic_backtest(
-            df=df, signals=signals_series,
-            tp_pips=cfg.tp_points, sl_pips=cfg.sl_points,
-            window_hours=cfg.window_hours,
-            commission_pips=cfg.commission_pips,
-            slippage_pips=half_cost, pip_size=cfg.pip_size,
-        )
-        trades_mc: list[dict] = bt.get("trades", [])
-        if not trades_mc:
+        # Backtest random sur chaque sleeve, collecter daily PnL linéaires
+        sleeve_daily_pnls: list[pd.Series] = []
+
+        for name, (df, cfg, half_cost) in sleeve_data.items():
+            n_bars = len(df)
+            signal_freq = sleeve_trade_rates.get(name, 0.05)
+            # Signaux aléatoires (long/short 50/50, bernoulli signal_freq)
+            direction = rng.choice([1, -1], size=n_bars)
+            entry_mask = rng.random(n_bars) < signal_freq
+            signals = pd.Series(
+                np.where(entry_mask, direction, 0),
+                index=df.index, dtype=int,
+            )
+
+            bt = run_deterministic_backtest(
+                df=df, signals=signals,
+                tp_pips=cfg.tp_points, sl_pips=cfg.sl_points,
+                window_hours=cfg.window_hours,
+                commission_pips=cfg.commission_pips,
+                slippage_pips=half_cost, pip_size=cfg.pip_size,
+            )
+            trades_mc: list[dict] = bt.get("trades", [])
+            if not trades_mc:
+                continue
+
+            _, trades_df = _trades_to_equity(trades_mc, cfg=cfg)
+            if trades_df.empty:
+                continue
+            # PnL daily en € (linéaire, capital fixe — cohérent avec fix F2)
+            pnl_daily = trades_df["pnl"].resample("D").sum().fillna(0.0)
+            sleeve_daily_pnls.append(pnl_daily)
+
+        if not sleeve_daily_pnls:
             sharpes[i] = 0.0
             continue
 
-        equity_mc, _ = _trades_to_equity(trades_mc, cfg=cfg)
-        if len(equity_mc) < 2:
-            sharpes[i] = 0.0
-            continue
-        daily_ret = equity_mc.pct_change().dropna()
+        # Portfolio equal-weight des PnL daily → Sharpe linéaire annualisé
+        all_idx = sleeve_daily_pnls[0].index
+        for series in sleeve_daily_pnls[1:]:
+            all_idx = all_idx.union(series.index)
+        pnl_matrix = pd.DataFrame(index=all_idx)
+        for k, series in enumerate(sleeve_daily_pnls):
+            pnl_matrix[f"s{k}"] = series.reindex(all_idx, fill_value=0.0)
+        # equal-weight = moyenne
+        portfolio_daily_pnl = pnl_matrix.mean(axis=1)
+        daily_ret = portfolio_daily_pnl / CAPITAL_EUR  # retours linéaires
         sharpes[i] = float(sharpe_ratio(daily_ret)) if len(daily_ret) > 1 else 0.0
 
     return sharpes
+
+
+def _estimate_sleeve_trade_rate(
+    asset: str,
+    tf: str,
+    n_trades: int,
+    start: pd.Timestamp,
+    end: pd.Timestamp | None = None,
+) -> float:
+    """Estime trades_per_bar observé pour calibrer la fréquence MC.
+
+    Args:
+        asset, tf: identifiant du couple.
+        n_trades: nb de trades produits par la stratégie réelle.
+        start, end: bornes OOS.
+
+    Returns:
+        Fraction de barres avec un signal. Clampée à [0.001, 0.5].
+    """
+    try:
+        df = load_asset(asset, tf)
+        if end is not None:
+            df = df.loc[start:end]
+        else:
+            df = df.loc[start:]
+        n_bars = max(len(df), 1)
+        rate = n_trades / n_bars
+        return float(np.clip(rate, 0.001, 0.5))
+    except Exception:
+        return 0.05
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -727,9 +937,15 @@ def build_portfolio(
 def main() -> int:
     set_global_seeds()
 
+    # Fix F5 : n_trials dérivé du snooping_guard (n_reads ≥ floor 29).
+    # On expose aussi n_unique_hypotheses pour comparaison méthodologique.
+    n_trials_cumul = n_trials_from_history(min_floor=N_TRIALS_FLOOR)
+    n_uniq = n_unique_hypotheses()
+
     print("=" * 70)
     print("PROMPT 18 — VALIDATION FINALE GO/NO-GO")
-    print(f"n_trials = {N_TRIALS_CUMUL}")
+    print(f"n_trials (n_reads, plancher {N_TRIALS_FLOOR}) = {n_trials_cumul}")
+    print(f"n_unique_hypotheses (alternative) = {n_uniq}")
     print("=" * 70)
 
     # ── 8a. Backtest de chaque stratégie ──────────────────────────────────
@@ -798,7 +1014,7 @@ def main() -> int:
     report = validate_edge(
         equity=portfolio_equity,
         trades=all_trades_df if not all_trades_df.empty else pd.DataFrame({"pnl": []}),
-        n_trials=N_TRIALS_CUMUL,
+        n_trials=n_trials_cumul,
     )
 
     # ── 8d. Benchmarks ────────────────────────────────────────────────────
@@ -813,8 +1029,25 @@ def main() -> int:
         sr_bh = 0.0
     print(f"  B&H equal-weight Sharpe: {sr_bh:.3f}")
 
-    # Monte Carlo random
-    mc_sharpes = monte_carlo_random_benchmark(n_iter=500)  # 500 pour rapidité
+    # Monte Carlo random multi-asset (fix F6)
+    # Calibrer la fréquence par sleeve depuis les trades observés
+    test_end = pd.Timestamp.now(tz="UTC")
+    sleeve_trade_rates: dict[str, float] = {}
+    for info in strategy_infos:
+        name = f"{info['asset']}_{info['tf']}"
+        n_trades = int(info.get("n_test_trades", 0))
+        sleeve_trade_rates[name] = _estimate_sleeve_trade_rate(
+            info["asset"], info["tf"], n_trades, TEST_START, test_end,
+        )
+
+    mc_sleeve_specs = [
+        {"asset": info["asset"], "tf": info["tf"]} for info in strategy_infos
+    ]
+    mc_sharpes = monte_carlo_random_benchmark(
+        sleeve_specs=mc_sleeve_specs,
+        sleeve_trade_rates=sleeve_trade_rates,
+        n_iter=500,
+    )
     if len(mc_sharpes) > 0:
         p95_random = float(np.percentile(mc_sharpes, 95))
         p50_random = float(np.percentile(mc_sharpes, 50))
@@ -822,6 +1055,7 @@ def main() -> int:
         p95_random = 0.0
         p50_random = 0.0
     print(f"  Monte Carlo P50 Sharpe: {p50_random:.3f}, P95: {p95_random:.3f}")
+    print(f"  MC sleeve trade rates: {sleeve_trade_rates}")
 
     sr_portfolio = float(report.metrics.get("sharpe", 0.0))
     bench_bh_ok = sr_portfolio >= sr_bh + 0.3
@@ -879,7 +1113,9 @@ def main() -> int:
         "strategy_details": strategy_infos,
         "go": go,
         "reasons": reasons,
-        "n_trials": N_TRIALS_CUMUL,
+        "n_trials": n_trials_cumul,
+        "n_unique_hypotheses": n_uniq,
+        "n_trials_floor": N_TRIALS_FLOOR,
         "date": pd.Timestamp.now(tz="UTC").isoformat(),
     }
 
@@ -928,10 +1164,12 @@ def _write_human_report(
     ]
 
     for s in output["strategy_details"]:
+        # Fix F11 : `wr` est déjà en % (ex: 65.83 = 65.83%), même chose pour
+        # `max_dd_pct`. Utiliser {:.1f}% au lieu de {:.1%}.
         lines.append(
             f"| {s['asset']} | {s['tf']} | {s['model']} | "
-            f"{s.get('sharpe', 0):.2f} | {s.get('wr', 0):.1%} | "
-            f"{s.get('n_test_trades', 0)} | {s.get('max_dd_pct', 0):.1%} |"
+            f"{s.get('sharpe', 0):.2f} | {s.get('wr', 0):.1f}% | "
+            f"{s.get('n_test_trades', 0)} | {s.get('max_dd_pct', 0):.1f}% |"
         )
 
     lines += [

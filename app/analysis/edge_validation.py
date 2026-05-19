@@ -18,12 +18,12 @@ Validation combinée :
     - EdgeReport (dataclass): go, reasons, metrics
     - validate_edge(equity, trades, n_trials) -> EdgeReport
 
-Conservées de v2 (compatibilité CPCV — prompts 07+) :
-    - deflated_sharpe_ratio_from_distribution(...) -> dict
-    - validate_edge_distribution(...) -> dict
-
 Tous les Sharpe sont calculés sur retours quotidiens (equity.pct_change()),
 jamais sur PnL/trade (Constitution Règle 10).
+
+Note v5 (fix F16) : `deflated_sharpe_ratio_from_distribution` et
+`validate_edge_distribution` ont été supprimés (code mort, bug latent
+d'annualisation, violation Règle 10).
 """
 
 from __future__ import annotations
@@ -31,7 +31,6 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterator
 from dataclasses import dataclass, field
-from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -120,34 +119,75 @@ def max_drawdown(equity: pd.Series) -> float:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
+def _stationary_bootstrap_indices(
+    n: int,
+    avg_block_size: int,
+    rng: np.random.Generator,
+) -> np.ndarray:
+    """Génère une séquence d'indices via stationary bootstrap (Politis-Romano 1994).
+
+    À chaque pas :
+    - probabilité 1/avg_block_size : redémarrer à une position aléatoire.
+    - sinon : avancer d'un cran (modulo n).
+
+    Args:
+        n: Longueur de la série originale.
+        avg_block_size: Taille moyenne de bloc (1/p). Doit être ≥ 1.
+        rng: Générateur aléatoire numpy.
+
+    Returns:
+        Array de longueur n d'indices ∈ [0, n).
+    """
+    if avg_block_size < 1:
+        raise ValueError(f"avg_block_size doit être >= 1, reçu {avg_block_size}")
+    p_restart = 1.0 / avg_block_size
+    indices = np.empty(n, dtype=np.int64)
+    indices[0] = rng.integers(0, n)
+    restarts = rng.random(n - 1) < p_restart
+    randoms = rng.integers(0, n, size=n - 1)
+    for i in range(1, n):
+        if restarts[i - 1]:
+            indices[i] = randoms[i - 1]
+        else:
+            indices[i] = (indices[i - 1] + 1) % n
+    return indices
+
+
 def bootstrap_sharpe(
     returns: pd.Series,
     n_iter: int = 10_000,
     seed: int = 42,
+    block_size: int = 10,
 ) -> tuple[float, float]:
-    """Bootstrap du Sharpe ratio.
+    """Bootstrap stationnaire du Sharpe ratio annualisé (fix F15).
 
-    Ré-échantillonne avec remise les retours et recalcule le Sharpe annualisé.
-    Retourne le Sharpe moyen bootstrap et la p-value (P(Sharpe_bootstrap ≤ 0)).
+    Préserve l'autocorrélation des returns financiers en ré-échantillonnant
+    par blocs (Politis-Romano 1994). Le bootstrap iid classique sous-estime
+    la variance sur des séries autocorrélées.
 
     Args:
         returns: pd.Series de retours.
         n_iter: Nombre d'itérations bootstrap.
         seed: Graine aléatoire.
+        block_size: Taille moyenne du bloc géométrique. Défaut 10
+            (compromis raisonnable pour returns daily ; pour minute/H1
+            data, utiliser 20-50).
 
     Returns:
-        (sharpe_moyen_bootstrap, p_value_gt_0)
+        (sharpe_moyen_bootstrap, p_value_le_0).
+        p_value = proportion de Sharpe bootstrap ≤ 0.
     """
     rng = np.random.default_rng(seed)
     clean = returns.dropna().values.astype(np.float64)
     n = len(clean)
     if n < 2:
         return (float("nan"), float("nan"))
+    if block_size < 1:
+        raise ValueError(f"block_size doit être >= 1, reçu {block_size}")
 
-    # Pré-calculer le Sharpe annualisé pour chaque échantillon
     boot_sharpes = np.empty(n_iter, dtype=np.float64)
     for i in range(n_iter):
-        idx = rng.integers(0, n, size=n)
+        idx = _stationary_bootstrap_indices(n, block_size, rng)
         sample = clean[idx]
         std = float(np.std(sample, ddof=1))
         if std == 0.0 or np.isnan(std):
@@ -520,149 +560,18 @@ def validate_edge(
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 5. Fonctions conservées de v2 (compatibilité CPCV — prompts 07+)
+# 5. Fonctions supprimées en v5 (fix F16)
 # ═══════════════════════════════════════════════════════════════════════════════
-
-
-def _compute_sharpe_from_returns(returns: np.ndarray) -> float:
-    """Calcule le Sharpe ratio annualisé à partir d'un vecteur de returns.
-
-    Retourne 0.0 si écart-type nul (distribution dégénérée).
-    Conservé pour compatibilité avec CPCV.
-    """
-    std = np.std(returns, ddof=1)
-    if std == 0.0 or np.isnan(std):
-        return 0.0
-    return float(np.mean(returns) / std)
-
-
-def deflated_sharpe_ratio_from_distribution(
-    observed_sr: float,
-    sharpe_distribution: np.ndarray,
-    ci_level: float = 0.95,
-) -> dict[str, Any]:
-    """DSR à partir d'une distribution empirique de Sharpe (issue CPCV).
-
-    Implémente López de Prado (2014) §II, utilisant la variance empirique
-    des splits CPCV plutôt qu'une estimation EVT théorique.
-
-    Conservé tel quel de v2 pour compatibilité prompts 07+.
-
-    Args:
-        observed_sr: Sharpe observé sur le split principal.
-        sharpe_distribution: Array float64 des Sharpe de chaque split CPCV.
-        ci_level: Niveau de confiance (défaut: 0.95).
-
-    Returns:
-        Dict structuré avec dsr, psr_zero, sr0_star, etc.
-    """
-    valid = sharpe_distribution[~np.isnan(sharpe_distribution)]
-    n_splits = len(valid)
-
-    if n_splits < 2:
-        logger.warning("DSR distributionnel: moins de 2 splits valides (%d)", n_splits)
-        return {
-            "dsr": float("nan"), "psr_zero": float("nan"),
-            "sr0_star": float("nan"), "e_max_sr": float("nan"),
-            "var_sr": float("nan"), "n_splits": n_splits,
-            "pct_profitable": float("nan"),
-            "mean_sr": float("nan"), "std_sr": float("nan"),
-            "min_sr": float("nan"), "max_sr": float("nan"),
-            "median_sr": float("nan"),
-            "ci_95_lower": float("nan"), "ci_95_upper": float("nan"),
-        }
-
-    mean_sr = float(np.mean(valid))
-    std_sr = float(np.std(valid, ddof=1))
-    var_sr = float(np.var(valid, ddof=1))
-    pct_profitable = float(np.mean(valid > 0.0)) * 100.0
-    min_sr = float(np.min(valid))
-    max_sr = float(np.max(valid))
-    median_sr = float(np.median(valid))
-    ci_lower = float(np.percentile(valid, 2.5))
-    ci_upper = float(np.percentile(valid, 97.5))
-
-    euler = 0.5772156649015328606
-    z_alpha = scipy_stats.norm.ppf(1.0 - 1.0 / n_splits)
-    z_alpha_e = scipy_stats.norm.ppf(1.0 - 1.0 / (n_splits * np.e))
-    expected_max_z = (1.0 - euler) * z_alpha + euler * z_alpha_e
-    sr0_star = float(np.sqrt(var_sr) * expected_max_z)
-    e_max_sr = sr0_star
-
-    dsr = (observed_sr - sr0_star) / std_sr if std_sr > 0.0 else float("nan")
-
-    psr_zero = float(scipy_stats.norm.cdf(observed_sr / std_sr)) if std_sr > 0.0 else float("nan")
-
-    logger.info(
-        "DSR distrib: ŜR=%.4f, SR₀*=%.4f, DSR=%.4f, E[SR]=%.4f±%.4f, "
-        "profitable=%.1f%%, n=%d",
-        observed_sr, sr0_star, dsr, mean_sr, std_sr, pct_profitable, n_splits,
-    )
-
-    return {
-        "dsr": round(dsr, 6) if not np.isnan(dsr) else float("nan"),
-        "psr_zero": round(psr_zero, 6) if not np.isnan(psr_zero) else float("nan"),
-        "sr0_star": round(sr0_star, 6),
-        "e_max_sr": round(e_max_sr, 6),
-        "var_sr": round(var_sr, 6),
-        "n_splits": n_splits,
-        "pct_profitable": round(pct_profitable, 2),
-        "mean_sr": round(mean_sr, 6),
-        "std_sr": round(std_sr, 6),
-        "min_sr": round(min_sr, 6),
-        "max_sr": round(max_sr, 6),
-        "median_sr": round(median_sr, 6),
-        "ci_95_lower": round(ci_lower, 6),
-        "ci_95_upper": round(ci_upper, 6),
-    }
-
-
-def validate_edge_distribution(
-    trades_df: pd.DataFrame,
-    backtest_cfg: Any,
-    sharpe_distribution: np.ndarray | None = None,
-    n_trials_searched: int = 10,
-    n_bootstrap: int = 10_000,
-    random_state: int = 42,
-) -> dict[str, Any]:
-    """Valide l'edge en combinant tests classiques + DSR distributionnel CPCV.
-
-    Conservé de v2 pour compatibilité prompts 07+. Utilise l'ancienne
-    API validate_edge() v2 qui sera réimplémentée/adaptée.
-
-    Si `sharpe_distribution` est fournie, le DSR est calculé à partir
-    de la distribution CPCV. Sinon, seul le DSR classique (via
-    n_trials_searched) est utilisé.
-
-    Args:
-        trades_df: DataFrame des trades du split principal.
-        backtest_cfg: Configuration backtest (BacktestConfig).
-        sharpe_distribution: Distribution Sharpe CPCV (optionnel).
-        n_trials_searched: Nombre de stratégies testées (DSR classique).
-        n_bootstrap: Itérations bootstrap.
-        random_state: Graine aléatoire.
-
-    Returns:
-        Dict combinant validate_edge() + champ "cpcv_dsr" si applicable.
-    """
-    # Note: Cette fonction sera ré-activée pleinement au prompt 07
-    # quand backtest_cfg sera disponible.
-    # Pour l'instant, c'est un stub compatible.
-    result: dict[str, Any] = {
-        "n_trades": len(trades_df),
-        "cpcv_dsr": None,
-        "psr_bailey": float("nan"),
-    }
-
-    if sharpe_distribution is not None and len(sharpe_distribution) > 0:
-        pnl: np.ndarray = trades_df["Pips_Nets"].values.astype(np.float64) \
-            if "Pips_Nets" in trades_df.columns \
-            else trades_df["pnl"].values.astype(np.float64)
-        observed_sr = _compute_sharpe_from_returns(pnl)
-        cpcv_dsr = deflated_sharpe_ratio_from_distribution(
-            observed_sr=observed_sr,
-            sharpe_distribution=sharpe_distribution,
-        )
-        result["cpcv_dsr"] = cpcv_dsr
-
-    return result
+#
+# Les fonctions suivantes ont été supprimées car :
+# - `_compute_sharpe_from_returns(returns)` : ne faisait PAS l'annualisation
+#   (oubli de √252). Bug latent qui aurait sous-estimé tous les Sharpe ×16.
+# - `validate_edge_distribution(trades, ...)` : calculait le Sharpe sur PnL
+#   par trade (violation Règle 10 de la Constitution).
+# - `deflated_sharpe_ratio_from_distribution(observed_sr, sharpe_distribution)` :
+#   uniquement utilisé par validate_edge_distribution. Plus aucun appel actif.
+#
+# Aucun script du projet ne les importait au moment de la suppression
+# (vérification grep 2026-05-18). Si vous avez besoin du DSR distributionnel
+# CPCV, utiliser `deflated_sharpe(sr, n_trials, n_obs, skew, kurtosis)` au-dessus
+# avec n_trials = nombre de splits CPCV.

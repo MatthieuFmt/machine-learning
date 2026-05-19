@@ -138,11 +138,21 @@ def test_train_primary_model_uses_c5_hyperparams() -> None:
 
 
 def test_primary_signals_output_format() -> None:
-    """_primary_signals doit retourner une Series de même index que df, valeurs dans {-1, 0, 1}."""
+    """_primary_signals doit retourner une Series de même index que df, valeurs dans {-1, 0, 1}.
+
+    Fix v5 : le modèle doit être entraîné sur les MÊMES features que celles
+    produites par _build_features_for_split (15 features C5 pour GBPUSD H4),
+    sinon RandomForestClassifier lève ValueError au predict.
+    """
     df = _make_ohlcv_df(400)
+    features = _build_features_for_split(df)
+    if features.empty or len(features) < 50:
+        pytest.skip("Features insuffisantes sur l'OHLC synthétique")
+
     rng = np.random.default_rng(2)
-    X = pd.DataFrame(rng.normal(0, 1, (100, 5)), columns=list("ABCDE"))
-    y = pd.Series((X["A"] > 0).astype(int))
+    n_samples = min(100, len(features))
+    X = features.iloc[:n_samples]
+    y = pd.Series(rng.integers(0, 2, n_samples), index=X.index)
     model = _train_primary_model(X, y)
 
     signals = _primary_signals(df, model)

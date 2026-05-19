@@ -4,7 +4,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 import pytest
-from sklearn.calibration import CalibratedClassifierCV
+from app.models.candidates import TimeSeriesHoldoutStacking
 
 from scripts.run_phase_b_c5_extra_usdchf_d1 import (
     _build_target_winner,
@@ -99,7 +99,7 @@ def test_train_stacking_produces_predictions():
     model = _train_stacking_model(X, y)
 
     assert model is not None
-    assert isinstance(model, CalibratedClassifierCV)
+    assert isinstance(model, TimeSeriesHoldoutStacking)
     assert hasattr(model, "predict")
     assert hasattr(model, "predict_proba")
 

@@ -66,3 +66,37 @@ def check_unlocked() -> None:
 
 def get_history() -> list[dict]:
     return _load().get("read_history", [])
+
+
+def n_trials_from_history(min_floor: int = 1) -> int:
+    """Retourne n_trials = nb de lectures OOS loggées (fix F5).
+
+    Bailey & López de Prado définissent N comme le nombre de configurations
+    testées sur le test set. Chaque appel à `read_oos()` correspond à une
+    configuration consultée → n_reads est la borne basse stricte.
+
+    Args:
+        min_floor: Plancher minimum (au cas où l'historique n'aurait pas
+            été correctement maintenu pendant les premières itérations).
+
+    Returns:
+        max(n_reads, min_floor).
+    """
+    state = _load()
+    n_reads = int(state.get("n_reads", 0))
+    return max(n_reads, min_floor)
+
+
+def n_unique_hypotheses() -> int:
+    """Compte les hypothèses uniques (clé (prompt, hypothesis)).
+
+    Alternative moins conservatrice à `n_trials_from_history` : si plusieurs
+    `read_oos` partagent le même (prompt, hypothesis), on les compte comme
+    une seule configuration testée.
+
+    Returns:
+        Nombre d'hypothèses distinctes dans read_history.
+    """
+    history = _load().get("read_history", [])
+    keys = {(h.get("prompt"), h.get("hypothesis")) for h in history}
+    return len(keys)

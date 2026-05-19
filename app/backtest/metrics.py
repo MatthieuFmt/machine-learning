@@ -57,16 +57,24 @@ def sharpe_ratio(
 def sharpe_daily_from_trades(
     trades: list[dict[str, Any]],
     annual_factor: float = 252.0,
+    initial_capital_pips: float = 10_000.0,
 ) -> float:
-    """Sharpe annualisé à partir d'une liste de trades — calculé sur les returns
-    quotidiens de la courbe d'equity (pas sur les PnL par trade).
+    """Sharpe annualisé à partir d'une liste de trades, sur retours linéaires.
 
-    Méthode correcte : construit la courbe d'equity cumulée → resample quotidien
-    (forward fill) → returns journaliers → annualisation √252.
+    Fix F2 : retours linéaires `daily_pnl / initial_capital`, pas `pct_change`
+    sur une cumsum (qui mélange composé et linéaire). Le sizing en lots est
+    calculé une fois sur un capital fixe → les retours doivent être linéaires
+    pour rester cohérents.
+
+    Méthode :
+        1. cumsum(pips_net) puis resample daily (last + ffill).
+        2. retours journaliers = daily_diff(equity) / initial_capital_pips.
+        3. Sharpe = mean / std × √annual_factor.
 
     Args:
         trades: Liste de dicts avec 'pips_net' (float) et 'exit_time' (str).
         annual_factor: Facteur d'annualisation (252 = quotidien).
+        initial_capital_pips: Capital de référence en pips. Défaut 10 000.
 
     Returns:
         Sharpe ratio annualisé. 0.0 si < 2 jours de returns.
@@ -77,7 +85,6 @@ def sharpe_daily_from_trades(
     pnls = np.array([t["pips_net"] for t in trades], dtype=np.float64)
     equity = np.cumsum(pnls)
 
-    # Edge case: tous les trades perdants -> Sharpe negatif ou zero
     if len(pnls) > 0 and np.all(pnls <= 0):
         return 0.0
 
@@ -88,7 +95,7 @@ def sharpe_daily_from_trades(
     if len(equity_daily) < 2:
         return 0.0
 
-    daily_returns = equity_daily.pct_change().dropna()
+    daily_returns = equity_daily.diff().dropna() / initial_capital_pips
     return sharpe_ratio(daily_returns, annual_factor=annual_factor)
 
 
@@ -126,22 +133,23 @@ def sharpe_annualized(
     tpy = len(trades_df) / years
 
     if tpy >= 100:
-        # Méthode daily : resample equity, pct_change
+        # Méthode daily : retours linéaires (fix F2).
+        # daily.diff() / capital_eur → cohérent avec sizing à capital fixe.
         if isinstance(equity.index, pd.DatetimeIndex):
             daily = equity.resample("D").last().ffill()
         else:
             daily = equity
-        returns = daily.pct_change().dropna()
+        returns = daily.diff().dropna() / capital_eur
         sr = sharpe_ratio(returns, annual_factor=252.0)
         return sr, "daily"
 
     if tpy >= 30:
-        # Méthode weekly : meilleure pour Donchian D1 et H4
+        # Méthode weekly : retours linéaires (fix F2).
         if isinstance(equity.index, pd.DatetimeIndex):
             weekly = equity.resample("W-FRI").last().ffill()
         else:
             weekly = equity
-        returns = weekly.pct_change().dropna()
+        returns = weekly.diff().dropna() / capital_eur
         sr = sharpe_ratio(returns, annual_factor=52.0)
         return sr, "weekly"
 
@@ -284,6 +292,14 @@ def compute_metrics(
         cummax = equity.cummax()
         dd_series = (equity / cummax) - 1.0
         max_dd_pct = float(dd_series.min()) * 100  # négatif, borné à −100 %
+        # Fix F12 : assertion défensive. Si on sort de [-100, 0], il y a un bug
+        # de chemin de calcul (ex: trades_df['pips_net'] confondu avec EUR).
+        if not (-100.01 <= max_dd_pct <= 0.01):
+            raise AssertionError(
+                f"max_dd_pct hors bornes [-100, 0] : {max_dd_pct:.2f}. "
+                f"Vérifier que trades_df['Pips_Nets'] est en pips et "
+                f"'position_size_lots' est cohérent avec asset_cfg."
+            )
 
         # Sharpe routing par fréquence (pivot v4 A3)
         sharpe, sharpe_method = sharpe_annualized(

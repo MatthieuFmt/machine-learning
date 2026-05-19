@@ -4,7 +4,8 @@ Règles :
 - Une seule position à la fois (stateful).
 - Entrée au Close de la barre où signal ≠ 0 ET pas de position ouverte.
 - Sortie au premier de : TP touché, SL touché, window_hours écoulé.
-- Si TP et SL touchés dans la même barre : TP prime (conservateur, spec H03 §5.1).
+- Si TP et SL touchés dans la même barre : SL prime (conservateur — pire cas
+  réaliste, aligné avec app/backtest/simulator.py). Fix v5 du finding F3.
 - Commission + slippage déduits à l'entrée ET à la sortie.
 - Timeout : sortie au Close de la barre d'expiration (prix réel).
 - Zéro ML, zéro filtre de régime.
@@ -72,11 +73,19 @@ def run_deterministic_backtest(
     cost_per_side = commission_pips + slippage_pips  # entrée + sortie
     cost_total = cost_per_side * 2  # entrée ET sortie
 
-    # Calcul du window en nombre de barres
+    # Calcul du window en nombre de barres (fix F18)
+    # Utilise le MODE (espacement le plus fréquent) au lieu de la moyenne.
+    # La moyenne inclut les gaps weekends (48h) qui pour H1 donnent
+    # typical_hours ≈ 1.5 → window_bars 30 % trop court.
     if n >= 2:
-        typical_td = (times[-1] - times[0]) / n
-        typical_hours = typical_td.total_seconds() / 3600.0
-        window_bars = max(1, int(window_hours / typical_hours)) if typical_hours > 0 else window_hours
+        diffs = pd.Series(times).diff().dt.total_seconds() / 3600.0
+        diffs = diffs.dropna()
+        if len(diffs) > 0:
+            mode_vals = diffs.mode()
+            typical_hours = float(mode_vals.iloc[0]) if len(mode_vals) > 0 else float(diffs.median())
+        else:
+            typical_hours = 0.0
+        window_bars = max(1, int(round(window_hours / typical_hours))) if typical_hours > 0 else window_hours
     else:
         window_bars = window_hours
 
@@ -129,16 +138,9 @@ def run_deterministic_backtest(
                 tp_hit = curr_high >= tp_price
                 sl_hit = curr_low <= sl_price
 
-                if tp_hit and sl_hit:
-                    # Même barre : TP prime (conservateur, spec H03)
-                    exit_idx = idx
-                    exit_time = times[idx]
-                    exit_price = tp_price
-                    pips_net = tp_pips - cost_total
-                    result_type = "win"
-                    i = idx
-                    break
-                elif sl_hit:
+                if sl_hit:
+                    # SL-prime même barre (fix F3) : pire cas réaliste,
+                    # aligné avec _simulate_stateful_core.
                     exit_idx = idx
                     exit_time = times[idx]
                     exit_price = sl_price
@@ -158,15 +160,8 @@ def run_deterministic_backtest(
                 tp_hit = curr_low <= tp_price
                 sl_hit = curr_high >= sl_price
 
-                if tp_hit and sl_hit:
-                    exit_idx = idx
-                    exit_time = times[idx]
-                    exit_price = tp_price
-                    pips_net = tp_pips - cost_total
-                    result_type = "win"
-                    i = idx
-                    break
-                elif sl_hit:
+                if sl_hit:
+                    # SL-prime même barre (fix F3).
                     exit_idx = idx
                     exit_time = times[idx]
                     exit_price = sl_price

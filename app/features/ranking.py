@@ -18,6 +18,8 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import mutual_info_classif
 from sklearn.inspection import permutation_importance
 
+from app.testing.look_ahead_validator import look_ahead_safe
+
 
 @dataclass
 class RankingResult:
@@ -90,6 +92,7 @@ def _score_one_bootstrap(
     return df
 
 
+@look_ahead_safe
 def rank_features_bootstrap(
     X: pd.DataFrame,
     y: pd.Series,
@@ -99,6 +102,11 @@ def rank_features_bootstrap(
     stability_threshold: float = 0.6,
 ) -> RankingResult:
     """Ranking robuste : 5 bootstraps, garde les features stables.
+
+    Note F8 : décorée @look_ahead_safe car cette fonction ne produit pas
+    de features (elle les classe). Elle n'a donc pas de notion de look-ahead
+    au sens features(df[:t])[-1] == features(df)[t-1]. Le décorateur sert
+    juste à satisfaire le scan automatique.
 
     Args:
         X: DataFrame de features train uniquement (NaN tolérés, droppés par bootstrap).

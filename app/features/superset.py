@@ -316,7 +316,28 @@ def cross_asset_features(
     price_index: pd.DatetimeIndex,
     asset: str | None = None,
 ) -> pd.DataFrame:
-    """Features cross-asset si données disponibles. Sinon colonnes NaN (droppées en sortie)."""
+    """Features cross-asset, anti-look-ahead (fix F7).
+
+    Pour chaque actif macro (USDCHF, XAUUSD, BTCUSD) :
+    1. Calcule log-return D1 sur 5 jours.
+    2. Décale d'un jour (`shift(1)`) → la valeur du jour J n'est utilisable
+       qu'à partir de J+1 00:00 UTC, même si la convention CSV est
+       end-of-day.
+    3. Reindex sur l'index cible (typiquement H1) avec ffill.
+
+    Sans le shift(1), une barre H1 du jour J pouvait récupérer la close
+    D1 du jour J (qui ne sera connue qu'après la fin de la journée).
+
+    Args:
+        price_index: Index cible (typiquement DatetimeIndex H1 ou H4).
+        asset: Nom de l'actif courant (exclu du cross-asset pour éviter
+            l'auto-référence).
+
+    Returns:
+        DataFrame indexé par price_index avec colonnes
+        usdchf_return_5, xauusd_return_5, btcusd_return_5. NaN si la
+        donnée macro est indisponible.
+    """
     out = pd.DataFrame(index=price_index)
 
     try:
@@ -342,7 +363,11 @@ def cross_asset_features(
                 ret = np.log(
                     df_macro["Close"] / df_macro["Close"].shift(5).replace(0, np.nan)
                 )
-                out[name] = ret.reindex(price_index, method="ffill")
+                # Fix F7 : shift(1) avant ffill — la valeur D1 du jour J
+                # n'est connue qu'au début de J+1. Sans ce shift, l'H1
+                # du jour J récupérait la close D1 du même jour J.
+                ret_shifted = ret.shift(1)
+                out[name] = ret_shifted.reindex(price_index, method="ffill")
             except Exception:
                 out[name] = np.nan
         else:
