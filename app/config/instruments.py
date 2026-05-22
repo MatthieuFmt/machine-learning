@@ -300,6 +300,10 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
         window_hours=120,
         min_lot=0.01,
         max_lot=10.0,
+        # F6 — swaps estimés indices CFD (financement SOFR + ~5% = ~10%/an)
+        # US30 ≈ 40000 pts × 10%/an / 365 ≈ $11/jour ≈ 11 pips (pip=$1)
+        swap_long_pips_per_night=-11.0,
+        swap_short_pips_per_night=1.0,
     ),
     # ── US500 (S&P 500 CFD) ──────────────────────────────────────────────
     # v3: spread=1.5 + slippage=2.0 = 3.5  ← surestimation × 5.8
@@ -316,6 +320,10 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
         window_hours=120,
         min_lot=0.01,
         max_lot=10.0,
+        # F6 — swaps estimés indices CFD (financement SOFR + ~5% = ~10%/an)
+        # US500 ≈ 6000 × 10%/an / 365 ≈ $1.64/jour = 16 pips (pip=$0.1)
+        swap_long_pips_per_night=-16.0,
+        swap_short_pips_per_night=2.0,
     ),
     # ── GER30 (DAX 40 CFD) ───────────────────────────────────────────────
     # v3: spread=2.0 + slippage=3.0 = 5.0  ← surestimation × 4.2
@@ -331,6 +339,10 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
         window_hours=120,
         min_lot=0.01,
         max_lot=10.0,
+        # F6 — swaps estimés indices CFD (financement ESTR + ~5% = ~8%/an)
+        # DAX ≈ 23000 × 8%/an / 365 ≈ €5/jour = 5 pips (pip=€1)
+        swap_long_pips_per_night=-5.0,
+        swap_short_pips_per_night=0.5,
     ),
     # ── XAUUSD (Or spot) ─────────────────────────────────────────────────
     # v3: spread=25.0 + slippage=10.0 = 35.0  ← surestimation × 100
@@ -347,6 +359,11 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
         window_hours=120,
         min_lot=0.01,
         max_lot=5.0,
+        # F6 — swaps estimés
+        # XAU $3000 × ~3%/an / 365 ≈ $0.25/jour ≈ 0.25 pips/nuit (pip=$1)
+        # Marge broker → arrondi à -1 long, -0.5 short
+        swap_long_pips_per_night=-1.0,
+        swap_short_pips_per_night=-0.5,
     ),
     # ── XAGUSD (Argent spot) ─────────────────────────────────────────────
     # v3: spread=30.0 + slippage=15.0 = 45.0  ← surestimation × 1285
@@ -363,6 +380,11 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
         window_hours=120,
         min_lot=0.01,
         max_lot=5.0,
+        # F6 — swaps estimés
+        # XAG $30 × ~3%/an / 365 ≈ $0.0025/jour ≈ 2.5 pips/nuit (pip=$0.001)
+        # Avec markup broker
+        swap_long_pips_per_night=-8.0,
+        swap_short_pips_per_night=-4.0,
     ),
     # ── USOIL (WTI Crude CFD) ────────────────────────────────────────────
     # v3: spread=4.0 + slippage=3.0 = 7.0  ← surestimation × 100
@@ -378,6 +400,9 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
         window_hours=120,
         min_lot=0.01,
         max_lot=5.0,
+        # F6 — swaps estimés (contango futures, défavorable des deux côtés)
+        swap_long_pips_per_night=-0.5,
+        swap_short_pips_per_night=-0.5,
     ),
     # ── EURUSD (Forex) — NOUVEAU en v4, absent de v3 ────────────────────
     "EURUSD": AssetConfig(
@@ -391,6 +416,9 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
         window_hours=120,
         min_lot=0.01,
         max_lot=10.0,
+        # F6 — swaps estimés (différentiel Fed-BCE 2026)
+        swap_long_pips_per_night=-0.8,
+        swap_short_pips_per_night=0.1,
     ),
     # ⚠️ BUND désactivé : données indisponibles
     # "BUND": AssetConfig(...),
@@ -408,6 +436,9 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
         window_hours=120,
         min_lot=0.01,
         max_lot=10.0,
+        # F6 — swaps estimés (différentiel BoE-Fed)
+        swap_long_pips_per_night=-1.2,
+        swap_short_pips_per_night=0.4,
     ),
     # ── USDCHF (Forex) — NOUVEAU C1, PROVISOIRE ──────────────────────────
     # ⚠️ PROVISOIRE — à valider en démo
@@ -422,6 +453,9 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
         window_hours=120,
         min_lot=0.01,
         max_lot=10.0,
+        # F6 — swaps estimés (CHF taux SNB historiquement faibles/négatifs)
+        swap_long_pips_per_night=0.3,
+        swap_short_pips_per_night=-1.1,
     ),
 
     # ── BTCUSD (Bitcoin spot) — NOUVEAU C1, PROVISOIRE ───────────────────
@@ -438,6 +472,11 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
         window_hours=120,
         min_lot=0.01,
         max_lot=5.0,
+        # F6 — swaps estimés (financement crypto CFD ~10%/an)
+        # BTC $60k × 10%/an / 365 ≈ $16/jour ≈ 16 pips/nuit (pip=$1)
+        # Short rebate généralement faible/négatif chez CFD broker
+        swap_long_pips_per_night=-16.0,
+        swap_short_pips_per_night=-3.0,
     ),
     # ── ETHUSD (Ethereum spot) — NOUVEAU C1, PROVISOIRE ──────────────────
     # ⚠️ PROVISOIRE — à valider en démo
@@ -452,5 +491,10 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
         window_hours=120,
         min_lot=0.01,
         max_lot=5.0,
+        # F6 — swaps estimés (financement crypto CFD ~10%/an)
+        # ETH $3000 × 10%/an / 365 ≈ $0.82/jour ≈ 82 pips/nuit (pip=$0.01)
+        # Short rebate faible/négatif chez CFD broker
+        swap_long_pips_per_night=-80.0,
+        swap_short_pips_per_night=-10.0,
     ),
 }

@@ -20,3 +20,5 @@ six==1.17.0
 threadpoolctl==3.6.0
 tqdm==4.67.3
 tzdata==2026.2
+dukascopy-python>=0.0.1
+yfinance>=0.2.40

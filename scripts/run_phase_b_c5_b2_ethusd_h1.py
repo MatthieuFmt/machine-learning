@@ -198,6 +198,8 @@ def main() -> int:
         commission_pips=cfg.commission_pips,
         slippage_pips=half_cost,
         pip_size=cfg.pip_size,
+        swap_long_pips_per_night=cfg.swap_long_pips_per_night,
+        swap_short_pips_per_night=cfg.swap_short_pips_per_night,
     )
     trades_donchian_train: list[dict] = bt_donchian_train.get("trades", [])
     print(f"  {len(trades_donchian_train)} trades Donchian sur train")
@@ -270,6 +272,8 @@ def main() -> int:
             commission_pips=cfg.commission_pips,
             slippage_pips=half_cost,
             pip_size=cfg.pip_size,
+            swap_long_pips_per_night=cfg.swap_long_pips_per_night,
+            swap_short_pips_per_night=cfg.swap_short_pips_per_night,
         )
 
     trades_test: list[dict] = bt_test.get("trades", [])

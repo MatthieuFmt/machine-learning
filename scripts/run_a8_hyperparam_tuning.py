@@ -1,7 +1,7 @@
-"""Pivot v4 A8 — Tuning hyperparams + seuil via nested CPCV.
+"""Pivot v4 A8 â€” Tuning hyperparams + seuil via nested CPCV.
 
-⚠️ Aucune lecture du test set ≥ 2024.
-Coût estimé : ~30-60 min sur CPU 8-core.
+âš ï¸ Aucune lecture du test set â‰¥ 2024.
+CoÃ»t estimÃ© : ~30-60 min sur CPU 8-core.
 """
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ from app.strategies.donchian import DonchianBreakout
 CUTOFF = pd.Timestamp("2022-12-31 23:59:59", tz="UTC")
 SEED = 42
 
-# ── AssetConfig EURUSD (non présent dans ASSET_CONFIGS) ────────────────────
+# â”€â”€ AssetConfig EURUSD (non prÃ©sent dans ASSET_CONFIGS) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 _EURUSD_CFG = AssetConfig(
     spread_pips=0.5,
     slippage_pips=1.0,
@@ -44,18 +44,18 @@ _EURUSD_CFG = AssetConfig(
     max_lot=50.0,
 )
 
-# ── Mapping (asset, tf) → (AssetConfig, strat_cls, strat_kwargs) ───────────
+# â”€â”€ Mapping (asset, tf) â†’ (AssetConfig, strat_cls, strat_kwargs) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 STRAT_MAP: dict[tuple[str, str], tuple[AssetConfig, type, dict]] = {
     ("US30", "D1"): (ASSET_CONFIGS["US30"], DonchianBreakout, {"N": 20, "M": 20}),
     ("EURUSD", "H4"): (_EURUSD_CFG, DonchianBreakout, {"N": 20, "M": 20}),
     ("XAUUSD", "D1"): (ASSET_CONFIGS["XAUUSD"], DonchianBreakout, {"N": 100, "M": 20}),
 }
 
-# ── Model factories ────────────────────────────────────────────────────────
+# â”€â”€ Model factories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def rf_factory(params: dict, seed: int) -> RandomForestClassifier:
-    """Construit un RandomForest avec les hyperparams donnés."""
+    """Construit un RandomForest avec les hyperparams donnÃ©s."""
     return RandomForestClassifier(
         n_estimators=int(params.get("n_estimators", 200)),
         max_depth=int(params.get("max_depth", 4)),
@@ -67,7 +67,7 @@ def rf_factory(params: dict, seed: int) -> RandomForestClassifier:
 
 
 def hgbm_factory(params: dict, seed: int) -> HistGradientBoostingClassifier:
-    """Construit un HistGradientBoosting avec les hyperparams donnés."""
+    """Construit un HistGradientBoosting avec les hyperparams donnÃ©s."""
     return HistGradientBoostingClassifier(
         max_iter=int(params.get("max_iter", 200)),
         max_depth=int(params.get("max_depth", 5)),
@@ -84,7 +84,7 @@ FACTORIES: dict[str, Any] = {
     "hgbm": hgbm_factory,
 }
 
-# ── Grids hyperparams (3 valeurs max par axe, 27 combos max) ───────────────
+# â”€â”€ Grids hyperparams (3 valeurs max par axe, 27 combos max) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 PARAM_GRIDS: dict[str, dict] = {
     "rf": {
@@ -97,7 +97,7 @@ PARAM_GRIDS: dict[str, dict] = {
         "max_depth": [4, 5, 7],
         "learning_rate": [0.02, 0.05, 0.10],
     },
-    # stacking : pas tuné (trop lent)
+    # stacking : pas tunÃ© (trop lent)
 }
 
 THRESHOLD_GRID: list[float] = [0.50, 0.55, 0.60]
@@ -108,7 +108,7 @@ def _backtest_wrapper(
     strat: DonchianBreakout,
     cfg: AssetConfig,
 ) -> pd.DataFrame:
-    """Exécute le backtest déterministe et retourne le DataFrame trades."""
+    """ExÃ©cute le backtest dÃ©terministe et retourne le DataFrame trades."""
     from app.backtest.deterministic import run_deterministic_backtest
 
     signals = strat.generate_signals(df_train)
@@ -121,6 +121,7 @@ def _backtest_wrapper(
         commission_pips=cfg.commission_pips,
         slippage_pips=cfg.slippage_pips,
         pip_size=cfg.pip_size,
+        asset_config=cfg,
     )
     trades_list: list[dict] = result.get("trades", [])
     if not trades_list:
@@ -146,7 +147,7 @@ def tune_one_asset(asset: str, tf: str) -> dict:
             "model": "stacking",
             "best_params": {},
             "best_threshold": 0.50,
-            "note": "Stacking pas tuné (trop lent). Defaults A7 conservés.",
+            "note": "Stacking pas tunÃ© (trop lent). Defaults A7 conservÃ©s.",
         }
 
     if model_name not in FACTORIES:
@@ -160,7 +161,7 @@ def tune_one_asset(asset: str, tf: str) -> dict:
 
     cfg, strat_cls, strat_kwargs = STRAT_MAP[key]
 
-    # ── Charger train ≤ 2022 ──────────────────────────────────────────────
+    # â”€â”€ Charger train â‰¤ 2022 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     df = load_asset(asset, tf)
     df_train = df.loc[df.index <= CUTOFF].copy()
     if df_train.empty:
@@ -171,7 +172,7 @@ def tune_one_asset(asset: str, tf: str) -> dict:
     if trades.empty or len(trades) < 80:
         return {"error": f"Too few trades on train: {len(trades)}"}
 
-    # ── Features ──────────────────────────────────────────────────────────
+    # â”€â”€ Features â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     selected = list(FEATURES_SELECTED[key])
     X_full = build_superset(df_train, asset=asset)
     X = X_full.loc[trades.index, selected].dropna(axis=0, how="any")
@@ -237,7 +238,7 @@ def main() -> int:
                 f"Sharpe outer={entry.get('expected_sharpe_outer', 0):.3f}"
             )
 
-    # ── Sauvegarde JSON ───────────────────────────────────────────────────
+    # â”€â”€ Sauvegarde JSON â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     out_path = Path("predictions/hyperparam_tuning_v4.json")
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(
@@ -245,7 +246,7 @@ def main() -> int:
         encoding="utf-8",
     )
 
-    # ── Génère app/config/hyperparams_tuned.py ────────────────────────────
+    # â”€â”€ GÃ©nÃ¨re app/config/hyperparams_tuned.py â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     lines: list[str] = []
     for asset, tf in FEATURES_SELECTED:
         key_str = f"{asset}_{tf}"
@@ -267,7 +268,7 @@ def main() -> int:
         )
 
     content = (
-        '"""FROZEN après pivot v4 A8. NE PAS MODIFIER sans nouveau pivot."""\n'
+        '"""FROZEN aprÃ¨s pivot v4 A8. NE PAS MODIFIER sans nouveau pivot."""\n'
         "from __future__ import annotations\n\n"
         "HYPERPARAMS_TUNED: dict[tuple[str, str], dict] = {\n"
         + "\n".join(lines)
@@ -277,7 +278,7 @@ def main() -> int:
     config_path.parent.mkdir(parents=True, exist_ok=True)
     config_path.write_text(content, encoding="utf-8")
 
-    print(f"\nHyperparams sauvegardés dans {out_path} et {config_path}")
+    print(f"\nHyperparams sauvegardÃ©s dans {out_path} et {config_path}")
     return 0
 
 

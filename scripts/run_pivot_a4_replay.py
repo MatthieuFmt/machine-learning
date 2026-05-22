@@ -1,6 +1,6 @@
-"""Pivot v4 A4 — Replay H06/H07 sur train+val avec simulateur corrigé.
+"""Pivot v4 A4 â€” Replay H06/H07 sur train+val avec simulateur corrigÃ©.
 
-⚠️ AUDIT INFORMATIF : ne touche jamais au test set ≥ 2024.
+âš ï¸ AUDIT INFORMATIF : ne touche jamais au test set â‰¥ 2024.
 """
 from __future__ import annotations
 
@@ -31,18 +31,18 @@ TRAIN_END = "2022-12-31"
 VAL_START = "2023-01-01"
 VAL_END = "2023-12-31"
 
-# ⚠️ INVARIANT CRITIQUE : aucune donnée > 2023-12-31 ne doit entrer dans ce script.
+# âš ï¸ INVARIANT CRITIQUE : aucune donnÃ©e > 2023-12-31 ne doit entrer dans ce script.
 CUTOFF_DATE = pd.Timestamp("2023-12-31 23:59:59", tz="UTC")
 
 
-# ── Helpers ────────────────────────────────────────────────────────────────
+# â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def _backtest(
     strategy: Any,
     df: pd.DataFrame,
     cfg: AssetConfig,
 ) -> dict[str, Any]:
-    """Wrapper qui génère les signaux puis exécute le backtest stateful."""
+    """Wrapper qui gÃ©nÃ¨re les signaux puis exÃ©cute le backtest stateful."""
     signals = strategy.generate_signals(df)
     return run_deterministic_backtest(
         df,
@@ -53,21 +53,22 @@ def _backtest(
         commission_pips=cfg.commission_pips,
         slippage_pips=cfg.slippage_pips,
         pip_size=cfg.pip_size,
+        asset_config=cfg,
     )
 
 
 def _filter_to_train_val(df: pd.DataFrame) -> pd.DataFrame:
-    """Filtre strict aux données ≤ 2023-12-31. Lève si du test set est présent."""
+    """Filtre strict aux donnÃ©es â‰¤ 2023-12-31. LÃ¨ve si du test set est prÃ©sent."""
     filtered = df.loc[df.index <= CUTOFF_DATE]
     if filtered.empty:
-        raise ValueError("Aucune donnée train/val disponible")
+        raise ValueError("Aucune donnÃ©e train/val disponible")
     if filtered.index.max() > CUTOFF_DATE:
-        raise AssertionError("Test set leak détecté ! Vérifier le filtrage.")
+        raise AssertionError("Test set leak dÃ©tectÃ© ! VÃ©rifier le filtrage.")
     return filtered
 
 
 def _extract_metrics(backtest_result: dict[str, Any]) -> dict[str, Any]:
-    """Extrait les métriques du résultat brut du backtest."""
+    """Extrait les mÃ©triques du rÃ©sultat brut du backtest."""
     dd = backtest_result.get("max_drawdown_pips", 0.0)
 
     return {
@@ -80,10 +81,10 @@ def _extract_metrics(backtest_result: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-# ── H06 Replay ─────────────────────────────────────────────────────────────
+# â”€â”€ H06 Replay â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def replay_donchian_all_assets() -> dict[str, Any]:
-    """Rejoue H06 sur train ≤ 2022 et val 2023, agnostique du test set."""
+    """Rejoue H06 sur train â‰¤ 2022 et val 2023, agnostique du test set."""
     set_global_seeds()
     discovered = discover_assets()
 
@@ -134,7 +135,7 @@ def replay_donchian_all_assets() -> dict[str, Any]:
         bt_val = _backtest(strat, df_val, cfg)
         m_val = _extract_metrics(bt_val)
 
-        # DD en % approximatif (pips vs capital 10k €)
+        # DD en % approximatif (pips vs capital 10k â‚¬)
         max_dd_pct = _dd_pips_to_pct(
             m_val["max_dd_pips"], cfg.pip_value_eur, 10_000.0
         )
@@ -154,13 +155,13 @@ def replay_donchian_all_assets() -> dict[str, Any]:
 
 
 def _dd_pips_to_pct(dd_pips: float, pip_value_eur: float, capital_eur: float) -> float:
-    """Convertit un drawdown en pips → pourcentage du capital."""
+    """Convertit un drawdown en pips â†’ pourcentage du capital."""
     if capital_eur <= 0:
         return 0.0
     return float((dd_pips * pip_value_eur) / capital_eur * 100.0)
 
 
-# ── H07 Replay ─────────────────────────────────────────────────────────────
+# â”€â”€ H07 Replay â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def replay_h07_us30() -> dict[str, Any]:
     """Rejoue les 4 strats alt sur US30 D1 train+val."""
@@ -186,7 +187,7 @@ def replay_h07_us30() -> dict[str, Any]:
     if df_train.empty or df_val.empty:
         return {"error": "US30 train ou val vide"}
 
-    # Donchian baseline avec les nouveaux coûts
+    # Donchian baseline avec les nouveaux coÃ»ts
     best_donchian_sharpe, best_donchian_params = -1e9, None
     for N in [20, 50, 100]:
         for M in [10, 20, 50]:
@@ -211,7 +212,7 @@ def replay_h07_us30() -> dict[str, Any]:
             "total_cost_pips": cfg.total_cost_pips,
         }
 
-    # Stratégies alternatives (H07)
+    # StratÃ©gies alternatives (H07)
     strats: dict[str, list[tuple[Any, dict]]] = {
         "dual_ma": [
             (DualMovingAverage(fast=f, slow=s), {"fast": f, "slow": s})
@@ -266,7 +267,7 @@ def replay_h07_us30() -> dict[str, Any]:
     return alt_results
 
 
-# ── Main ───────────────────────────────────────────────────────────────────
+# â”€â”€ Main â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def main() -> int:
     out: dict[str, Any] = {
@@ -279,7 +280,7 @@ def main() -> int:
         json.dumps(out, indent=2, ensure_ascii=False, default=str),
         encoding="utf-8",
     )
-    print(f"Replay terminé. Résultats dans {out_path}")
+    print(f"Replay terminÃ©. RÃ©sultats dans {out_path}")
     return 0
 
 

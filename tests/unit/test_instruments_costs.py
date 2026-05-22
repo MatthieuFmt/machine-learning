@@ -99,8 +99,8 @@ def test_ethusd_costs_realistic() -> None:
     assert cfg.slippage_pips >= 0.3 * cfg.spread_pips, (
         f"ETHUSD slippage {cfg.slippage_pips} < 0.3 × spread {cfg.spread_pips}"
     )
-    assert cfg.pip_size == 1.0, (
-        f"ETHUSD pip_size {cfg.pip_size} != 1.0 (1 USD par défaut crypto)"
+    assert cfg.pip_size == 0.01, (
+        f"ETHUSD pip_size {cfg.pip_size} != 0.01 (cotation au centime)"
     )
 
 
@@ -147,6 +147,8 @@ def test_asset_slippage_nonnegative(asset: str) -> None:
 _COST_SL_THRESHOLDS: dict[str, float] = {
     "BTCUSD": 0.25,
     "ETHUSD": 0.25,
+    "GBPUSD": 0.12,
+    "USDCHF": 0.15,
 }
 
 

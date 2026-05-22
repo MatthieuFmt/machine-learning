@@ -50,6 +50,10 @@ def test_superset_no_nan_after_warmup(asset: str, tf: str) -> None:
     allowed_exact = {
         "mfi_14", "body_to_range_ratio", "upper_shadow_ratio",
         "lower_shadow_ratio", "volume_zscore_20", "range_atr_ratio",
+        "cci_20", "close_zscore_20", "autocorr_returns_lag1_20", "efficiency_ratio_20",
+        "skew_returns_20", "kurt_returns_20", "close_zscore_60", "atr_zscore_60",
+        "vol_percentile_60", "return_percentile_20", "return_percentile_60",
+        "slope_sma_20", "slope_sma_50",
     }
     forbidden = [
         c for c in nan_cols

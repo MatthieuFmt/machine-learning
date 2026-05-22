@@ -171,6 +171,14 @@ SKIP_AUTO_SCAN: dict[str, str] = {
     "compute_session_id": "DatetimeIndex — test ciblé test_session_features_no_leak.py",
     "compute_session_open_range": "Multi-args session — test ciblé test_regime.py",
     "compute_relative_position_in_session": "Multi-args session — test ciblé test_regime.py",
+    # Phase F4 — labels string ('trend'/'range'/'vol_high'/NA) incompatibles
+    # avec np.isclose. No-look-ahead vérifié par test_truncation_does_not_alter_past_labels.
+    "detect_regime": "Retourne des labels string — test ciblé test_regime_detector.py",
+    # Phase F5 — loaders réseau/cache (yfinance), pas une feature génératrice.
+    # No-look-ahead vérifié par test_truncation_does_not_change_past.
+    "load_macro_series": "Loader yfinance/cache — test ciblé test_macro_external.py",
+    "build_macro_dataframe": "Aggregator macro — test ciblé test_macro_external.py",
+    "add_external_macro": "Multi-args (df + macro_df) — test ciblé test_macro_external.py",
 }
 
 

@@ -1,16 +1,16 @@
-"""Robustesse paramétrique de SmaCrossover sur H4 — train ≤ 2022 (0 n_trial).
+"""Robustesse paramÃ©trique de SmaCrossover sur H4 â€” train â‰¤ 2022 (0 n_trial).
 
 Question : EURUSD H4 SmaCrossover_10_50 Sharpe +0.75 OOS est-il :
-  A) un vrai signal robuste (apparaît sur d'autres params ET/OU autres actifs)
-  B) un coup de chance (unique à EURUSD/10/50)
+  A) un vrai signal robuste (apparaÃ®t sur d'autres params ET/OU autres actifs)
+  B) un coup de chance (unique Ã  EURUSD/10/50)
 
-Test : 6 jeux de params SMA × 6 actifs × 4 ratios TP/SL = 144 backtests.
+Test : 6 jeux de params SMA Ã— 6 actifs Ã— 4 ratios TP/SL = 144 backtests.
 
 Verdict de robustesse :
-  - Paramétrique : si EURUSD H4 montre Sharpe ≥ 0.3 sur ≥ 3/6 jeux de params
-    → robuste au paramétrage (pas un cherry-pick).
-  - Cross-asset : si SmaCrossover montre Sharpe ≥ 0.3 sur ≥ 3/6 actifs
-    → vraie famille de stratégies.
+  - ParamÃ©trique : si EURUSD H4 montre Sharpe â‰¥ 0.3 sur â‰¥ 3/6 jeux de params
+    â†’ robuste au paramÃ©trage (pas un cherry-pick).
+  - Cross-asset : si SmaCrossover montre Sharpe â‰¥ 0.3 sur â‰¥ 3/6 actifs
+    â†’ vraie famille de stratÃ©gies.
 """
 from __future__ import annotations
 
@@ -44,8 +44,8 @@ SMA_PARAMS: list[tuple[int, int]] = [
 ASSETS: list[str] = [
     "EURUSD", "GBPUSD", "USDCHF",  # Forex (les 3 dispos)
     "BUND",                          # Obligations
-    "USOIL",                         # Énergies
-    "XAGUSD",                        # Métaux secondaires
+    "USOIL",                         # Ã‰nergies
+    "XAGUSD",                        # MÃ©taux secondaires
 ]
 TF = "H4"
 TP_SL_RATIOS = [0.5, 0.7, 1.0, 1.5]
@@ -94,7 +94,7 @@ def test_one(fast: int, slow: int, asset: str) -> list[dict[str, Any]]:
             tp_pips=tp_pips, sl_pips=sl_pips,
             window_hours=cfg.window_hours,
             commission_pips=cfg.commission_pips,
-            slippage_pips=half_cost, pip_size=cfg.pip_size,
+            slippage_pips=half_cost, pip_size=cfg.pip_size, asset_config=cfg,
         )
         m = _analyze(bt.get("trades", []))
         m.update({
@@ -108,14 +108,14 @@ def test_one(fast: int, slow: int, asset: str) -> list[dict[str, Any]]:
 def main() -> int:
     set_global_seeds()
     print("=" * 70)
-    print(f"ROBUSTESSE SmaCrossover H4 — {len(SMA_PARAMS)} params × {len(ASSETS)} actifs × "
+    print(f"ROBUSTESSE SmaCrossover H4 â€” {len(SMA_PARAMS)} params Ã— {len(ASSETS)} actifs Ã— "
           f"{len(TP_SL_RATIOS)} ratios = {len(SMA_PARAMS)*len(ASSETS)*len(TP_SL_RATIOS)} backtests")
-    print(f"Train ≤ {TRAIN_CUTOFF.date()} — 0 n_trial consommé")
+    print(f"Train â‰¤ {TRAIN_CUTOFF.date()} â€” 0 n_trial consommÃ©")
     print("=" * 70)
 
     all_results: list[dict[str, Any]] = []
     for (fast, slow) in SMA_PARAMS:
-        print(f"\n── SMA {fast}/{slow} ──")
+        print(f"\nâ”€â”€ SMA {fast}/{slow} â”€â”€")
         for asset in ASSETS:
             rows = test_one(fast, slow, asset)
             ok = [r for r in rows if "error" not in r]
@@ -123,16 +123,16 @@ def main() -> int:
             for r in ok:
                 all_results.append(r)
             if err:
-                print(f"  {asset}: ❌ {err[0]['error']}")
+                print(f"  {asset}: âŒ {err[0]['error']}")
             elif ok:
                 best = max(ok, key=lambda x: x["sharpe"])
                 print(f"  {asset}: meilleur Sharpe={best['sharpe']:+.2f} "
                       f"(WR={best['wr']:.0%}, n={best['n_trades']}, "
-                      f"SL={best['sl_atr_ratio']}×ATR)")
+                      f"SL={best['sl_atr_ratio']}Ã—ATR)")
 
-    # ── Matrice : pour chaque (params, asset), garder le meilleur Sharpe ──
+    # â”€â”€ Matrice : pour chaque (params, asset), garder le meilleur Sharpe â”€â”€
     print("\n" + "=" * 90)
-    print("MATRICE — Meilleur Sharpe par (params, asset)")
+    print("MATRICE â€” Meilleur Sharpe par (params, asset)")
     print("=" * 90)
     asset_set = sorted({r["asset"] for r in all_results})
     print(f"{'Params':<10}", end="")
@@ -150,8 +150,8 @@ def main() -> int:
             if subset:
                 best = max(subset, key=lambda x: x["sharpe"])
                 matrix[(fast, slow)][a] = best["sharpe"]
-                marker = "✅" if best["sharpe"] >= 0.5 else (
-                    "🟡" if best["sharpe"] >= 0.3 else "  "
+                marker = "âœ…" if best["sharpe"] >= 0.5 else (
+                    "ðŸŸ¡" if best["sharpe"] >= 0.3 else "  "
                 )
                 print(f"{marker}{best['sharpe']:>+7.2f}", end="")
             else:
@@ -159,33 +159,33 @@ def main() -> int:
                 print(f"{'N/A':>10}", end="")
         print()
 
-    # ── Verdict robustesse ──
+    # â”€â”€ Verdict robustesse â”€â”€
     print("\n" + "=" * 70)
     print("VERDICT ROBUSTESSE")
     print("=" * 70)
 
-    # Robustesse paramétrique par actif (combien de params Sharpe ≥ 0.3 ?)
-    print("\nRobustesse paramétrique (combien de jeux de params Sharpe ≥ 0.3) :")
+    # Robustesse paramÃ©trique par actif (combien de params Sharpe â‰¥ 0.3 ?)
+    print("\nRobustesse paramÃ©trique (combien de jeux de params Sharpe â‰¥ 0.3) :")
     for a in asset_set:
         sharpes = [matrix[(f, s)].get(a) for (f, s) in SMA_PARAMS if not np.isnan(matrix[(f, s)].get(a, float("nan")))]
         n_good = sum(1 for s in sharpes if s >= 0.3)
         n_excellent = sum(1 for s in sharpes if s >= 0.5)
-        verdict = ("🎯 ROBUSTE" if n_good >= 3 else
-                   ("⚠️  marginal" if n_good >= 2 else "❌ pas robuste"))
-        print(f"  {a:<10} : {n_good}/{len(sharpes)} params Sh≥0.3, "
-              f"{n_excellent}/{len(sharpes)} Sh≥0.5 → {verdict}")
+        verdict = ("ðŸŽ¯ ROBUSTE" if n_good >= 3 else
+                   ("âš ï¸  marginal" if n_good >= 2 else "âŒ pas robuste"))
+        print(f"  {a:<10} : {n_good}/{len(sharpes)} params Shâ‰¥0.3, "
+              f"{n_excellent}/{len(sharpes)} Shâ‰¥0.5 â†’ {verdict}")
 
-    # Robustesse cross-asset par params (combien d'actifs Sharpe ≥ 0.3 ?)
-    print("\nRobustesse cross-asset (combien d'actifs Sharpe ≥ 0.3 pour un jeu de params) :")
+    # Robustesse cross-asset par params (combien d'actifs Sharpe â‰¥ 0.3 ?)
+    print("\nRobustesse cross-asset (combien d'actifs Sharpe â‰¥ 0.3 pour un jeu de params) :")
     for (fast, slow) in SMA_PARAMS:
         sharpes = [matrix[(fast, slow)].get(a) for a in asset_set
                    if not np.isnan(matrix[(fast, slow)].get(a, float("nan")))]
         n_good = sum(1 for s in sharpes if s >= 0.3)
         n_excellent = sum(1 for s in sharpes if s >= 0.5)
-        verdict = ("🎯 ROBUSTE" if n_good >= 3 else
-                   ("⚠️  marginal" if n_good >= 2 else "❌ pas robuste"))
-        print(f"  SMA {fast:>2}/{slow:>3} : {n_good}/{len(sharpes)} actifs Sh≥0.3, "
-              f"{n_excellent}/{len(sharpes)} Sh≥0.5 → {verdict}")
+        verdict = ("ðŸŽ¯ ROBUSTE" if n_good >= 3 else
+                   ("âš ï¸  marginal" if n_good >= 2 else "âŒ pas robuste"))
+        print(f"  SMA {fast:>2}/{slow:>3} : {n_good}/{len(sharpes)} actifs Shâ‰¥0.3, "
+              f"{n_excellent}/{len(sharpes)} Shâ‰¥0.5 â†’ {verdict}")
 
     out_json = Path("predictions/screen_sma_crossover_robustness.json")
     out_json.parent.mkdir(parents=True, exist_ok=True)
@@ -194,7 +194,7 @@ def main() -> int:
                    indent=2, default=str, ensure_ascii=False),
         encoding="utf-8",
     )
-    print(f"\nJSON sauvegardé : {out_json}")
+    print(f"\nJSON sauvegardÃ© : {out_json}")
     return 0
 
 

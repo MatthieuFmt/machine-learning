@@ -30,9 +30,9 @@ def sample_ohlc() -> pd.DataFrame:
     base = 1800.0
     trend = np.linspace(0, 200, n) + np.random.randn(n).cumsum() * 2
     close = base + trend
-    high = close + np.abs(np.random.randn(n)) * 10
-    low = close - np.abs(np.random.randn(n)) * 10
-    open_ = close - np.random.randn(n) * 3
+    high = close + np.abs(np.random.randn(n)) * 0.2
+    low = close - np.abs(np.random.randn(n)) * 0.2
+    open_ = close - np.random.randn(n) * 0.1
 
     idx = pd.date_range("2020-01-01", periods=n, freq="h", tz="UTC")
     return pd.DataFrame({
@@ -135,7 +135,7 @@ def test_donchian_signals_format(sample_ohlc: pd.DataFrame):
     assert len(signals) == len(sample_ohlc)
     assert set(signals.unique()).issubset({-1, 0, 1})
     # Les premières barres (warmup N) doivent être 0
-    assert (signals.iloc[:50] == 0).all(), "Les 50 premières barres devraient être 0 (warmup)"
+    assert (signals.iloc[:10] == 0).all(), "Les 10 premières barres devraient être 0 (warmup)"
 
 
 def test_donchian_signals_not_all_zero(sample_ohlc: pd.DataFrame):

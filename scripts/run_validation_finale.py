@@ -1,10 +1,10 @@
-"""Prompt 18 — Validation finale GO/NO-GO production.
+"""Prompt 18 â€” Validation finale GO/NO-GO production.
 
-Replay complet du portfolio des 6 stratégies GO sur test 2024-2025.
+Replay complet du portfolio des 6 stratÃ©gies GO sur test 2024-2025.
 Produit le rapport predictions/validation_finale.json et docs/v3_final_report.md.
 
-Règles :
-- n_trials = 29 (28 hérités JOURNAL.md + 1 prompt 18)
+RÃ¨gles :
+- n_trials = 29 (28 hÃ©ritÃ©s JOURNAL.md + 1 prompt 18)
 - 0 modification de config
 - Benchmarks B&H equal-weight + Monte Carlo random obligatoires
 - verify_no_snooping avant verdict
@@ -51,13 +51,13 @@ from app.testing.snooping_guard import (  # noqa: E402
 
 logger = get_logger(__name__)
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # 1. Configuration
-# ═══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 TRAIN_CUTOFF = pd.Timestamp("2022-12-31", tz="UTC")
-# Fix F14 : 2023 est la validation set (constitution §3). Utilisé pour
-# calibrer le seuil de probabilité sans consommer de n_trials sur le test.
+# Fix F14 : 2023 est la validation set (constitution Â§3). UtilisÃ© pour
+# calibrer le seuil de probabilitÃ© sans consommer de n_trials sur le test.
 VAL_START = pd.Timestamp("2023-01-01", tz="UTC")
 VAL_END = pd.Timestamp("2023-12-31", tz="UTC")
 TEST_START = pd.Timestamp("2024-01-01", tz="UTC")
@@ -66,15 +66,15 @@ RISK_PCT = 0.02
 DONCHIAN_N = 20
 DONCHIAN_M = 20
 
-# Si True, le seuil de probabilité est calibré sur 2023 (val set) plutôt
+# Si True, le seuil de probabilitÃ© est calibrÃ© sur 2023 (val set) plutÃ´t
 # que d'utiliser HYPERPARAMS_TUNED[(asset, tf)]["threshold"]. Fix F14.
 CALIBRATE_THRESHOLD_ON_VAL = False
-# Fix F5 : n_trials calculé dynamiquement depuis read_history plutôt
-# qu'une constante hardcodée. La valeur historique 29 est utilisée comme
-# plancher si l'historique n'a pas été correctement maintenu.
+# Fix F5 : n_trials calculÃ© dynamiquement depuis read_history plutÃ´t
+# qu'une constante hardcodÃ©e. La valeur historique 29 est utilisÃ©e comme
+# plancher si l'historique n'a pas Ã©tÃ© correctement maintenu.
 N_TRIALS_FLOOR = 29
 
-# 6 stratégies GO validées
+# 6 stratÃ©gies GO validÃ©es
 STRATEGIES_DONCHIAN_ML: list[dict[str, Any]] = [
     {"asset": "GBPUSD", "tf": "D1", "model": "rf", "json_ref": "predictions/phase_b_c5_extra_gbpusd_d1.json"},
     {"asset": "EURUSD", "tf": "D1", "model": "stacking", "json_ref": "predictions/phase_b_c5_extra_eurusd_d1.json"},
@@ -92,12 +92,12 @@ ASSETS_FOR_BENCHMARK = sorted(set(
 ))
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # 2. Helpers
-# ═══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 def _build_features(df: pd.DataFrame, asset: str, tf: str) -> pd.DataFrame:
-    """Construit le superset et sélectionne le top 15 pour le couple."""
+    """Construit le superset et sÃ©lectionne le top 15 pour le couple."""
     superset = build_superset(df, asset=asset)
     key = (asset, tf)
     selected = list(FEATURES_SELECTED.get(key, []))
@@ -124,10 +124,10 @@ def _trades_to_equity(
     capital_eur: float = CAPITAL_EUR,
     risk_pct: float = RISK_PCT,
 ) -> tuple[pd.Series, pd.DataFrame]:
-    """Convertit trades → equity curve + DataFrame avec sizing.
+    """Convertit trades â†’ equity curve + DataFrame avec sizing.
 
     Returns:
-        (equity: pd.Series indexée par entry_time, trades_df: pd.DataFrame)
+        (equity: pd.Series indexÃ©e par entry_time, trades_df: pd.DataFrame)
     """
     if not trades:
         empty_idx = pd.DatetimeIndex([], tz="UTC")
@@ -167,7 +167,7 @@ def _train_model(
     asset: str,
     tf: str,
 ) -> Any:
-    """Entraîne le modèle selon le type (rf/hgbm/stacking) avec hyperparams C5."""
+    """EntraÃ®ne le modÃ¨le selon le type (rf/hgbm/stacking) avec hyperparams C5."""
     key = (asset, tf)
     hp = HYPERPARAMS_TUNED.get(key, {})
     params = hp.get("params", {})
@@ -194,7 +194,7 @@ def _train_model(
     elif model_type == "stacking":
         model = build_stacking(seed=42)
     else:
-        raise ValueError(f"Modèle inconnu: {model_type}")
+        raise ValueError(f"ModÃ¨le inconnu: {model_type}")
 
     model.fit(X.values, y.values)
     return model
@@ -207,19 +207,19 @@ def _generate_model_signals(
     tf: str,
     primary_signals: pd.Series | None = None,
 ) -> pd.Series:
-    """Méta-labeling fidèle (fix F1) : filtre des signaux primaires par P(winner).
+    """MÃ©ta-labeling fidÃ¨le (fix F1) : filtre des signaux primaires par P(winner).
 
     Args:
-        df: DataFrame OHLC du segment évalué.
-        model: Modèle entraîné sur (features à l'entrée, y=winner).
+        df: DataFrame OHLC du segment Ã©valuÃ©.
+        model: ModÃ¨le entraÃ®nÃ© sur (features Ã  l'entrÃ©e, y=winner).
         asset, tf: Identifiant du couple (pour features_selected / threshold).
-        primary_signals: Signaux primaires Donchian (1/-1/0). REQUIS — la
-            distribution test doit correspondre à la distribution train.
+        primary_signals: Signaux primaires Donchian (1/-1/0). REQUIS â€” la
+            distribution test doit correspondre Ã  la distribution train.
 
     Returns:
-        Série identique à primary_signals avec les signaux dont la probabilité
-        de winner est sous le threshold remis à 0. La DIRECTION provient
-        toujours du signal primaire, jamais d'un trend_sign synthétique.
+        SÃ©rie identique Ã  primary_signals avec les signaux dont la probabilitÃ©
+        de winner est sous le threshold remis Ã  0. La DIRECTION provient
+        toujours du signal primaire, jamais d'un trend_sign synthÃ©tique.
     """
     if primary_signals is None:
         raise ValueError(
@@ -259,23 +259,23 @@ def _calibrate_threshold_on_val(
     half_cost: float,
     threshold_candidates: tuple[float, ...] = (0.45, 0.50, 0.55, 0.60, 0.65, 0.70),
 ) -> tuple[float, dict[float, float]]:
-    """Fix F14 : calibre le seuil de probabilité sur 2023 (val set).
+    """Fix F14 : calibre le seuil de probabilitÃ© sur 2023 (val set).
 
     Pour chaque seuil candidat :
-    1. Génère les signaux Donchian sur le val set (2023).
+    1. GÃ©nÃ¨re les signaux Donchian sur le val set (2023).
     2. Filtre par P(winner) > threshold.
-    3. Backtest, calcule Sharpe linéaire (fix F2 via sharpe_daily_from_trades).
+    3. Backtest, calcule Sharpe linÃ©aire (fix F2 via sharpe_daily_from_trades).
     4. Retient le seuil maximisant le Sharpe sur 2023.
 
-    Le test set ≥ 2024 n'est JAMAIS consulté ici → pas de consommation de n_trials.
+    Le test set â‰¥ 2024 n'est JAMAIS consultÃ© ici â†’ pas de consommation de n_trials.
 
     Args:
         df_full: DataFrame OHLC complet (assez d'historique pour les features).
-        model: Modèle déjà entraîné sur train ≤ 2022.
+        model: ModÃ¨le dÃ©jÃ  entraÃ®nÃ© sur train â‰¤ 2022.
         asset, tf: Identifiant du couple.
         cfg: AssetConfig pour costs/TP/SL.
-        half_cost: spread+slippage divisé par 2.
-        threshold_candidates: Seuils à tester.
+        half_cost: spread+slippage divisÃ© par 2.
+        threshold_candidates: Seuils Ã  tester.
 
     Returns:
         (best_threshold, dict {threshold: sharpe_val}). Si val vide ou aucun
@@ -283,13 +283,13 @@ def _calibrate_threshold_on_val(
     """
     df_val = df_full.loc[VAL_START:VAL_END]
     if df_val.empty:
-        logger.warning("Val 2023 vide pour %s %s — fallback threshold=0.50", asset, tf)
+        logger.warning("Val 2023 vide pour %s %s â€” fallback threshold=0.50", asset, tf)
         return 0.50, {}
 
     donchian_val = _generate_donchian_signals(df_val)
     if (donchian_val != 0).sum() < 5:
         logger.warning(
-            "Trop peu de signaux Donchian sur val 2023 (%d) — fallback 0.50",
+            "Trop peu de signaux Donchian sur val 2023 (%d) â€” fallback 0.50",
             int((donchian_val != 0).sum()),
         )
         return 0.50, {}
@@ -317,7 +317,7 @@ def _calibrate_threshold_on_val(
             tp_pips=cfg.tp_points, sl_pips=cfg.sl_points,
             window_hours=cfg.window_hours,
             commission_pips=cfg.commission_pips,
-            slippage_pips=half_cost, pip_size=cfg.pip_size,
+            slippage_pips=half_cost, pip_size=cfg.pip_size, asset_config=cfg,
         )
         trades = bt.get("trades", [])
         if len(trades) < 3:
@@ -330,19 +330,19 @@ def _calibrate_threshold_on_val(
 
     finite_scores = {k: v for k, v in val_scores.items() if np.isfinite(v)}
     if not finite_scores:
-        logger.warning("Aucun seuil viable sur val 2023 — fallback 0.50")
+        logger.warning("Aucun seuil viable sur val 2023 â€” fallback 0.50")
         return 0.50, val_scores
     best_t = max(finite_scores, key=finite_scores.get)
     logger.info(
-        "Seuil calibré sur val 2023 pour %s %s : %.2f (Sharpe val=%.3f)",
+        "Seuil calibrÃ© sur val 2023 pour %s %s : %.2f (Sharpe val=%.3f)",
         asset, tf, best_t, finite_scores[best_t],
     )
     return best_t, val_scores
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # 3. Backtest Donchian + ML (simple train/test)
-# ═══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 def backtest_donchian_ml(
     asset: str, tf: str, model_type: str,
@@ -357,7 +357,7 @@ def backtest_donchian_ml(
     key = (asset, tf)
     hp = HYPERPARAMS_TUNED.get(key, {})
 
-    print(f"  {len(df)} barres, {df.index.min().date()} → {df.index.max().date()}")
+    print(f"  {len(df)} barres, {df.index.min().date()} â†’ {df.index.max().date()}")
 
     df_train = df.loc[:TRAIN_CUTOFF]
     df_test = df.loc[TEST_START:]
@@ -368,7 +368,7 @@ def backtest_donchian_ml(
 
     half_cost = (cfg.spread_pips + cfg.slippage_pips) / 2.0
 
-    # Train: génération target Donchian
+    # Train: gÃ©nÃ©ration target Donchian
     donchian_signals_train = _generate_donchian_signals(df_train)
     n_signals_train = int((donchian_signals_train != 0).sum())
     print(f"  Signaux Donchian train: {n_signals_train}")
@@ -378,7 +378,7 @@ def backtest_donchian_ml(
         tp_pips=cfg.tp_points, sl_pips=cfg.sl_points,
         window_hours=cfg.window_hours,
         commission_pips=cfg.commission_pips,
-        slippage_pips=half_cost, pip_size=cfg.pip_size,
+        slippage_pips=half_cost, pip_size=cfg.pip_size, asset_config=cfg,
     )
     trades_train: list[dict] = bt_train.get("trades", [])
     print(f"  Trades Donchian train: {len(trades_train)}")
@@ -409,7 +409,7 @@ def backtest_donchian_ml(
         logger.warning("Classe unique dans y_train.")
         return pd.Series(dtype=float), pd.DataFrame(), {}
 
-    # Entraînement
+    # EntraÃ®nement
     model = _train_model(X_train, y_train, model_type, asset, tf)
     acc_train = float((model.predict(X_train.values) == y_train.values).mean())
     print(f"  Accuracy train: {acc_train:.3f}")
@@ -420,12 +420,12 @@ def backtest_donchian_ml(
             df_full=df, model=model, asset=asset, tf=tf,
             cfg=cfg, half_cost=half_cost,
         )
-        print(f"  Seuil calibré sur val 2023 : {calibrated_threshold:.2f}")
+        print(f"  Seuil calibrÃ© sur val 2023 : {calibrated_threshold:.2f}")
         print(f"    Scores Sharpe val par seuil : {val_scores}")
-        # Override le seuil HYPERPARAMS_TUNED pour ce couple, en mémoire
+        # Override le seuil HYPERPARAMS_TUNED pour ce couple, en mÃ©moire
         HYPERPARAMS_TUNED.setdefault(key, {})["threshold"] = calibrated_threshold
 
-    # Test: signaux Donchian → filtrage par méta-labeling (fix F1)
+    # Test: signaux Donchian â†’ filtrage par mÃ©ta-labeling (fix F1)
     df_test_with_history = df.loc[:df_test.index[-1]]
     features_test = _build_features(df_test_with_history, asset, tf)
     features_test = features_test.loc[features_test.index.isin(df_test.index)]
@@ -439,7 +439,7 @@ def backtest_donchian_ml(
         primary_signals=donchian_signals_test,
     )
     n_test_signals = int((signals_test != 0).sum())
-    print(f"  Signaux test (après meta-filter): {n_test_signals}")
+    print(f"  Signaux test (aprÃ¨s meta-filter): {n_test_signals}")
 
     if n_test_signals == 0:
         logger.warning("0 signal sur test pour %s %s", asset, tf)
@@ -450,7 +450,7 @@ def backtest_donchian_ml(
         tp_pips=cfg.tp_points, sl_pips=cfg.sl_points,
         window_hours=cfg.window_hours,
         commission_pips=cfg.commission_pips,
-        slippage_pips=half_cost, pip_size=cfg.pip_size,
+        slippage_pips=half_cost, pip_size=cfg.pip_size, asset_config=cfg,
     )
     trades_test: list[dict] = bt_test.get("trades", [])
     equity, trades_df = _trades_to_equity(trades_test, cfg=cfg)
@@ -470,16 +470,16 @@ def backtest_donchian_ml(
     return equity, trades_df, info
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# 4. Backtest walk-forward méta-labeling (GBPUSD H4)
-# ═══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# 4. Backtest walk-forward mÃ©ta-labeling (GBPUSD H4)
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 def backtest_wf_meta_labeling(
     asset: str, tf: str, model_type: str,
 ) -> tuple[pd.Series, pd.DataFrame, dict[str, Any]]:
-    """Walk-forward expanding window avec méta-labeling RF.
+    """Walk-forward expanding window avec mÃ©ta-labeling RF.
 
-    Logique simplifiée reproduisant run_phase_b_c5_b1_meta_labeling.py.
+    Logique simplifiÃ©e reproduisant run_phase_b_c5_b1_meta_labeling.py.
     """
     print(f"\n{'='*60}")
     print(f"[WF Meta-Labeling] {asset} {tf} ({model_type})")
@@ -493,7 +493,7 @@ def backtest_wf_meta_labeling(
     hp = HYPERPARAMS_TUNED.get(key, {})
     threshold = hp.get("threshold", 0.5)
 
-    print(f"  {len(df)} barres, {df.index.min().date()} → {df.index.max().date()}")
+    print(f"  {len(df)} barres, {df.index.min().date()} â†’ {df.index.max().date()}")
 
     half_cost = (cfg.spread_pips + cfg.slippage_pips) / 2.0
     retrain_dates = pd.date_range(
@@ -527,7 +527,7 @@ def backtest_wf_meta_labeling(
         if features_train.empty:
             continue
 
-        # Signaux bootstrap pour générer des labels d'entraînement
+        # Signaux bootstrap pour gÃ©nÃ©rer des labels d'entraÃ®nement
         trend_cols = [c for c in ["slope_sma_20", "slope_sma_50", "dist_sma_200"]
                       if c in features_train.columns]
         if not trend_cols:
@@ -545,7 +545,7 @@ def backtest_wf_meta_labeling(
             tp_pips=cfg.tp_points, sl_pips=cfg.sl_points,
             window_hours=cfg.window_hours,
             commission_pips=cfg.commission_pips,
-            slippage_pips=half_cost, pip_size=cfg.pip_size,
+            slippage_pips=half_cost, pip_size=cfg.pip_size, asset_config=cfg,
         )
         trades_bootstrap: list[dict] = bt_bootstrap.get("trades", [])
         if len(trades_bootstrap) < 10:
@@ -576,13 +576,13 @@ def backtest_wf_meta_labeling(
         )
         n_primary = int((signals_primary != 0).sum())
 
-        # Méta-labeling sur signaux primaires
+        # MÃ©ta-labeling sur signaux primaires
         meta_labeler = MetaLabelingRF(
             config=MetaLabelingConfig(
                 n_estimators=100, max_depth=4, min_samples_leaf=10,
             ),
         )
-        # Entraîner le méta-labeler sur les trades train
+        # EntraÃ®ner le mÃ©ta-labeler sur les trades train
         meta_labeler.fit(X_primary, y_primary)
 
         # Backtest des signaux primaires sur OOS
@@ -591,11 +591,11 @@ def backtest_wf_meta_labeling(
             tp_pips=cfg.tp_points, sl_pips=cfg.sl_points,
             window_hours=cfg.window_hours,
             commission_pips=cfg.commission_pips,
-            slippage_pips=half_cost, pip_size=cfg.pip_size,
+            slippage_pips=half_cost, pip_size=cfg.pip_size, asset_config=cfg,
         )
         trades_primary_oos: list[dict] = bt_oos_primary.get("trades", [])
 
-        # Filtrer les trades OOS avec le méta-modèle
+        # Filtrer les trades OOS avec le mÃ©ta-modÃ¨le
         if trades_primary_oos and not meta_labeler.disabled:
             entry_times_oos = pd.to_datetime(
                 [t["entry_time"] for t in trades_primary_oos]
@@ -624,7 +624,7 @@ def backtest_wf_meta_labeling(
         logger.warning("Aucun trade pour %s %s WF", asset, tf)
         return pd.Series(dtype=float), pd.DataFrame(), {}
 
-    # Concaténer les equity curves (chaque segment repart du capital précédent)
+    # ConcatÃ©ner les equity curves (chaque segment repart du capital prÃ©cÃ©dent)
     all_trades = pd.concat(all_trades_dfs).sort_index()
     equity = CAPITAL_EUR + all_trades["pnl"].cumsum()
 
@@ -642,14 +642,14 @@ def backtest_wf_meta_labeling(
     return equity, all_trades, info
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # 5. Backtest walk-forward mean-reversion + meta (EURUSD H4)
-# ═══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 def backtest_wf_meanrev(
     asset: str, tf: str, model_type: str,
 ) -> tuple[pd.Series, pd.DataFrame, dict[str, Any]]:
-    """Walk-forward mean-reversion RSI+BB + méta-labeling RF (EURUSD H4)."""
+    """Walk-forward mean-reversion RSI+BB + mÃ©ta-labeling RF (EURUSD H4)."""
     print(f"\n{'='*60}")
     print(f"[WF Mean-Rev] {asset} {tf} ({model_type})")
     print(f"{'='*60}")
@@ -661,7 +661,7 @@ def backtest_wf_meanrev(
     df = load_asset(asset, tf)
     cfg = ASSET_CONFIGS[asset]
 
-    print(f"  {len(df)} barres, {df.index.min().date()} → {df.index.max().date()}")
+    print(f"  {len(df)} barres, {df.index.min().date()} â†’ {df.index.max().date()}")
 
     def build_features_h4(df_wf: pd.DataFrame) -> pd.DataFrame:
         close = df_wf["Close"]
@@ -724,16 +724,16 @@ def backtest_wf_meanrev(
     return equity, all_trades_oos, info
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # 6. Benchmarks
-# ═══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 def buy_and_hold_benchmark(
     assets: list[str],
     start: str = "2024-01-01",
     end: str | None = None,
 ) -> pd.Series:
-    """Equity B&H equal weight des actifs retenus, frais inclus à l'achat."""
+    """Equity B&H equal weight des actifs retenus, frais inclus Ã  l'achat."""
     returns = pd.DataFrame()
     for a in assets:
         try:
@@ -745,7 +745,7 @@ def buy_and_hold_benchmark(
             if df_bh.empty:
                 continue
             ret = df_bh["Close"].pct_change().dropna()
-            # Frais d'entrée : spread/2
+            # Frais d'entrÃ©e : spread/2
             cfg_bh = ASSET_CONFIGS[a]
             half_cost_pct = (cfg_bh.spread_pips * cfg_bh.pip_size) / (2 * df_bh["Close"].iloc[0])
             ret.iloc[0] -= half_cost_pct
@@ -766,26 +766,26 @@ def monte_carlo_random_benchmark(
     n_iter: int = 500,
     start: str = "2024-01-01",
 ) -> np.ndarray:
-    """Fix F6 : Monte Carlo représentatif du portfolio réel.
+    """Fix F6 : Monte Carlo reprÃ©sentatif du portfolio rÃ©el.
 
-    Pour chaque itération :
-      1. Pour chaque sleeve (asset, tf) du portfolio, génère des signaux
-         aléatoires à la même FRÉQUENCE observée que la stratégie réelle.
-      2. Backteste chacun → equity en €.
-      3. Combine en portfolio equal-weight (même schéma que build_portfolio).
-      4. Calcule le Sharpe daily linéaire (fix F2) sur le portfolio random.
+    Pour chaque itÃ©ration :
+      1. Pour chaque sleeve (asset, tf) du portfolio, gÃ©nÃ¨re des signaux
+         alÃ©atoires Ã  la mÃªme FRÃ‰QUENCE observÃ©e que la stratÃ©gie rÃ©elle.
+      2. Backteste chacun â†’ equity en â‚¬.
+      3. Combine en portfolio equal-weight (mÃªme schÃ©ma que build_portfolio).
+      4. Calcule le Sharpe daily linÃ©aire (fix F2) sur le portfolio random.
 
     Args:
         sleeve_specs: liste de dicts {"asset": ..., "tf": ...} (une par sleeve).
         sleeve_trade_rates: dict {"ASSET_TF": trades_per_bar}. Calibre la
-            fréquence de signal pour chaque sleeve. Par défaut 0.05 si absent.
-        n_iter: Nombre d'itérations Monte Carlo.
-        start: Date de début OOS.
+            frÃ©quence de signal pour chaque sleeve. Par dÃ©faut 0.05 si absent.
+        n_iter: Nombre d'itÃ©rations Monte Carlo.
+        start: Date de dÃ©but OOS.
 
     Returns:
         Array des Sharpe portfolio random (longueur n_iter).
     """
-    # Pré-charger les df par sleeve
+    # PrÃ©-charger les df par sleeve
     sleeve_data: dict[str, tuple[pd.DataFrame, Any, float]] = {}
     for spec in sleeve_specs:
         asset, tf = spec["asset"], spec["tf"]
@@ -799,7 +799,7 @@ def monte_carlo_random_benchmark(
             logger.warning("MC: skip %s %s: %s", asset, tf, exc)
 
     if not sleeve_data:
-        logger.warning("Aucune donnée sleeve dispo pour Monte Carlo.")
+        logger.warning("Aucune donnÃ©e sleeve dispo pour Monte Carlo.")
         return np.array([])
 
     sharpes = np.zeros(n_iter, dtype=float)
@@ -807,13 +807,13 @@ def monte_carlo_random_benchmark(
     for i in range(n_iter):
         rng = np.random.default_rng(seed=i)
 
-        # Backtest random sur chaque sleeve, collecter daily PnL linéaires
+        # Backtest random sur chaque sleeve, collecter daily PnL linÃ©aires
         sleeve_daily_pnls: list[pd.Series] = []
 
         for name, (df, cfg, half_cost) in sleeve_data.items():
             n_bars = len(df)
             signal_freq = sleeve_trade_rates.get(name, 0.05)
-            # Signaux aléatoires (long/short 50/50, bernoulli signal_freq)
+            # Signaux alÃ©atoires (long/short 50/50, bernoulli signal_freq)
             direction = rng.choice([1, -1], size=n_bars)
             entry_mask = rng.random(n_bars) < signal_freq
             signals = pd.Series(
@@ -826,7 +826,7 @@ def monte_carlo_random_benchmark(
                 tp_pips=cfg.tp_points, sl_pips=cfg.sl_points,
                 window_hours=cfg.window_hours,
                 commission_pips=cfg.commission_pips,
-                slippage_pips=half_cost, pip_size=cfg.pip_size,
+                slippage_pips=half_cost, pip_size=cfg.pip_size, asset_config=cfg,
             )
             trades_mc: list[dict] = bt.get("trades", [])
             if not trades_mc:
@@ -835,7 +835,7 @@ def monte_carlo_random_benchmark(
             _, trades_df = _trades_to_equity(trades_mc, cfg=cfg)
             if trades_df.empty:
                 continue
-            # PnL daily en € (linéaire, capital fixe — cohérent avec fix F2)
+            # PnL daily en â‚¬ (linÃ©aire, capital fixe â€” cohÃ©rent avec fix F2)
             pnl_daily = trades_df["pnl"].resample("D").sum().fillna(0.0)
             sleeve_daily_pnls.append(pnl_daily)
 
@@ -843,7 +843,7 @@ def monte_carlo_random_benchmark(
             sharpes[i] = 0.0
             continue
 
-        # Portfolio equal-weight des PnL daily → Sharpe linéaire annualisé
+        # Portfolio equal-weight des PnL daily â†’ Sharpe linÃ©aire annualisÃ©
         all_idx = sleeve_daily_pnls[0].index
         for series in sleeve_daily_pnls[1:]:
             all_idx = all_idx.union(series.index)
@@ -852,7 +852,7 @@ def monte_carlo_random_benchmark(
             pnl_matrix[f"s{k}"] = series.reindex(all_idx, fill_value=0.0)
         # equal-weight = moyenne
         portfolio_daily_pnl = pnl_matrix.mean(axis=1)
-        daily_ret = portfolio_daily_pnl / CAPITAL_EUR  # retours linéaires
+        daily_ret = portfolio_daily_pnl / CAPITAL_EUR  # retours linÃ©aires
         sharpes[i] = float(sharpe_ratio(daily_ret)) if len(daily_ret) > 1 else 0.0
 
     return sharpes
@@ -865,15 +865,15 @@ def _estimate_sleeve_trade_rate(
     start: pd.Timestamp,
     end: pd.Timestamp | None = None,
 ) -> float:
-    """Estime trades_per_bar observé pour calibrer la fréquence MC.
+    """Estime trades_per_bar observÃ© pour calibrer la frÃ©quence MC.
 
     Args:
         asset, tf: identifiant du couple.
-        n_trades: nb de trades produits par la stratégie réelle.
+        n_trades: nb de trades produits par la stratÃ©gie rÃ©elle.
         start, end: bornes OOS.
 
     Returns:
-        Fraction de barres avec un signal. Clampée à [0.001, 0.5].
+        Fraction de barres avec un signal. ClampÃ©e Ã  [0.001, 0.5].
     """
     try:
         df = load_asset(asset, tf)
@@ -888,9 +888,9 @@ def _estimate_sleeve_trade_rate(
         return 0.05
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # 7. Portfolio construction
-# ═══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 def build_portfolio(
     sleeve_equities: dict[str, pd.Series],
@@ -930,30 +930,30 @@ def build_portfolio(
     return portfolio_equity, portfolio_ret
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # 8. Main
-# ═══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 def main() -> int:
     set_global_seeds()
 
-    # Fix F5 : n_trials dérivé du snooping_guard (n_reads ≥ floor 29).
-    # On expose aussi n_unique_hypotheses pour comparaison méthodologique.
+    # Fix F5 : n_trials dÃ©rivÃ© du snooping_guard (n_reads â‰¥ floor 29).
+    # On expose aussi n_unique_hypotheses pour comparaison mÃ©thodologique.
     n_trials_cumul = n_trials_from_history(min_floor=N_TRIALS_FLOOR)
     n_uniq = n_unique_hypotheses()
 
     print("=" * 70)
-    print("PROMPT 18 — VALIDATION FINALE GO/NO-GO")
+    print("PROMPT 18 â€” VALIDATION FINALE GO/NO-GO")
     print(f"n_trials (n_reads, plancher {N_TRIALS_FLOOR}) = {n_trials_cumul}")
     print(f"n_unique_hypotheses (alternative) = {n_uniq}")
     print("=" * 70)
 
-    # ── 8a. Backtest de chaque stratégie ──────────────────────────────────
+    # â”€â”€ 8a. Backtest de chaque stratÃ©gie â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     sleeve_equities: dict[str, pd.Series] = {}
     all_trades_combined: list[pd.DataFrame] = []
     strategy_infos: list[dict[str, Any]] = []
 
-    # Donchian + ML (4 stratégies)
+    # Donchian + ML (4 stratÃ©gies)
     for s in STRATEGIES_DONCHIAN_ML:
         try:
             equity, trades_df, info = backtest_donchian_ml(
@@ -965,9 +965,9 @@ def main() -> int:
                 all_trades_combined.append(trades_df)
                 strategy_infos.append(info)
         except Exception as exc:
-            logger.error("Échec %s %s: %s", s["asset"], s["tf"], exc, exc_info=True)
+            logger.error("Ã‰chec %s %s: %s", s["asset"], s["tf"], exc, exc_info=True)
 
-    # Walk-forward méta-labeling (GBPUSD H4)
+    # Walk-forward mÃ©ta-labeling (GBPUSD H4)
     for s in STRATEGIES_WALKFORWARD:
         try:
             if s["type"] == "meta_labeling_wf":
@@ -984,26 +984,26 @@ def main() -> int:
                 all_trades_combined.append(trades_df)
                 strategy_infos.append(info)
         except Exception as exc:
-            logger.error("Échec %s %s WF: %s", s["asset"], s["tf"], exc, exc_info=True)
+            logger.error("Ã‰chec %s %s WF: %s", s["asset"], s["tf"], exc, exc_info=True)
 
     print(f"\n{'='*60}")
-    print(f"Sleeves backtestés avec succès : {len(sleeve_equities)}/6")
+    print(f"Sleeves backtestÃ©s avec succÃ¨s : {len(sleeve_equities)}/6")
     for name in sleeve_equities:
-        print(f"  ✅ {name}")
+        print(f"  âœ… {name}")
     print(f"{'='*60}")
 
     if len(sleeve_equities) == 0:
-        logger.error("Aucun sleeve backtesté avec succès.")
+        logger.error("Aucun sleeve backtestÃ© avec succÃ¨s.")
         return 1
 
-    # ── 8b. Portfolio ─────────────────────────────────────────────────────
+    # â”€â”€ 8b. Portfolio â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     portfolio_equity, portfolio_returns = build_portfolio(sleeve_equities)
     portfolio_daily_returns = portfolio_equity.pct_change().dropna()
 
-    # Trades combinés
+    # Trades combinÃ©s
     all_trades_df = pd.concat(all_trades_combined).sort_index() if all_trades_combined else pd.DataFrame()
 
-    # ── 8c. validate_edge ─────────────────────────────────────────────────
+    # â”€â”€ 8c. validate_edge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     read_oos(
         prompt="18",
         hypothesis="validation_finale_portfolio",
@@ -1017,8 +1017,8 @@ def main() -> int:
         n_trials=n_trials_cumul,
     )
 
-    # ── 8d. Benchmarks ────────────────────────────────────────────────────
-    print("\n── Benchmarks ──")
+    # â”€â”€ 8d. Benchmarks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    print("\nâ”€â”€ Benchmarks â”€â”€")
 
     # B&H equal weight
     bh_equity = buy_and_hold_benchmark(ASSETS_FOR_BENCHMARK)
@@ -1030,7 +1030,7 @@ def main() -> int:
     print(f"  B&H equal-weight Sharpe: {sr_bh:.3f}")
 
     # Monte Carlo random multi-asset (fix F6)
-    # Calibrer la fréquence par sleeve depuis les trades observés
+    # Calibrer la frÃ©quence par sleeve depuis les trades observÃ©s
     test_end = pd.Timestamp.now(tz="UTC")
     sleeve_trade_rates: dict[str, float] = {}
     for info in strategy_infos:
@@ -1063,10 +1063,10 @@ def main() -> int:
     benches_ok = bench_bh_ok and bench_mc_ok
 
     print(f"  Portfolio Sharpe: {sr_portfolio:.3f}")
-    print(f"  Beat B&H+0.3: {'✅' if bench_bh_ok else '❌'} (B&H={sr_bh:.3f}, Portfolio={sr_portfolio:.3f})")
-    print(f"  Beat P95 random: {'✅' if bench_mc_ok else '❌'} (P95={p95_random:.3f}, Portfolio={sr_portfolio:.3f})")
+    print(f"  Beat B&H+0.3: {'âœ…' if bench_bh_ok else 'âŒ'} (B&H={sr_bh:.3f}, Portfolio={sr_portfolio:.3f})")
+    print(f"  Beat P95 random: {'âœ…' if bench_mc_ok else 'âŒ'} (P95={p95_random:.3f}, Portfolio={sr_portfolio:.3f})")
 
-    # ── 8e. Verdict ───────────────────────────────────────────────────────
+    # â”€â”€ 8e. Verdict â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     reasons = list(report.reasons)
     if not bench_bh_ok:
         reasons.append(f"Portfolio Sharpe {sr_portfolio:.2f} < B&H+0.3 ({sr_bh + 0.3:.2f})")
@@ -1076,13 +1076,13 @@ def main() -> int:
     go = report.go and benches_ok
 
     print(f"\n{'='*60}")
-    print(f"VERDICT FINAL : {'✅ GO' if go else '❌ NO-GO'}")
+    print(f"VERDICT FINAL : {'âœ… GO' if go else 'âŒ NO-GO'}")
     if reasons:
         for r in reasons:
-            print(f"  ⚠️  {r}")
+            print(f"  âš ï¸  {r}")
     print(f"{'='*60}")
 
-    # ── 8f. Rapport JSON ──────────────────────────────────────────────────
+    # â”€â”€ 8f. Rapport JSON â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     output = {
         "config": {
             "sleeves": [
@@ -1125,16 +1125,16 @@ def main() -> int:
         json.dumps(output, indent=2, default=str, ensure_ascii=False),
         encoding="utf-8",
     )
-    print(f"\nRapport JSON sauvegardé : {out_json}")
+    print(f"\nRapport JSON sauvegardÃ© : {out_json}")
 
-    # ── 8g. Rapport humain ────────────────────────────────────────────────
+    # â”€â”€ 8g. Rapport humain â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     _write_human_report(output, sr_portfolio, sr_bh, p95_random, go)
 
-    # ── 8h. Snooping check (ne pas lock sans confirmation) ────────────────
-    print("\n⚠️  Si verdict GO :")
+    # â”€â”€ 8h. Snooping check (ne pas lock sans confirmation) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    print("\nâš ï¸  Si verdict GO :")
     print("   1. python scripts/verify_no_snooping.py")
     print("   2. from app.testing.snooping_guard import lock; lock(prompt='18')")
-    print("   ⚠️  Le lock est IRRÉVERSIBLE — confirmation utilisateur requise.")
+    print("   âš ï¸  Le lock est IRRÃ‰VERSIBLE â€” confirmation utilisateur requise.")
 
     return 0 if go else 1
 
@@ -1146,25 +1146,25 @@ def _write_human_report(
     p95_random: float,
     go: bool,
 ) -> None:
-    """Génère le rapport Markdown docs/v3_final_report.md."""
+    """GÃ©nÃ¨re le rapport Markdown docs/v3_final_report.md."""
     metrics = output["metrics"]
     reasons = output["reasons"]
 
     lines = [
-        "# Rapport de validation finale — Prompt 18",
+        "# Rapport de validation finale â€” Prompt 18",
         "",
         f"**Date** : {output['date']}",
-        f"**n_trials cumulé** : {output['n_trials']}",
-        f"**Verdict** : {'✅ GO — PRODUCTION' if go else '❌ NO-GO — RETOUR EN RECHERCHE'}",
+        f"**n_trials cumulÃ©** : {output['n_trials']}",
+        f"**Verdict** : {'âœ… GO â€” PRODUCTION' if go else 'âŒ NO-GO â€” RETOUR EN RECHERCHE'}",
         "",
-        "## Stratégies / Sleeves retenus",
+        "## StratÃ©gies / Sleeves retenus",
         "",
-        "| Actif | TF | Modèle | Sharpe | WR | Trades | Max DD |",
+        "| Actif | TF | ModÃ¨le | Sharpe | WR | Trades | Max DD |",
         "|---|---|---|---|---|---|---|",
     ]
 
     for s in output["strategy_details"]:
-        # Fix F11 : `wr` est déjà en % (ex: 65.83 = 65.83%), même chose pour
+        # Fix F11 : `wr` est dÃ©jÃ  en % (ex: 65.83 = 65.83%), mÃªme chose pour
         # `max_dd_pct`. Utiliser {:.1f}% au lieu de {:.1%}.
         lines.append(
             f"| {s['asset']} | {s['tf']} | {s['model']} | "
@@ -1174,22 +1174,22 @@ def _write_human_report(
 
     lines += [
         "",
-        "## Critères de la constitution",
+        "## CritÃ¨res de la constitution",
         "",
-        "| Critère | Cible | Observé | Verdict |",
+        "| CritÃ¨re | Cible | ObservÃ© | Verdict |",
         "|---|---|---|---|",
-        f"| Sharpe | ≥ 1.0 | {sr_portfolio:.2f} | {'✅' if sr_portfolio >= 1.0 else '❌'} |",
-        f"| DSR | > 0, p < 0.05 | {metrics['dsr']:.2f} (p={metrics['p_value']:.3f}) | {'✅' if metrics['dsr'] > 0 and metrics['p_value'] < 0.05 else '❌'} |",
-        f"| Max DD | < 15% | {metrics['max_dd']:.1%} | {'✅' if abs(metrics['max_dd']) < 0.15 else '❌'} |",
-        f"| WR | > 30% | {metrics['wr']:.1%} | {'✅' if metrics['wr'] > 0.30 else '❌'} |",
-        f"| Trades/an | ≥ 30 | {metrics['trades_per_year']:.1f} | {'✅' if metrics['trades_per_year'] >= 30 else '❌'} |",
+        f"| Sharpe | â‰¥ 1.0 | {sr_portfolio:.2f} | {'âœ…' if sr_portfolio >= 1.0 else 'âŒ'} |",
+        f"| DSR | > 0, p < 0.05 | {metrics['dsr']:.2f} (p={metrics['p_value']:.3f}) | {'âœ…' if metrics['dsr'] > 0 and metrics['p_value'] < 0.05 else 'âŒ'} |",
+        f"| Max DD | < 15% | {metrics['max_dd']:.1%} | {'âœ…' if abs(metrics['max_dd']) < 0.15 else 'âŒ'} |",
+        f"| WR | > 30% | {metrics['wr']:.1%} | {'âœ…' if metrics['wr'] > 0.30 else 'âŒ'} |",
+        f"| Trades/an | â‰¥ 30 | {metrics['trades_per_year']:.1f} | {'âœ…' if metrics['trades_per_year'] >= 30 else 'âŒ'} |",
         "",
         "## Benchmarks",
         "",
-        "| Benchmark | Cible | Observé | Verdict |",
+        "| Benchmark | Cible | ObservÃ© | Verdict |",
         "|---|---|---|---|",
-        f"| Beat B&H+0.3 | Sharpe > {sr_bh + 0.3:.2f} | {sr_portfolio:.2f} | {'✅' if output['benchmarks']['bh_ok'] else '❌'} |",
-        f"| Beat P95 random | Sharpe > {p95_random:.2f} | {sr_portfolio:.2f} | {'✅' if output['benchmarks']['mc_ok'] else '❌'} |",
+        f"| Beat B&H+0.3 | Sharpe > {sr_bh + 0.3:.2f} | {sr_portfolio:.2f} | {'âœ…' if output['benchmarks']['bh_ok'] else 'âŒ'} |",
+        f"| Beat P95 random | Sharpe > {p95_random:.2f} | {sr_portfolio:.2f} | {'âœ…' if output['benchmarks']['mc_ok'] else 'âŒ'} |",
         "",
         "## Verdict",
         "",
@@ -1197,15 +1197,15 @@ def _write_human_report(
 
     if go:
         lines += [
-            "### ✅ GO — Passage en Phase 4 (production)",
+            "### âœ… GO â€” Passage en Phase 4 (production)",
             "",
-            "Tous les critères sont satisfaits. Le portfolio peut être déployé.",
+            "Tous les critÃ¨res sont satisfaits. Le portfolio peut Ãªtre dÃ©ployÃ©.",
             "",
-            "**Prochaine étape** : Prompt 19 — `19_h18_walk_forward_continu.md`",
+            "**Prochaine Ã©tape** : Prompt 19 â€” `19_h18_walk_forward_continu.md`",
         ]
     else:
         lines += [
-            "### ❌ NO-GO — Itération requise",
+            "### âŒ NO-GO â€” ItÃ©ration requise",
             "",
             "**Raisons** :",
         ]
@@ -1213,28 +1213,28 @@ def _write_human_report(
             lines.append(f"- {r}")
         lines += [
             "",
-            "**Actions recommandées** :",
+            "**Actions recommandÃ©es** :",
         ]
         for r in reasons:
             if "Sharpe" in r and "B&H" not in r and "random" not in r:
-                lines.append("- Prompt 14 (vol targeting) ou prompt 11 (méta-labeling)")
+                lines.append("- Prompt 14 (vol targeting) ou prompt 11 (mÃ©ta-labeling)")
             elif "DD" in r:
-                lines.append("- Prompt 15 (vol targeting) ou prompt 14 (corrélation)")
+                lines.append("- Prompt 15 (vol targeting) ou prompt 14 (corrÃ©lation)")
             elif "WR" in r:
-                lines.append("- Prompt 10 (régime) ou prompt 11 (méta-labeling)")
+                lines.append("- Prompt 10 (rÃ©gime) ou prompt 11 (mÃ©ta-labeling)")
             elif "Trades" in r:
-                lines.append("- Prompt 16 (TF) ou prompt 08 (ajouter stratégies)")
+                lines.append("- Prompt 16 (TF) ou prompt 08 (ajouter stratÃ©gies)")
             elif "DSR" in r:
-                lines.append("- Revoir n_trials, réduire hypothèses testées")
+                lines.append("- Revoir n_trials, rÃ©duire hypothÃ¨ses testÃ©es")
             elif "B&H" in r:
                 lines.append("- Le portfolio n'apporte pas d'edge vs buy-and-hold")
             elif "random" in r:
-                lines.append("- Le portfolio ne bat pas des signaux aléatoires")
+                lines.append("- Le portfolio ne bat pas des signaux alÃ©atoires")
 
     md_path = Path("docs/v3_final_report.md")
     md_path.parent.mkdir(parents=True, exist_ok=True)
     md_path.write_text("\n".join(lines), encoding="utf-8")
-    print(f"Rapport humain sauvegardé : {md_path}")
+    print(f"Rapport humain sauvegardÃ© : {md_path}")
 
 
 if __name__ == "__main__":

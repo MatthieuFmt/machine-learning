@@ -4,6 +4,8 @@ version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
     "pandas-ta>=0.3.14b0",
+    "dukascopy-python>=0.0.1",
+    "yfinance>=0.2.40",
 ]
 
 [tool.ruff]

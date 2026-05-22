@@ -1,18 +1,18 @@
-"""Pivot v4 Phase B C5 — B1 : Méta-labeling RF sur GBPUSD H4 (rf, Sharpe outer +3.45).
+"""Pivot v4 Phase B C5 â€” B1 : MÃ©ta-labeling RF sur GBPUSD H4 (rf, Sharpe outer +3.45).
 
-⚠️ Consomme 1 n_trial. Lecture OOS test set ≥ 2024 = unique.
+âš ï¸ Consomme 1 n_trial. Lecture OOS test set â‰¥ 2024 = unique.
 
 Flow :
-1. Charge GBPUSD H4, cutoff train ≤ 2022-12-31, test ≥ 2024-01-01.
-2. Construit le superset de features, sélectionne le top 15 C5 pour GBPUSD H4.
+1. Charge GBPUSD H4, cutoff train â‰¤ 2022-12-31, test â‰¥ 2024-01-01.
+2. Construit le superset de features, sÃ©lectionne le top 15 C5 pour GBPUSD H4.
 3. Walk-forward expanding window, retrain 6M depuis 2024-01-01 :
-   a. Entraîne le modèle primaire rf (hyperparams C5) sur train ≤ retrain_date
-   b. Génère les signaux primaires → backtest déterministe → trades train
-   c. Extrait les features aux barres d'entrée des trades train
-   d. Entraîne MetaLabelingRF (2ᵉ modèle) pour filtrer les faux signaux
-   e. Applique le filtre méta sur le segment OOS
-   f. Backtest OOS avec et sans méta-labeling → comparaison Sharpe
-4. Agrège tous les trades OOS, calcule métriques, validate_edge, read_oos.
+   a. EntraÃ®ne le modÃ¨le primaire rf (hyperparams C5) sur train â‰¤ retrain_date
+   b. GÃ©nÃ¨re les signaux primaires â†’ backtest dÃ©terministe â†’ trades train
+   c. Extrait les features aux barres d'entrÃ©e des trades train
+   d. EntraÃ®ne MetaLabelingRF (2áµ‰ modÃ¨le) pour filtrer les faux signaux
+   e. Applique le filtre mÃ©ta sur le segment OOS
+   f. Backtest OOS avec et sans mÃ©ta-labeling â†’ comparaison Sharpe
+4. AgrÃ¨ge tous les trades OOS, calcule mÃ©triques, validate_edge, read_oos.
 5. Sauvegarde dans predictions/phase_b_c5_b1_gbpusd_h4.json.
 """
 from __future__ import annotations
@@ -45,7 +45,7 @@ from app.testing.snooping_guard import read_oos  # noqa: E402
 
 logger = get_logger(__name__)
 
-# ── Constantes du couple ──────────────────────────────────────────────────────
+# â”€â”€ Constantes du couple â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ASSET = "GBPUSD"
 TF = "H4"
 COUPLE_KEY = (ASSET, TF)
@@ -58,7 +58,7 @@ EMBARGO_DAYS = 2
 
 
 def _build_features_for_split(df_split: pd.DataFrame) -> pd.DataFrame:
-    """Construit le superset et sélectionne le top 15 C5 pour GBPUSD H4."""
+    """Construit le superset et sÃ©lectionne le top 15 C5 pour GBPUSD H4."""
     superset = build_superset(df_split, asset=ASSET)
     selected = list(FEATURES_SELECTED[COUPLE_KEY])
     available = [c for c in selected if c in superset.columns]
@@ -74,17 +74,17 @@ def _build_target_winner(_df: pd.DataFrame, pnl_brut: pd.Series) -> pd.Series:
 
 
 def _generate_bootstrap_signals(df: pd.DataFrame) -> pd.Series:
-    """Génère les signaux bootstrap basés sur les terciles du trend score.
+    """GÃ©nÃ¨re les signaux bootstrap basÃ©s sur les terciles du trend score.
 
-    Top 20% trend → LONG, bottom 20% → SHORT. Utilisé comme générateur
-    primaire pour le flow méta-labeling B1 (équivalent du Donchian dans
+    Top 20% trend â†’ LONG, bottom 20% â†’ SHORT. UtilisÃ© comme gÃ©nÃ©rateur
+    primaire pour le flow mÃ©ta-labeling B1 (Ã©quivalent du Donchian dans
     les autres scripts c5).
 
     Args:
         df: DataFrame OHLC.
 
     Returns:
-        Série 1/-1/0 même index que df.
+        SÃ©rie 1/-1/0 mÃªme index que df.
     """
     features = _build_features_for_split(df)
     if features.empty:
@@ -110,7 +110,7 @@ def _train_primary_model(
     X_train: pd.DataFrame,
     y_train: pd.Series,
 ) -> RandomForestClassifier:
-    """Entraîne le modèle primaire rf avec les hyperparams C5 pour GBPUSD H4."""
+    """EntraÃ®ne le modÃ¨le primaire rf avec les hyperparams C5 pour GBPUSD H4."""
     hp = HYPERPARAMS_TUNED[COUPLE_KEY]
     params = hp["params"]
     model = RandomForestClassifier(
@@ -138,8 +138,8 @@ def _primary_signals(
 
     Args:
         df: DataFrame OHLC.
-        model: RF primaire entraîné sur (features à entrée bootstrap, y=winner).
-        primary_signals: Signaux bootstrap sur df. Si None, ils sont générés
+        model: RF primaire entraÃ®nÃ© sur (features Ã  entrÃ©e bootstrap, y=winner).
+        primary_signals: Signaux bootstrap sur df. Si None, ils sont gÃ©nÃ©rÃ©s
             ici via _generate_bootstrap_signals(df).
     """
     from app.models.meta_labeling_pipeline import filter_signals_by_meta_proba
@@ -201,13 +201,13 @@ def _trades_to_dataframe(
 def main() -> int:
     set_global_seeds()
 
-    # ── 1. Chargement GBPUSD H4 ──────────────────────────────────────────
+    # â”€â”€ 1. Chargement GBPUSD H4 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     print(f"Chargement {ASSET} {TF}...")
     df = load_asset(ASSET, TF)
     cfg = ASSET_CONFIGS[ASSET]
-    print(f"  {len(df)} barres, {df.index.min().date()} → {df.index.max().date()}")
+    print(f"  {len(df)} barres, {df.index.min().date()} â†’ {df.index.max().date()}")
 
-    # ── 2. Préparation des dates de retrain ──────────────────────────────
+    # â”€â”€ 2. PrÃ©paration des dates de retrain â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     half_cost = (cfg.spread_pips + cfg.slippage_pips) / 2.0
     retrain_dates = pd.date_range(start=TEST_START, end=df.index[-1], freq="6MS", inclusive="both")
     if len(retrain_dates) == 0:
@@ -217,7 +217,7 @@ def main() -> int:
     all_trades_meta: list[pd.DataFrame] = []
     segments: list[dict[str, Any]] = []
 
-    print(f"\nWalk-forward méta-labeling (retrain {RETRAIN_MONTHS}M, test ≥ {TEST_START.date()})...")
+    print(f"\nWalk-forward mÃ©ta-labeling (retrain {RETRAIN_MONTHS}M, test â‰¥ {TEST_START.date()})...")
     print(f"  {len(retrain_dates)} segments de retrain")
 
     for i, retrain_dt in enumerate(retrain_dates):
@@ -234,25 +234,25 @@ def main() -> int:
             logger.warning("Segment %s: train (%d) ou OOS (%d) vide, skip.", retrain_dt.date(), len(df_train), len(df_oos))
             continue
 
-        print(f"\n── Segment {retrain_dt.date()} → {segment_end.date()} ──")
-        print(f"   Train: {df_train.index.min().date()} → {df_train.index.max().date()} ({len(df_train)} barres)")
-        print(f"   OOS:   {df_oos.index.min().date()} → {df_oos.index.max().date()} ({len(df_oos)} barres)")
+        print(f"\nâ”€â”€ Segment {retrain_dt.date()} â†’ {segment_end.date()} â”€â”€")
+        print(f"   Train: {df_train.index.min().date()} â†’ {df_train.index.max().date()} ({len(df_train)} barres)")
+        print(f"   OOS:   {df_oos.index.min().date()} â†’ {df_oos.index.max().date()} ({len(df_oos)} barres)")
 
-        # ── 3a. Entraîner le modèle primaire sur train ──────────────────
+        # â”€â”€ 3a. EntraÃ®ner le modÃ¨le primaire sur train â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         try:
             features_train = _build_features_for_split(df_train)
             if features_train.empty:
                 logger.warning("Aucune feature train, skip segment.")
                 continue
 
-            # Générer des signaux "baseline" pour créer les targets d'entraînement
-            # On utilise un modèle pré-entraîné bootstrap pour générer des signaux initiaux
-            # Stratégie bootstrap : signaux basés sur les features de tendance
+            # GÃ©nÃ©rer des signaux "baseline" pour crÃ©er les targets d'entraÃ®nement
+            # On utilise un modÃ¨le prÃ©-entraÃ®nÃ© bootstrap pour gÃ©nÃ©rer des signaux initiaux
+            # StratÃ©gie bootstrap : signaux basÃ©s sur les features de tendance
             trend_cols = [c for c in ["slope_sma_20", "slope_sma_50", "dist_sma_200"] if c in features_train.columns]
             if trend_cols:
                 trend_score = features_train[trend_cols].mean(axis=1)
                 bootstrap_signals = pd.Series(0, index=features_train.index, dtype=int)
-                # Top 20% bullish → LONG, bottom 20% bearish → SHORT
+                # Top 20% bullish â†’ LONG, bottom 20% bearish â†’ SHORT
                 q80 = trend_score.quantile(0.80)
                 q20 = trend_score.quantile(0.20)
                 bootstrap_signals[trend_score > q80] = 1
@@ -260,7 +260,7 @@ def main() -> int:
             else:
                 bootstrap_signals = pd.Series(0, index=features_train.index, dtype=int)
 
-            # Backtest bootstrap pour générer des trades et labels
+            # Backtest bootstrap pour gÃ©nÃ©rer des trades et labels
             bt_bootstrap = run_deterministic_backtest(
                 df=df_train,
                 signals=bootstrap_signals,
@@ -270,11 +270,12 @@ def main() -> int:
                 commission_pips=cfg.commission_pips,
                 slippage_pips=half_cost,
                 pip_size=cfg.pip_size,
+                asset_config=cfg,
             )
             trades_bootstrap: list[dict] = bt_bootstrap.get("trades", [])
 
             if len(trades_bootstrap) < 10:
-                logger.warning("Bootstrap: seulement %d trades train, skip méta.", len(trades_bootstrap))
+                logger.warning("Bootstrap: seulement %d trades train, skip mÃ©ta.", len(trades_bootstrap))
                 # Fallback: utiliser les signaux bootstrap directement sur OOS
                 signals_oos = pd.Series(0, index=df_oos.index, dtype=int)
                 features_oos = _build_features_for_split(df_oos)
@@ -290,6 +291,7 @@ def main() -> int:
                     commission_pips=cfg.commission_pips,
                     slippage_pips=half_cost,
                     pip_size=cfg.pip_size,
+                    asset_config=cfg,
                 )
                 trades_oos_df = _trades_to_dataframe(bt_oos.get("trades", []), cfg=cfg)
                 segments.append({
@@ -306,11 +308,11 @@ def main() -> int:
                     all_trades_meta.append(trades_oos_df)
                 continue
 
-            # Entraîner le primaire rf sur les signaux bootstrap
+            # EntraÃ®ner le primaire rf sur les signaux bootstrap
             entry_times_train = pd.to_datetime([t["entry_time"] for t in trades_bootstrap])
             common_train_idx = features_train.index.intersection(entry_times_train)
             if len(common_train_idx) < 5:
-                logger.warning("Seulement %d features alignées avec trades train.", len(common_train_idx))
+                logger.warning("Seulement %d features alignÃ©es avec trades train.", len(common_train_idx))
                 continue
 
             X_primary = features_train.loc[common_train_idx]
@@ -321,13 +323,13 @@ def main() -> int:
             y_primary = _build_target_winner(df_train, pnl_aligned)
 
             if y_primary.nunique() < 2:
-                logger.warning("Une seule classe dans y_primary, skip méta.")
+                logger.warning("Une seule classe dans y_primary, skip mÃ©ta.")
                 continue
 
             primary_model = _train_primary_model(X_primary, y_primary)
-            print(f"   Modèle primaire rf entraîné sur {len(X_primary)} trades train")
+            print(f"   ModÃ¨le primaire rf entraÃ®nÃ© sur {len(X_primary)} trades train")
 
-            # ── 3b. Générer signaux primaires sur train → méta-labels ───
+            # â”€â”€ 3b. GÃ©nÃ©rer signaux primaires sur train â†’ mÃ©ta-labels â”€â”€â”€
             signals_train_primary = _primary_signals(df_train, primary_model)
             bt_train_primary = run_deterministic_backtest(
                 df=df_train,
@@ -338,12 +340,13 @@ def main() -> int:
                 commission_pips=cfg.commission_pips,
                 slippage_pips=half_cost,
                 pip_size=cfg.pip_size,
+                asset_config=cfg,
             )
             trades_train_primary: list[dict] = bt_train_primary.get("trades", [])
 
             if len(trades_train_primary) < 10:
                 logger.warning("Primaire: seulement %d trades train.", len(trades_train_primary))
-                # Fallback: baseline sans méta sur OOS
+                # Fallback: baseline sans mÃ©ta sur OOS
                 signals_oos = _primary_signals(df_oos, primary_model)
                 bt_oos = run_deterministic_backtest(
                     df=df_oos, signals=signals_oos,
@@ -352,6 +355,7 @@ def main() -> int:
                     commission_pips=cfg.commission_pips,
                     slippage_pips=half_cost,
                     pip_size=cfg.pip_size,
+                    asset_config=cfg,
                 )
                 trades_oos_df = _trades_to_dataframe(bt_oos.get("trades", []), cfg=cfg)
                 segments.append({
@@ -368,11 +372,11 @@ def main() -> int:
                     all_trades_meta.append(trades_oos_df)
                 continue
 
-            # ── 3c. Extraire features aux barres d'entrée ───────────────
+            # â”€â”€ 3c. Extraire features aux barres d'entrÃ©e â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             entry_times_primary = pd.to_datetime([t["entry_time"] for t in trades_train_primary])
             common_meta_idx = features_train.index.intersection(entry_times_primary)
             if len(common_meta_idx) < 5:
-                logger.warning("Seulement %d features pour méta.", len(common_meta_idx))
+                logger.warning("Seulement %d features pour mÃ©ta.", len(common_meta_idx))
                 continue
 
             x_meta_train = features_train.loc[common_meta_idx]
@@ -382,7 +386,7 @@ def main() -> int:
             ]
             y_meta = _build_target_winner(df_train, pnl_meta_aligned)
 
-            # ── 3d. Entraîner MetaLabelingRF ────────────────────────────
+            # â”€â”€ 3d. EntraÃ®ner MetaLabelingRF â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             meta_config = MetaLabelingConfig(
                 n_estimators=HYPERPARAMS_TUNED[COUPLE_KEY]["params"].get("n_estimators", 100),
                 max_depth=HYPERPARAMS_TUNED[COUPLE_KEY]["params"].get("max_depth", 10),
@@ -411,9 +415,9 @@ def main() -> int:
                     return sharpe_daily_from_trades(filtered_trades)
 
                 meta.calibrate_threshold(x_meta_train, _sharpe_for_threshold)
-                print(f"   Méta-labeling: seuil={meta.threshold:.2f}, disabled={meta.disabled}")
+                print(f"   MÃ©ta-labeling: seuil={meta.threshold:.2f}, disabled={meta.disabled}")
 
-            # ── 3e. Appliquer sur OOS ───────────────────────────────────
+            # â”€â”€ 3e. Appliquer sur OOS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             # Baseline: signaux primaires sans filtre
             signals_oos_primary = _primary_signals(df_oos, primary_model)
             bt_oos_baseline = run_deterministic_backtest(
@@ -425,10 +429,11 @@ def main() -> int:
                 commission_pips=cfg.commission_pips,
                 slippage_pips=half_cost,
                 pip_size=cfg.pip_size,
+                asset_config=cfg,
             )
             trades_oos_baseline = _trades_to_dataframe(bt_oos_baseline.get("trades", []), cfg=cfg)
 
-            # Avec méta-labeling
+            # Avec mÃ©ta-labeling
             if meta.disabled:
                 trades_oos_meta = trades_oos_baseline.copy() if not trades_oos_baseline.empty else trades_oos_baseline
             else:
@@ -463,10 +468,11 @@ def main() -> int:
                             commission_pips=cfg.commission_pips,
                             slippage_pips=half_cost,
                             pip_size=cfg.pip_size,
+                            asset_config=cfg,
                         )
                         trades_oos_meta = _trades_to_dataframe(bt_oos_meta.get("trades", []), cfg=cfg)
 
-            # ── 3f. Métriques segment ───────────────────────────────────
+            # â”€â”€ 3f. MÃ©triques segment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             sharpe_base = float(bt_oos_baseline.get("sharpe", 0.0))
             n_base = int(bt_oos_baseline.get("total_trades", 0))
             n_meta = len(trades_oos_meta)
@@ -490,7 +496,7 @@ def main() -> int:
                 "threshold": meta.threshold if not meta.disabled else 0.0,
             })
             print(f"   Baseline: {n_base} trades, Sharpe={sharpe_base:.3f}")
-            print(f"   Méta:     {n_meta} trades, Sharpe={sharpe_meta:.3f}")
+            print(f"   MÃ©ta:     {n_meta} trades, Sharpe={sharpe_meta:.3f}")
 
             if not trades_oos_baseline.empty:
                 all_trades_baseline.append(trades_oos_baseline)
@@ -501,7 +507,7 @@ def main() -> int:
             logger.error("Erreur segment %s: %s", retrain_dt.date(), exc)
             continue
 
-    # ── 4. Agrégation ───────────────────────────────────────────────────
+    # â”€â”€ 4. AgrÃ©gation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if all_trades_meta:
         all_meta_df = pd.concat(all_trades_meta).sort_index()
     else:
@@ -512,7 +518,7 @@ def main() -> int:
     else:
         all_baseline_df = pd.DataFrame(columns=["Pips_Nets", "Pips_Bruts", "result", "position_size_lots", "pnl"])
 
-    # ── 5. Métriques globales ───────────────────────────────────────────
+    # â”€â”€ 5. MÃ©triques globales â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     metrics_meta: dict[str, Any] = {}
     metrics_baseline: dict[str, Any] = {}
 
@@ -526,21 +532,21 @@ def main() -> int:
     else:
         metrics_baseline = {"sharpe": 0.0, "trades": 0, "win_rate": 0.0, "max_dd_pct": 0.0}
 
-    # ── 6. validate_edge ────────────────────────────────────────────────
+    # â”€â”€ 6. validate_edge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     equity_meta: pd.Series
     if not all_meta_df.empty and "pnl" in all_meta_df.columns:
         equity_meta = all_meta_df["pnl"].cumsum() + CAPITAL_EUR
     else:
         equity_meta = pd.Series([CAPITAL_EUR], index=[df.index[0]])
 
-    n_trials_cumul = 26  # hérités Phase A + C1-C5 (à ajuster par utilisateur après JOURNAL.md)
+    n_trials_cumul = 26  # hÃ©ritÃ©s Phase A + C1-C5 (Ã  ajuster par utilisateur aprÃ¨s JOURNAL.md)
     report = validate_edge(
         equity=equity_meta,
         trades=all_meta_df if not all_meta_df.empty else pd.DataFrame(columns=["pnl"]),
         n_trials=n_trials_cumul,
     )
 
-    # ── 7. read_oos ─────────────────────────────────────────────────────
+    # â”€â”€ 7. read_oos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     read_oos(
         prompt="pivot_v4_phase_b_c5_b1",
         hypothesis="B1_C5_GBPUSD_H4_meta_labeling",
@@ -548,10 +554,10 @@ def main() -> int:
         n_trades=int(metrics_meta.get("trades", 0)),
     )
 
-    # ── 8. Sauvegarde ───────────────────────────────────────────────────
+    # â”€â”€ 8. Sauvegarde â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     out: dict[str, Any] = {
         "hypothesis": "B1_C5_GBPUSD_H4_meta_labeling",
-        "phase": "Phase B C5 — B1",
+        "phase": "Phase B C5 â€” B1",
         "asset": ASSET,
         "tf": TF,
         "model_primary": "rf",
@@ -592,15 +598,15 @@ def main() -> int:
     )
 
     print(f"\n{'='*60}")
-    print(f"Phase B C5 — B1 GBPUSD H4 terminé.")
+    print(f"Phase B C5 â€” B1 GBPUSD H4 terminÃ©.")
     print(f"  Sharpe baseline : {metrics_baseline.get('sharpe', 0):.3f}")
-    print(f"  Sharpe méta     : {metrics_meta.get('sharpe', 0):.3f}")
-    print(f"  Amélioration    : {out['sharpe_improvement']:+.3f}")
+    print(f"  Sharpe mÃ©ta     : {metrics_meta.get('sharpe', 0):.3f}")
+    print(f"  AmÃ©lioration    : {out['sharpe_improvement']:+.3f}")
     print(f"  Trades baseline : {metrics_baseline.get('trades', 0)}")
-    print(f"  Trades méta     : {metrics_meta.get('trades', 0)}")
-    print(f"  Verdict         : {'GO ✅' if report.go else 'NO-GO ❌'}")
+    print(f"  Trades mÃ©ta     : {metrics_meta.get('trades', 0)}")
+    print(f"  Verdict         : {'GO âœ…' if report.go else 'NO-GO âŒ'}")
     print(f"  Raisons         : {report.reasons}")
-    print(f"\nRésultats sauvegardés : {out_path}")
+    print(f"\nRÃ©sultats sauvegardÃ©s : {out_path}")
     return 0 if report.go else 1
 
 

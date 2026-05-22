@@ -1,20 +1,20 @@
 """Test OOS unique du candidat H4 issu du screening.
 
 Candidat principal :
-- TsMomentum(T=60) sur ETHUSD H4, SL=1.5×ATR_train, TP=2×SL.
+- TsMomentum(T=60) sur ETHUSD H4, SL=1.5Ã—ATR_train, TP=2Ã—SL.
   Train : Sharpe +0.59, WR 37%, n=1330, mean_pnl +341.
 
-Candidats bonus (Sharpe train 0.37-0.38, sous le seuil 0.5 mais cohérents) :
-- SmaCrossover_10_50 sur GBPUSD H4, SL=1.0×ATR_train.
-- SmaCrossover_10_50 sur EURUSD H4, SL=1.0×ATR_train.
+Candidats bonus (Sharpe train 0.37-0.38, sous le seuil 0.5 mais cohÃ©rents) :
+- SmaCrossover_10_50 sur GBPUSD H4, SL=1.0Ã—ATR_train.
+- SmaCrossover_10_50 sur EURUSD H4, SL=1.0Ã—ATR_train.
 
-Total : 3 lectures OOS = 3 n_trials (de 50 à 53).
+Total : 3 lectures OOS = 3 n_trials (de 50 Ã  53).
 
-Critères GO :
-- Sharpe test ≥ 0.5
-- WR test ≥ 35%
-- Δ Sharpe (test-train) ≥ -0.5 (pas d'effondrement)
-- n_trades test ≥ 50 (échantillon plus large attendu en H4)
+CritÃ¨res GO :
+- Sharpe test â‰¥ 0.5
+- WR test â‰¥ 35%
+- Î” Sharpe (test-train) â‰¥ -0.5 (pas d'effondrement)
+- n_trades test â‰¥ 50 (Ã©chantillon plus large attendu en H4)
 """
 from __future__ import annotations
 
@@ -49,7 +49,7 @@ CANDIDATES: list[dict[str, Any]] = [
         "strat_factory": lambda: TsMomentum(T=60),
         "sl_atr_ratio": 1.5, "tp_over_sl": 2.0,
         "train_sharpe": 0.59, "train_wr": 0.37, "train_n": 1330,
-        "tier": "primary",  # seul candidat sur critère ≥0.5
+        "tier": "primary",  # seul candidat sur critÃ¨re â‰¥0.5
     },
     {
         "name": "SmaCrossover_10_50_GBPUSD_H4_1.0xATR",
@@ -57,7 +57,7 @@ CANDIDATES: list[dict[str, Any]] = [
         "strat_factory": lambda: SmaCrossover(fast=10, slow=50),
         "sl_atr_ratio": 1.0, "tp_over_sl": 2.0,
         "train_sharpe": 0.38, "train_wr": 0.38, "train_n": 489,
-        "tier": "bonus",  # sous le seuil mais cohérent multi-asset
+        "tier": "bonus",  # sous le seuil mais cohÃ©rent multi-asset
     },
     {
         "name": "SmaCrossover_10_50_EURUSD_H4_1.0xATR",
@@ -98,25 +98,25 @@ def test_one(spec: dict[str, Any]) -> dict[str, Any]:
     df_test = df.loc[TEST_START:]
     half_cost = (cfg.spread_pips + cfg.slippage_pips) / 2.0
 
-    # ATR figé sur train
+    # ATR figÃ© sur train
     atr14_train = atr(df_train["High"], df_train["Low"], df_train["Close"], 14)
     atr_pips_train = float((atr14_train / cfg.pip_size).dropna().mean())
     sl_pips = max(round(spec["sl_atr_ratio"] * atr_pips_train), 1)
     tp_pips = max(round(sl_pips * spec["tp_over_sl"]), 1)
     print(f"  ATR train H4 moyen : {atr_pips_train:.1f} pips")
-    print(f"  SL = {sl_pips} pips, TP = {tp_pips} pips (figés sur train)")
-    print(f"  Test : {df_test.index.min().date()} → {df_test.index.max().date()} ({len(df_test)} bars)")
+    print(f"  SL = {sl_pips} pips, TP = {tp_pips} pips (figÃ©s sur train)")
+    print(f"  Test : {df_test.index.min().date()} â†’ {df_test.index.max().date()} ({len(df_test)} bars)")
 
     strat = spec["strat_factory"]()
 
-    # Train (référence)
+    # Train (rÃ©fÃ©rence)
     signals_train = strat.generate_signals(df_train)
     bt_train = run_deterministic_backtest(
         df=df_train, signals=signals_train,
         tp_pips=tp_pips, sl_pips=sl_pips,
         window_hours=cfg.window_hours,
         commission_pips=cfg.commission_pips,
-        slippage_pips=half_cost, pip_size=cfg.pip_size,
+        slippage_pips=half_cost, pip_size=cfg.pip_size, asset_config=cfg,
     )
     m_train = _analyze(bt_train.get("trades", []))
     print(f"  Train  : Sharpe={m_train['sharpe']:+.2f}, WR={m_train['wr']:.1%}, n={m_train['n_trades']}, "
@@ -129,7 +129,7 @@ def test_one(spec: dict[str, Any]) -> dict[str, Any]:
         tp_pips=tp_pips, sl_pips=sl_pips,
         window_hours=cfg.window_hours,
         commission_pips=cfg.commission_pips,
-        slippage_pips=half_cost, pip_size=cfg.pip_size,
+        slippage_pips=half_cost, pip_size=cfg.pip_size, asset_config=cfg,
     )
     m_test = _analyze(bt_test.get("trades", []))
     print(f"  TEST   : Sharpe={m_test['sharpe']:+.2f}, WR={m_test['wr']:.1%}, n={m_test['n_trades']}, "
@@ -150,11 +150,11 @@ def test_one(spec: dict[str, Any]) -> dict[str, Any]:
     go = go_sharpe and go_wr and go_stability and go_volume
 
     print(f"\n  Verdict :")
-    print(f"    Sharpe ≥ 0.5    : {'✅' if go_sharpe else '❌'} ({m_test['sharpe']:+.2f})")
-    print(f"    WR ≥ 35%        : {'✅' if go_wr else '❌'} ({m_test['wr']:.1%})")
-    print(f"    Δ Sharpe ≥ -0.5 : {'✅' if go_stability else '❌'} ({delta:+.2f})")
-    print(f"    n ≥ 50          : {'✅' if go_volume else '❌'} ({m_test['n_trades']})")
-    print(f"  → {'🎯 GO' if go else '❌ NO-GO'}")
+    print(f"    Sharpe â‰¥ 0.5    : {'âœ…' if go_sharpe else 'âŒ'} ({m_test['sharpe']:+.2f})")
+    print(f"    WR â‰¥ 35%        : {'âœ…' if go_wr else 'âŒ'} ({m_test['wr']:.1%})")
+    print(f"    Î” Sharpe â‰¥ -0.5 : {'âœ…' if go_stability else 'âŒ'} ({delta:+.2f})")
+    print(f"    n â‰¥ 50          : {'âœ…' if go_volume else 'âŒ'} ({m_test['n_trades']})")
+    print(f"  â†’ {'ðŸŽ¯ GO' if go else 'âŒ NO-GO'}")
 
     return {
         "candidate": spec["name"], "tier": spec["tier"],
@@ -171,7 +171,7 @@ def test_one(spec: dict[str, Any]) -> dict[str, Any]:
 def main() -> int:
     set_global_seeds()
     print("=" * 70)
-    print(f"TEST OOS H4 — {len(CANDIDATES)} candidats (1 primary + 2 bonus)")
+    print(f"TEST OOS H4 â€” {len(CANDIDATES)} candidats (1 primary + 2 bonus)")
     print(f"Lectures OOS : {len(CANDIDATES)} (+{len(CANDIDATES)} n_trials)")
     print("=" * 70)
 
@@ -181,11 +181,11 @@ def main() -> int:
             r = test_one(spec)
             results.append(r)
         except Exception as exc:
-            print(f"  ❌ {spec['name']} : {exc}")
+            print(f"  âŒ {spec['name']} : {exc}")
             results.append({"candidate": spec["name"], "error": str(exc)})
 
     print("\n" + "=" * 90)
-    print("RÉCAP")
+    print("RÃ‰CAP")
     print("=" * 90)
     print(f"{'Candidat':<45} {'Tier':>8} {'Tr Sh':>7} {'Tst Sh':>7} {'Tst WR':>7} {'Tst n':>6} {'GO?':>5}")
     n_go = 0
@@ -194,13 +194,13 @@ def main() -> int:
             print(f"{r['candidate']:<45} ERROR : {r['error']}")
             continue
         mt = r["metrics_test"]; mtr = r["metrics_train"]
-        verdict = "🎯 GO" if r["go"] else "❌"
+        verdict = "ðŸŽ¯ GO" if r["go"] else "âŒ"
         if r["go"]:
             n_go += 1
         print(f"{r['candidate']:<45} {r['tier']:>8} "
               f"{mtr['sharpe']:>+7.2f} {mt['sharpe']:>+7.2f} "
               f"{mt['wr']:>7.1%} {mt['n_trades']:>6} {verdict:>5}")
-    print(f"\n{n_go}/{len(CANDIDATES)} candidats passent les 4 critères.")
+    print(f"\n{n_go}/{len(CANDIDATES)} candidats passent les 4 critÃ¨res.")
 
     out_json = Path("predictions/test_oos_h4_candidate.json")
     out_json.parent.mkdir(parents=True, exist_ok=True)
@@ -208,7 +208,7 @@ def main() -> int:
         json.dumps(results, indent=2, default=str, ensure_ascii=False),
         encoding="utf-8",
     )
-    print(f"\nJSON sauvegardé : {out_json}")
+    print(f"\nJSON sauvegardÃ© : {out_json}")
     return 0 if n_go > 0 else 1
 
 

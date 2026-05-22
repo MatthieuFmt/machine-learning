@@ -1,6 +1,6 @@
-"""Pivot v4 A7 — Sélection de modèle via CPCV train uniquement.
+"""Pivot v4 A7 â€” SÃ©lection de modÃ¨le via CPCV train uniquement.
 
-⚠️ Aucune lecture du test set ≥ 2024.
+âš ï¸ Aucune lecture du test set â‰¥ 2024.
 """
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ from app.strategies.donchian import DonchianBreakout
 
 CUTOFF = pd.Timestamp("2022-12-31 23:59:59", tz="UTC")
 
-# ── AssetConfig EURUSD locale (non présente dans ASSET_CONFIGS) ──────────
+# â”€â”€ AssetConfig EURUSD locale (non prÃ©sente dans ASSET_CONFIGS) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 _EURUSD_CFG = AssetConfig(
     spread_pips=0.5,
     slippage_pips=1.0,
@@ -39,7 +39,7 @@ _EURUSD_CFG = AssetConfig(
     max_lot=50.0,
 )
 
-# ── Mapping (asset, tf) → (AssetConfig, strat_cls, strat_kwargs) ─────────
+# â”€â”€ Mapping (asset, tf) â†’ (AssetConfig, strat_cls, strat_kwargs) â”€â”€â”€â”€â”€â”€â”€â”€â”€
 STRAT_MAP: dict[tuple[str, str], tuple[AssetConfig, type, dict]] = {
     ("US30", "D1"): (ASSET_CONFIGS["US30"], DonchianBreakout, {"N": 20, "M": 20}),
     ("EURUSD", "H4"): (_EURUSD_CFG, DonchianBreakout, {"N": 20, "M": 20}),
@@ -52,7 +52,7 @@ def _backtest_wrapper(
     strat: DonchianBreakout,
     cfg: AssetConfig,
 ) -> pd.DataFrame:
-    """Exécute le backtest déterministe et retourne le DataFrame trades."""
+    """ExÃ©cute le backtest dÃ©terministe et retourne le DataFrame trades."""
     from app.backtest.deterministic import run_deterministic_backtest
 
     signals = strat.generate_signals(df_train)
@@ -65,6 +65,7 @@ def _backtest_wrapper(
         commission_pips=cfg.commission_pips,
         slippage_pips=cfg.slippage_pips,
         pip_size=cfg.pip_size,
+        asset_config=cfg,
     )
     trades_list: list[dict] = result.get("trades", [])
     if not trades_list:
@@ -77,7 +78,7 @@ def _backtest_wrapper(
 
 
 def evaluate_one_asset(asset: str, tf: str) -> dict:
-    """Évalue les 3 candidats via CPCV sur train ≤ 2022 pour un actif."""
+    """Ã‰value les 3 candidats via CPCV sur train â‰¤ 2022 pour un actif."""
     key = (asset, tf)
     selected_features = FEATURES_SELECTED.get(key)
     if not selected_features:
@@ -131,12 +132,12 @@ def evaluate_one_asset(asset: str, tf: str) -> dict:
             "fold_sharpes": r.fold_sharpes,
         }
 
-    # Sélectionner : meilleur Sharpe moyen avec stabilité < 1.0
+    # SÃ©lectionner : meilleur Sharpe moyen avec stabilitÃ© < 1.0
     candidates_stable = {
         n: res for n, res in results.items() if res["stability"] < 1.0
     }
     if not candidates_stable:
-        # Fallback : meilleur Sharpe peu importe la stabilité
+        # Fallback : meilleur Sharpe peu importe la stabilitÃ©
         best_name = max(results.items(), key=lambda kv: kv[1]["sharpe_mean"])[0]
     else:
         best_name = max(candidates_stable.items(), key=lambda kv: kv[1]["sharpe_mean"])[0]
@@ -162,7 +163,7 @@ def main() -> int:
         print(f"Evaluating {key_str}...")
         out[key_str] = evaluate_one_asset(asset, tf)
 
-    # ── Sauvegarde JSON ─────────────────────────────────────────────────
+    # â”€â”€ Sauvegarde JSON â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     out_path = Path("predictions/model_selection_v4.json")
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(
@@ -170,7 +171,7 @@ def main() -> int:
         encoding="utf-8",
     )
 
-    # ── Génère app/config/model_selected.py ──────────────────────────────
+    # â”€â”€ GÃ©nÃ¨re app/config/model_selected.py â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     lines: list[str] = []
     for (asset, tf) in FEATURES_SELECTED:
         key_str = f"{asset}_{tf}"
@@ -179,7 +180,7 @@ def main() -> int:
             lines.append(f'    ("{asset}", "{tf}"): "{entry["best_model"]}",')
 
     content = (
-        '"""FROZEN après pivot v4 A7. NE PAS MODIFIER sans nouveau pivot."""\n'
+        '"""FROZEN aprÃ¨s pivot v4 A7. NE PAS MODIFIER sans nouveau pivot."""\n'
         "from __future__ import annotations\n\n"
         "MODEL_SELECTED: dict[tuple[str, str], str] = {\n"
         + "\n".join(lines)
@@ -189,7 +190,7 @@ def main() -> int:
     config_path.parent.mkdir(parents=True, exist_ok=True)
     config_path.write_text(content, encoding="utf-8")
 
-    print(f"Modèles sélectionnés sauvegardés dans {out_path} et {config_path}")
+    print(f"ModÃ¨les sÃ©lectionnÃ©s sauvegardÃ©s dans {out_path} et {config_path}")
     return 0
 
 

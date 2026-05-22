@@ -1,16 +1,16 @@
-"""Screening intraday H4 — 13 stratégies × 9 actifs × 4 ratios = 468 backtests.
+"""Screening intraday H4 â€” 13 stratÃ©gies Ã— 9 actifs Ã— 4 ratios = 468 backtests.
 
-Pivot après échec du D1 : tester si les patterns intraday capturent du
-signal. H4 = compromis volume (≥ 25k bars / actif) / temps de calcul.
+Pivot aprÃ¨s Ã©chec du D1 : tester si les patterns intraday capturent du
+signal. H4 = compromis volume (â‰¥ 25k bars / actif) / temps de calcul.
 
-Différences clés vs D1 :
-- ATR H4 plus petit (la stratégie de TP/SL ATR-based s'adapte automatiquement).
-- Plus de trades (~6× plus de signaux qu'en D1).
-- Frictions proportionnellement plus impactantes (à surveiller via mean_pnl).
-- Filtre sessions possible mais non testé ici (params défaut).
+DiffÃ©rences clÃ©s vs D1 :
+- ATR H4 plus petit (la stratÃ©gie de TP/SL ATR-based s'adapte automatiquement).
+- Plus de trades (~6Ã— plus de signaux qu'en D1).
+- Frictions proportionnellement plus impactantes (Ã  surveiller via mean_pnl).
+- Filtre sessions possible mais non testÃ© ici (params dÃ©faut).
 
-Train ≤ 2022 uniquement. Zéro n_trial consommé.
-Si signal détecté sur H4 → screener H1 ensuite (script séparé).
+Train â‰¤ 2022 uniquement. ZÃ©ro n_trial consommÃ©.
+Si signal dÃ©tectÃ© sur H4 â†’ screener H1 ensuite (script sÃ©parÃ©).
 """
 from __future__ import annotations
 
@@ -43,8 +43,8 @@ from app.strategies.ts_momentum import TsMomentum  # noqa: E402
 
 from scripts.run_validation_finale import TRAIN_CUTOFF  # noqa: E402
 
-# Params adaptés pour H4 — fenêtres plus longues pour compenser le bruit intraday.
-# Sur H4, une "journée" = 6 bars, donc N=20 H4 ≈ 3 jours D1.
+# Params adaptÃ©s pour H4 â€” fenÃªtres plus longues pour compenser le bruit intraday.
+# Sur H4, une "journÃ©e" = 6 bars, donc N=20 H4 â‰ˆ 3 jours D1.
 STRATEGIES: list[tuple[str, callable]] = [
     ("BollingerBands_50_2", lambda: BollingerBands(N=50, K=2.0)),
     ("BollingerBands_30_2_5", lambda: BollingerBands(N=30, K=2.5)),
@@ -120,7 +120,7 @@ def screen_one(strat_name: str, strat_factory: callable, asset: str) -> list[dic
             tp_pips=tp_pips, sl_pips=sl_pips,
             window_hours=cfg.window_hours,
             commission_pips=cfg.commission_pips,
-            slippage_pips=half_cost, pip_size=cfg.pip_size,
+            slippage_pips=half_cost, pip_size=cfg.pip_size, asset_config=cfg,
         )
         m = _analyze(bt.get("trades", []))
         m.update({
@@ -135,16 +135,16 @@ def screen_one(strat_name: str, strat_factory: callable, asset: str) -> list[dic
 def main() -> int:
     set_global_seeds()
     print("=" * 70)
-    print(f"SCREENING H4 — {len(STRATEGIES)} strats × {len(ASSETS)} actifs × "
+    print(f"SCREENING H4 â€” {len(STRATEGIES)} strats Ã— {len(ASSETS)} actifs Ã— "
           f"{len(TP_SL_RATIOS)} ratios = {len(STRATEGIES)*len(ASSETS)*len(TP_SL_RATIOS)} backtests")
-    print(f"Train ≤ {TRAIN_CUTOFF.date()} uniquement — 0 n_trial consommé")
+    print(f"Train â‰¤ {TRAIN_CUTOFF.date()} uniquement â€” 0 n_trial consommÃ©")
     print("=" * 70)
 
     all_results: list[dict[str, Any]] = []
     skipped: list[str] = []
 
     for strat_name, strat_factory in STRATEGIES:
-        print(f"\n── {strat_name} ──")
+        print(f"\nâ”€â”€ {strat_name} â”€â”€")
         for asset in ASSETS:
             rows = screen_one(strat_name, strat_factory, asset)
             ok_rows = [r for r in rows if "error" not in r]
@@ -154,12 +154,12 @@ def main() -> int:
             if error_rows:
                 err = error_rows[0]["error"]
                 skipped.append(f"{strat_name}/{asset}: {err}")
-                print(f"  {asset}: ❌ {err}")
+                print(f"  {asset}: âŒ {err}")
             elif ok_rows:
                 best = max(ok_rows, key=lambda x: x["sharpe"])
                 print(f"  {asset}: meilleur Sharpe={best['sharpe']:+.2f} "
                       f"(WR={best['wr']:.0%}, n={best['n_trades']}, "
-                      f"SL={best['sl_atr_ratio']}×ATR)")
+                      f"SL={best['sl_atr_ratio']}Ã—ATR)")
 
     all_results.sort(key=lambda x: x["sharpe"], reverse=True)
     candidates = [
@@ -169,7 +169,7 @@ def main() -> int:
     ]
 
     print("\n" + "=" * 90)
-    print(f"TOP 20 RÉSULTATS (sur {len(all_results)} backtests valides, {len(skipped)} skipped)")
+    print(f"TOP 20 RÃ‰SULTATS (sur {len(all_results)} backtests valides, {len(skipped)} skipped)")
     print("=" * 90)
     print(f"{'Strat':<35} {'Asset':<8} {'SL/ATR':>7} {'Sharpe':>7} {'WR':>5} {'n':>6} {'mean_pnl':>10}")
     for r in all_results[:20]:
@@ -179,19 +179,19 @@ def main() -> int:
 
     print("\n" + "=" * 70)
     print(f"CANDIDATS pour OOS unique : {len(candidates)} "
-          f"(Sharpe≥0.5, WR≥35%, n≥30 sur train)")
+          f"(Sharpeâ‰¥0.5, WRâ‰¥35%, nâ‰¥30 sur train)")
     print("=" * 70)
     for r in candidates[:30]:
-        print(f"  ✅ {r['strat']:<30} {r['asset']:<8} SL={r['sl_atr_ratio']}×ATR "
-              f"→ Sharpe {r['sharpe']:+.2f}, WR {r['wr']:.1%}, n={r['n_trades']}, "
+        print(f"  âœ… {r['strat']:<30} {r['asset']:<8} SL={r['sl_atr_ratio']}Ã—ATR "
+              f"â†’ Sharpe {r['sharpe']:+.2f}, WR {r['wr']:.1%}, n={r['n_trades']}, "
               f"mean_pnl={r['mean_pnl']:+.1f}")
 
     if not candidates:
-        print("\n🔴 AUCUN couple ne passe le critère minimal H4.")
-        print("   → Les patterns intraday H4 n'offrent pas plus d'edge que D1.")
+        print("\nðŸ”´ AUCUN couple ne passe le critÃ¨re minimal H4.")
+        print("   â†’ Les patterns intraday H4 n'offrent pas plus d'edge que D1.")
     else:
-        print(f"\n💡 {len(candidates)} candidates H4. ")
-        print("   Si l'un est solide → screener H1 sur les meilleurs strats/actifs.")
+        print(f"\nðŸ’¡ {len(candidates)} candidates H4. ")
+        print("   Si l'un est solide â†’ screener H1 sur les meilleurs strats/actifs.")
 
     out_json = Path("predictions/screen_strategies_train_h4.json")
     out_json.parent.mkdir(parents=True, exist_ok=True)
@@ -203,7 +203,7 @@ def main() -> int:
         }, indent=2, default=str, ensure_ascii=False),
         encoding="utf-8",
     )
-    print(f"\nJSON sauvegardé : {out_json}")
+    print(f"\nJSON sauvegardÃ© : {out_json}")
     return 0
 
 

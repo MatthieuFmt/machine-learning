@@ -1,18 +1,18 @@
-"""Pivot v4 Phase B C5 — B4 : USDCHF H4 walk-forward simple (sans méta-labeling).
+"""Pivot v4 Phase B C5 â€” B4 : USDCHF H4 walk-forward simple (sans mÃ©ta-labeling).
 
-Flow simplifié :
-1. Charge USDCHF H4, cutoff train ≤ 2022-12-31, test ≥ 2024-01-01.
-2. Construit le superset de features, sélectionne le top 15 C5 pour USDCHF H4.
-3. Génère la target Donchian (N=20, M=20) sur train → backtest → trades binaires
+Flow simplifiÃ© :
+1. Charge USDCHF H4, cutoff train â‰¤ 2022-12-31, test â‰¥ 2024-01-01.
+2. Construit le superset de features, sÃ©lectionne le top 15 C5 pour USDCHF H4.
+3. GÃ©nÃ¨re la target Donchian (N=20, M=20) sur train â†’ backtest â†’ trades binaires
    (winner = pips_net > 0).
-4. Entraîne rf (hyperparams C5) sur les features aux barres d'entrée des trades train.
-5. Prédit sur test, génère des signaux directionnels (prob > threshold,
+4. EntraÃ®ne rf (hyperparams C5) sur les features aux barres d'entrÃ©e des trades train.
+5. PrÃ©dit sur test, gÃ©nÃ¨re des signaux directionnels (prob > threshold,
    direction via momentum features).
-6. Backtest déterministe sur test.
-7. Calcule métriques (Sharpe, trades, WR, max DD).
+6. Backtest dÃ©terministe sur test.
+7. Calcule mÃ©triques (Sharpe, trades, WR, max DD).
 8. Sauvegarde dans predictions/phase_b_c5_b4_usdchf_h4.json.
 
-🚫 Pas de méta-labeling. Pas de walk-forward complexe. Train une fois, test une fois.
+ðŸš« Pas de mÃ©ta-labeling. Pas de walk-forward complexe. Train une fois, test une fois.
 """
 from __future__ import annotations
 
@@ -42,7 +42,7 @@ from app.strategies.donchian import DonchianBreakout  # noqa: E402
 
 logger = get_logger(__name__)
 
-# ── Constantes du couple ──────────────────────────────────────────────────────
+# â”€â”€ Constantes du couple â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ASSET = "USDCHF"
 TF = "H4"
 COUPLE_KEY = (ASSET, TF)
@@ -54,10 +54,10 @@ DONCHIAN_N = 20
 DONCHIAN_M = 20
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+# â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def _build_features_for_split(df_split: pd.DataFrame) -> pd.DataFrame:
-    """Construit le superset et sélectionne le top 15 C5 pour USDCHF H4."""
+    """Construit le superset et sÃ©lectionne le top 15 C5 pour USDCHF H4."""
     superset = build_superset(df_split, asset=ASSET)
     selected = list(FEATURES_SELECTED[COUPLE_KEY])
     available = [c for c in selected if c in superset.columns]
@@ -68,7 +68,7 @@ def _build_features_for_split(df_split: pd.DataFrame) -> pd.DataFrame:
 
 
 def _generate_donchian_signals(df: pd.DataFrame) -> pd.Series:
-    """Génère les signaux Donchian (N=20, M=20) pour H4."""
+    """GÃ©nÃ¨re les signaux Donchian (N=20, M=20) pour H4."""
     strategy = DonchianBreakout(params={"N": DONCHIAN_N, "M": DONCHIAN_M})
     return strategy.generate_signals(df)
 
@@ -82,7 +82,7 @@ def _train_rf_model(
     X_train: pd.DataFrame,
     y_train: pd.Series,
 ) -> RandomForestClassifier:
-    """Entraîne le modèle RandomForest avec les hyperparams C5 pour USDCHF H4."""
+    """EntraÃ®ne le modÃ¨le RandomForest avec les hyperparams C5 pour USDCHF H4."""
     hp = HYPERPARAMS_TUNED[COUPLE_KEY]
     params = hp["params"]
     model = RandomForestClassifier(
@@ -102,7 +102,7 @@ def _generate_model_signals(
     model: RandomForestClassifier,
     primary_signals: pd.Series,
 ) -> pd.Series:
-    """Méta-labeling fidèle (fix F1) : filtre les signaux Donchian primaires."""
+    """MÃ©ta-labeling fidÃ¨le (fix F1) : filtre les signaux Donchian primaires."""
     from app.models.meta_labeling_pipeline import filter_signals_by_meta_proba
 
     hp = HYPERPARAMS_TUNED[COUPLE_KEY]
@@ -156,38 +156,38 @@ def _trades_to_dataframe(
     return df_t
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+# â”€â”€ Main â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def main() -> int:
     set_global_seeds()
 
-    # ── 1. Chargement USDCHF H4 ──────────────────────────────────────────
+    # â”€â”€ 1. Chargement USDCHF H4 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     print(f"Chargement {ASSET} {TF}...")
     df = load_asset(ASSET, TF)
     cfg = ASSET_CONFIGS[ASSET]
-    print(f"  {len(df)} barres, {df.index.min().date()} → {df.index.max().date()}")
+    print(f"  {len(df)} barres, {df.index.min().date()} â†’ {df.index.max().date()}")
 
-    # ── 2. Split train / test ────────────────────────────────────────────
+    # â”€â”€ 2. Split train / test â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     df_train = df.loc[:TRAIN_CUTOFF]
     df_test = df.loc[TEST_START:]
 
     if df_train.empty:
-        logger.error("Train vide après cutoff %s", TRAIN_CUTOFF.date())
+        logger.error("Train vide aprÃ¨s cutoff %s", TRAIN_CUTOFF.date())
         return 1
     if df_test.empty:
-        logger.error("Test vide après %s", TEST_START.date())
+        logger.error("Test vide aprÃ¨s %s", TEST_START.date())
         return 1
 
-    print(f"\nTrain: {df_train.index.min().date()} → {df_train.index.max().date()} ({len(df_train)} barres)")
-    print(f"Test:  {df_test.index.min().date()} → {df_test.index.max().date()} ({len(df_test)} barres)")
+    print(f"\nTrain: {df_train.index.min().date()} â†’ {df_train.index.max().date()} ({len(df_train)} barres)")
+    print(f"Test:  {df_test.index.min().date()} â†’ {df_test.index.max().date()} ({len(df_test)} barres)")
 
     half_cost = (cfg.spread_pips + cfg.slippage_pips) / 2.0
 
-    # ── 3. Génération target Donchian sur train ──────────────────────────
-    print(f"\nGénération target Donchian (N={DONCHIAN_N}, M={DONCHIAN_M}) sur train...")
+    # â”€â”€ 3. GÃ©nÃ©ration target Donchian sur train â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    print(f"\nGÃ©nÃ©ration target Donchian (N={DONCHIAN_N}, M={DONCHIAN_M}) sur train...")
     donchian_signals_train = _generate_donchian_signals(df_train)
     n_signals = int((donchian_signals_train != 0).sum())
-    print(f"  {n_signals} signaux Donchian générés sur train")
+    print(f"  {n_signals} signaux Donchian gÃ©nÃ©rÃ©s sur train")
 
     bt_donchian_train = run_deterministic_backtest(
         df=df_train,
@@ -198,6 +198,7 @@ def main() -> int:
         commission_pips=cfg.commission_pips,
         slippage_pips=half_cost,
         pip_size=cfg.pip_size,
+        asset_config=cfg,
     )
     trades_donchian_train: list[dict] = bt_donchian_train.get("trades", [])
     print(f"  {len(trades_donchian_train)} trades Donchian sur train")
@@ -206,7 +207,7 @@ def main() -> int:
         logger.warning("Seulement %d trades Donchian train, insuffisant.", len(trades_donchian_train))
         return 1
 
-    # ── 4. Préparation features + labels pour entraînement ───────────────
+    # â”€â”€ 4. PrÃ©paration features + labels pour entraÃ®nement â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     features_train = _build_features_for_split(df_train)
     if features_train.empty:
         logger.error("Aucune feature pour train.")
@@ -215,7 +216,7 @@ def main() -> int:
     entry_times_train = pd.to_datetime([t["entry_time"] for t in trades_donchian_train])
     common_train_idx = features_train.index.intersection(entry_times_train)
     if len(common_train_idx) < 10:
-        logger.warning("Seulement %d features alignées avec trades train.", len(common_train_idx))
+        logger.warning("Seulement %d features alignÃ©es avec trades train.", len(common_train_idx))
         return 1
 
     X_train = features_train.loc[common_train_idx]
@@ -226,21 +227,21 @@ def main() -> int:
     y_train = _build_target_winner(pnl_aligned)
 
     if y_train.nunique() < 2:
-        logger.warning("Une seule classe dans y_train, impossible d'entraîner.")
+        logger.warning("Une seule classe dans y_train, impossible d'entraÃ®ner.")
         return 1
 
-    # ── 5. Entraînement rf ───────────────────────────────────────────────
-    print(f"\nEntraînement rf sur {len(X_train)} trades train...")
+    # â”€â”€ 5. EntraÃ®nement rf â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    print(f"\nEntraÃ®nement rf sur {len(X_train)} trades train...")
     model = _train_rf_model(X_train, y_train)
 
-    # Vérification rapide sur train
+    # VÃ©rification rapide sur train
     pred_train = model.predict(X_train.values)
     acc_train = float((pred_train == y_train.values).mean())
     print(f"  Accuracy train: {acc_train:.3f}")
     print(f"  Distribution y_train: win={y_train.sum()}/{len(y_train)} ({y_train.mean():.1%})")
 
-    # ── 6. Prédiction sur test ───────────────────────────────────────────
-    print(f"\nGénération signaux sur test (≥ {TEST_START.date()})...")
+    # â”€â”€ 6. PrÃ©diction sur test â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    print(f"\nGÃ©nÃ©ration signaux sur test (â‰¥ {TEST_START.date()})...")
 
     # Construire features sur historique complet pour rolling indicators
     df_test_with_history = df.loc[:df_test.index[-1]]
@@ -254,7 +255,7 @@ def main() -> int:
 
     signals_test = _generate_model_signals(df_test, model, donchian_signals_test)
     n_test_signals = int((signals_test != 0).sum())
-    print(f"  {n_test_signals} signaux conservés après méta-filter")
+    print(f"  {n_test_signals} signaux conservÃ©s aprÃ¨s mÃ©ta-filter")
 
     if n_test_signals == 0:
         logger.warning("Aucun signal sur test.")
@@ -270,12 +271,13 @@ def main() -> int:
             commission_pips=cfg.commission_pips,
             slippage_pips=half_cost,
             pip_size=cfg.pip_size,
+            asset_config=cfg,
         )
 
     trades_test: list[dict] = bt_test.get("trades", [])
     print(f"  {len(trades_test)} trades sur test")
 
-    # ── 7. Métriques ─────────────────────────────────────────────────────
+    # â”€â”€ 7. MÃ©triques â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     trades_test_df = _trades_to_dataframe(trades_test, cfg=cfg)
 
     metrics: dict[str, Any] = {}
@@ -290,7 +292,7 @@ def main() -> int:
     max_dd_pips = float(bt_test.get("max_drawdown_pips", 0.0))
 
     print(f"\n{'='*60}")
-    print(f"Phase B C5 — B4 USDCHF H4 terminé.")
+    print(f"Phase B C5 â€” B4 USDCHF H4 terminÃ©.")
     print(f"  Sharpe (trades)       : {sharpe_bt:.3f}")
     print(f"  Sharpe (compute_metr) : {metrics.get('sharpe', 0):.3f}")
     print(f"  Trades                : {total_trades_bt}")
@@ -298,10 +300,10 @@ def main() -> int:
     print(f"  Max DD (pips)         : {max_dd_pips:.1f}")
     print(f"  Profit factor         : {bt_test.get('profit_factor', 0):.2f}")
 
-    # ── 8. Sauvegarde ────────────────────────────────────────────────────
+    # â”€â”€ 8. Sauvegarde â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     out: dict[str, Any] = {
         "hypothesis": "B4_C5_USDCHF_H4",
-        "phase": "Phase B C5 — B4",
+        "phase": "Phase B C5 â€” B4",
         "asset": ASSET,
         "tf": TF,
         "model": "rf",
@@ -345,7 +347,7 @@ def main() -> int:
         encoding="utf-8",
     )
 
-    print(f"\nRésultats sauvegardés : {out_path}")
+    print(f"\nRÃ©sultats sauvegardÃ©s : {out_path}")
     return 0
 
 

@@ -1,6 +1,6 @@
-"""Pivot v4 C3 — Sélection de modèle multi-actifs (CPCV train uniquement).
+"""Pivot v4 C3 â€” SÃ©lection de modÃ¨le multi-actifs (CPCV train uniquement).
 
-⚠️ Aucune lecture du test set ≥ 2024.
+âš ï¸ Aucune lecture du test set â‰¥ 2024.
 """
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ from app.strategies.donchian import DonchianBreakout
 
 CUTOFF = pd.Timestamp("2022-12-31 23:59:59", tz="UTC")
 SEED = 42
-THRESHOLD = 0.50  # seuil méta par défaut A7
+THRESHOLD = 0.50  # seuil mÃ©ta par dÃ©faut A7
 SHORTLIST_THRESHOLD = 0.5  # stab moyenne C2 minimale
 SHORTLIST_C4_SHARPE = 0.5  # Sharpe CPCV moyen minimum pour passer en C4
 CANDIDATE_NAMES = ["rf", "hgbm", "stacking"]
@@ -35,7 +35,7 @@ def _run_backtest(
     asset: str,
     donchian: dict,
 ) -> pd.DataFrame:
-    """Exécute le backtest Donchian déterministe et retourne le DataFrame trades."""
+    """ExÃ©cute le backtest Donchian dÃ©terministe et retourne le DataFrame trades."""
     from app.backtest.deterministic import run_deterministic_backtest
 
     cfg = ASSET_CONFIGS[asset]
@@ -50,6 +50,7 @@ def _run_backtest(
         commission_pips=cfg.commission_pips,
         slippage_pips=cfg.slippage_pips,
         pip_size=cfg.pip_size,
+        asset_config=cfg,
     )
     trades_list: list[dict] = result.get("trades", [])
     if not trades_list:
@@ -75,7 +76,7 @@ def _build_x_y_pnl(
 
     feat_train = build_superset(df_train, asset=asset)
 
-    # Filtrer aux 15 features figées en C2
+    # Filtrer aux 15 features figÃ©es en C2
     selected_features = list(FEATURES_SELECTED[(asset, tf)])
     common_idx = feat_train.index.intersection(trades.index)
     X = feat_train.loc[common_idx, selected_features].dropna(axis=0, how="any")
@@ -86,7 +87,7 @@ def _build_x_y_pnl(
 
 
 def _process_couple(asset: str, tf: str, donchian: dict) -> dict:
-    """Évalue les 3 candidats via CPCV pour un couple (asset, tf)."""
+    """Ã‰value les 3 candidats via CPCV pour un couple (asset, tf)."""
     set_global_seeds(SEED)
     try:
         X, y, pnl = _build_x_y_pnl(asset, tf, donchian)
@@ -129,7 +130,7 @@ def _process_couple(asset: str, tf: str, donchian: dict) -> dict:
             "wr_meta_mean": float(cpcv_result.wr_mean),
         }
 
-    # Sélection : argmax Sharpe moyen
+    # SÃ©lection : argmax Sharpe moyen
     best = max(per_candidate.items(), key=lambda kv: kv[1]["sharpe_mean"])
     best_name = best[0]
     best_metrics = best[1]
@@ -149,7 +150,7 @@ def _process_couple(asset: str, tf: str, donchian: dict) -> dict:
 
 
 def _update_model_selected(path: Path, results: list[dict]) -> None:
-    """Ajoute les nouvelles entrées tout en préservant les 3 originales A7."""
+    """Ajoute les nouvelles entrÃ©es tout en prÃ©servant les 3 originales A7."""
     from app.config.model_selected import MODEL_SELECTED as existing
 
     new_entries: dict[tuple[str, str], str] = {}
@@ -160,7 +161,7 @@ def _update_model_selected(path: Path, results: list[dict]) -> None:
     merged = {**existing, **new_entries}
 
     lines = [
-        '"""FROZEN après pivot v4 A7 (3 entrées) + C3 (extension multi-actifs).',
+        '"""FROZEN aprÃ¨s pivot v4 A7 (3 entrÃ©es) + C3 (extension multi-actifs).',
         "",
         "NE PAS MODIFIER MANUELLEMENT. Seules les phases A7 / C3 peuvent y ajouter.",
         '"""',
@@ -204,7 +205,7 @@ def main() -> int:
     out_path = _PROJECT_ROOT / "predictions" / "c3_model_selection_multi_assets.json"
     out_path.write_text(json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")
 
-    # Mise à jour model_selected.py
+    # Mise Ã  jour model_selected.py
     cfg_path = _PROJECT_ROOT / "app" / "config" / "model_selected.py"
     _update_model_selected(cfg_path, results)
 
@@ -217,7 +218,7 @@ def main() -> int:
     for r in c4_shortlist:
         print(f"  {r['asset']}/{r['tf']} : {r['selected_model']} Sharpe={r['selected_sharpe_mean']:.2f}")
 
-    # Vérification critère go/no-go C4
+    # VÃ©rification critÃ¨re go/no-go C4
     if len(c4_shortlist) < 2:
         print()
         print(

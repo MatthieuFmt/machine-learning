@@ -13,10 +13,13 @@ Règles :
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pandas as pd
+
+if TYPE_CHECKING:
+    from app.config.instruments import AssetConfig
 
 
 def run_deterministic_backtest(
@@ -30,6 +33,7 @@ def run_deterministic_backtest(
     pip_size: float = 1.0,
     swap_long_pips_per_night: float = 0.0,
     swap_short_pips_per_night: float = 0.0,
+    asset_config: AssetConfig | None = None,
 ) -> dict[str, Any]:
     """Backtest bar-by-bar avec TP/SL fixes, moteur stateful.
 
@@ -45,6 +49,12 @@ def run_deterministic_backtest(
         swap_long_pips_per_night: Audit v6 F1 — charge swap par nuit, position long.
             Convention signée : > 0 = crédit, < 0 = débit. Défaut 0 (legacy).
         swap_short_pips_per_night: Idem, position short.
+        asset_config: F6 — si fourni, écrase silencieusement les valeurs par
+            défaut de swap_long/swap_short à partir de la config. Permet
+            d'éviter le bug du swap=0 silencieux quand l'appelant oublie
+            les paramètres swap_* explicites. Si un appelant a passé des
+            swap_*_pips_per_night non-zéro, ces valeurs explicites priment
+            sur la config (= override manuel).
 
     Returns:
         dict avec clés:
@@ -54,6 +64,15 @@ def run_deterministic_backtest(
             total_pnl_pips: float.
             trades: list[dict] — détail de chaque trade.
     """
+    # F6 — auto-extraction du swap depuis la config si fournie ET si l'appelant
+    # n'a pas explicitement passé un swap non-zéro. Évite le bug du swap=0
+    # silencieux quand un script de backtest oublie de passer les paramètres.
+    if asset_config is not None:
+        if swap_long_pips_per_night == 0.0:
+            swap_long_pips_per_night = asset_config.swap_long_pips_per_night
+        if swap_short_pips_per_night == 0.0:
+            swap_short_pips_per_night = asset_config.swap_short_pips_per_night
+
     if "Time" in df.columns:
         df = df.set_index("Time")
     elif "time" in df.columns:
@@ -279,3 +298,51 @@ def _empty_result() -> dict[str, Any]:
         "mean_pnl_per_trade": 0.0,
         "trades": [],
     }
+
+
+def backtest_with_config(
+    df: pd.DataFrame,
+    signals: pd.Series,
+    tp_pips: float,
+    sl_pips: float,
+    cfg: AssetConfig,
+    *,
+    half_cost: float | None = None,
+) -> dict[str, Any]:
+    """Wrapper de `run_deterministic_backtest` qui extrait tous les paramètres
+    de coût depuis une AssetConfig — incluant les swaps overnight.
+
+    À utiliser dans tous les nouveaux scripts pour éviter le bug du swap=0
+    silencieux. Le coût total (spread+slippage+commission) est convenu
+    comme `cfg.total_cost_pips / 2` réparti à l'entrée et à la sortie,
+    sauf override explicite via `half_cost`.
+
+    Args:
+        df: OHLCV avec index DatetimeIndex.
+        signals: pd.Series 1=LONG, -1=SHORT, 0=FLAT, même index que df.
+        tp_pips: Take-profit en pips.
+        sl_pips: Stop-loss en pips.
+        cfg: AssetConfig de l'instrument (fournit pip_size, window_hours,
+            commission_pips, slippage_pips, spread_pips, swap_long/short).
+        half_cost: Optionnel — override pour `slippage_pips` (défaut :
+            cfg.total_cost_pips / 2). Permet de garder la convention
+            existante "half_cost appliqué à l'entrée ET à la sortie".
+
+    Returns:
+        Même format que `run_deterministic_backtest`.
+    """
+    if half_cost is None:
+        half_cost = cfg.total_cost_pips / 2.0
+
+    return run_deterministic_backtest(
+        df=df,
+        signals=signals,
+        tp_pips=tp_pips,
+        sl_pips=sl_pips,
+        window_hours=cfg.window_hours,
+        commission_pips=cfg.commission_pips,
+        slippage_pips=half_cost,
+        pip_size=cfg.pip_size,
+        swap_long_pips_per_night=cfg.swap_long_pips_per_night,
+        swap_short_pips_per_night=cfg.swap_short_pips_per_night,
+    )

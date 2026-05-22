@@ -1,24 +1,24 @@
-"""Diagnostic post-fix : pourquoi Sharpe portfolio = -5.42 après corrections ?
+"""Diagnostic post-fix : pourquoi Sharpe portfolio = -5.42 aprÃ¨s corrections ?
 
-Trois questions à trancher pour chaque couple Donchian+ML :
+Trois questions Ã  trancher pour chaque couple Donchian+ML :
 
 1. Le **Donchian seul** (sans ML) a-t-il un edge sur 2024+ ?
-   - Si oui → le ML détruit la valeur (filtre inverse).
-   - Si non → le Donchian lui-même ne marche plus (régime change).
+   - Si oui â†’ le ML dÃ©truit la valeur (filtre inverse).
+   - Si non â†’ le Donchian lui-mÃªme ne marche plus (rÃ©gime change).
 
 2. Sur les trades Donchian que le ML REJETTE, quel est leur WR/Sharpe ?
-   - Si WR_rejetés > WR_acceptés → le ML inverse l'edge (preuve directe).
+   - Si WR_rejetÃ©s > WR_acceptÃ©s â†’ le ML inverse l'edge (preuve directe).
 
 3. Le ML a-t-il une accuracy OOS meilleure que la moyenne du WR Donchian ?
-   - Si acc_OOS ≈ WR ou pire → le ML n'a aucun pouvoir prédictif réel.
+   - Si acc_OOS â‰ˆ WR ou pire â†’ le ML n'a aucun pouvoir prÃ©dictif rÃ©el.
 
 Output :
 - tableau console
 - predictions/diagnose_ml_inverse_edge.json
 - docs/diagnostic_ml_inverse_edge.md
 
-Note : ce script lit le test set ≥ 2024 → consomme 1 n_trial par couple
-mais ne tune AUCUN paramètre. C'est une re-analyse du résultat existant.
+Note : ce script lit le test set â‰¥ 2024 â†’ consomme 1 n_trial par couple
+mais ne tune AUCUN paramÃ¨tre. C'est une re-analyse du rÃ©sultat existant.
 """
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ from app.data.loader import load_asset  # noqa: E402
 from app.models.meta_labeling_pipeline import filter_signals_by_meta_proba  # noqa: E402
 from app.testing.snooping_guard import read_oos  # noqa: E402
 
-# Réutiliser les helpers de validation_finale
+# RÃ©utiliser les helpers de validation_finale
 from scripts.run_validation_finale import (  # noqa: E402
     DONCHIAN_M,
     DONCHIAN_N,
@@ -68,7 +68,7 @@ COUPLES: list[dict[str, Any]] = [
 
 
 def _analyze_trades(trades: list[dict], capital_pips: float = 10_000.0) -> dict[str, float]:
-    """Métriques rapides : Sharpe linéaire, WR, mean PnL, max DD pips."""
+    """MÃ©triques rapides : Sharpe linÃ©aire, WR, mean PnL, max DD pips."""
     if not trades:
         return {"sharpe": 0.0, "wr": 0.0, "n_trades": 0, "mean_pnl": 0.0, "max_dd_pips": 0.0}
 
@@ -91,7 +91,7 @@ def _analyze_trades(trades: list[dict], capital_pips: float = 10_000.0) -> dict[
 
 
 def diagnose_couple(asset: str, tf: str, model_type: str, threshold: float) -> dict[str, Any]:
-    """Compare Donchian seul vs ML+Donchian, décompose les rejets du ML."""
+    """Compare Donchian seul vs ML+Donchian, dÃ©compose les rejets du ML."""
     print(f"\n{'='*60}")
     print(f"[Diagnostic] {asset} {tf} ({model_type}, threshold={threshold:.2f})")
     print(f"{'='*60}")
@@ -102,14 +102,14 @@ def diagnose_couple(asset: str, tf: str, model_type: str, threshold: float) -> d
     df_test = df.loc[TEST_START:]
     half_cost = (cfg.spread_pips + cfg.slippage_pips) / 2.0
 
-    # ── 1. Donchian seul sur test ───────────────────────────────────────
+    # â”€â”€ 1. Donchian seul sur test â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     donchian_test = _generate_donchian_signals(df_test)
     bt_baseline = run_deterministic_backtest(
         df=df_test, signals=donchian_test,
         tp_pips=cfg.tp_points, sl_pips=cfg.sl_points,
         window_hours=cfg.window_hours,
         commission_pips=cfg.commission_pips,
-        slippage_pips=half_cost, pip_size=cfg.pip_size,
+        slippage_pips=half_cost, pip_size=cfg.pip_size, asset_config=cfg,
     )
     trades_baseline = bt_baseline.get("trades", [])
     metrics_baseline = _analyze_trades(trades_baseline)
@@ -118,14 +118,14 @@ def diagnose_couple(asset: str, tf: str, model_type: str, threshold: float) -> d
           f"WR={metrics_baseline['wr']:.1%}, "
           f"mean_pnl={metrics_baseline['mean_pnl']:.2f}")
 
-    # ── 2. Entraîner le ML sur train (mêmes paramètres que validation_finale) ─
+    # â”€â”€ 2. EntraÃ®ner le ML sur train (mÃªmes paramÃ¨tres que validation_finale) â”€
     donchian_train = _generate_donchian_signals(df_train)
     bt_train = run_deterministic_backtest(
         df=df_train, signals=donchian_train,
         tp_pips=cfg.tp_points, sl_pips=cfg.sl_points,
         window_hours=cfg.window_hours,
         commission_pips=cfg.commission_pips,
-        slippage_pips=half_cost, pip_size=cfg.pip_size,
+        slippage_pips=half_cost, pip_size=cfg.pip_size, asset_config=cfg,
     )
     trades_train = bt_train.get("trades", [])
     if len(trades_train) < 20:
@@ -138,7 +138,7 @@ def diagnose_couple(asset: str, tf: str, model_type: str, threshold: float) -> d
     entry_times_train = pd.to_datetime([t["entry_time"] for t in trades_train])
     common_train_idx = features_train.index.intersection(entry_times_train)
     if len(common_train_idx) < 10:
-        return {"asset": asset, "tf": tf, "skipped": "trades non alignés"}
+        return {"asset": asset, "tf": tf, "skipped": "trades non alignÃ©s"}
 
     X_train = features_train.loc[common_train_idx]
     _, trades_df_train = _trades_to_equity(trades_train, cfg=cfg)
@@ -152,7 +152,7 @@ def diagnose_couple(asset: str, tf: str, model_type: str, threshold: float) -> d
     model = _train_model(X_train, y_train, model_type, asset, tf)
     acc_train = float((model.predict(X_train.values) == y_train.values).mean())
 
-    # ── 3. Appliquer le ML aux signaux Donchian de test ────────────────
+    # â”€â”€ 3. Appliquer le ML aux signaux Donchian de test â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     features_test_full = _build_features(df, asset, tf)  # historique complet pour features rolling
     features_test = features_test_full.loc[features_test_full.index.isin(df_test.index)]
     signals_ml = filter_signals_by_meta_proba(
@@ -160,13 +160,13 @@ def diagnose_couple(asset: str, tf: str, model_type: str, threshold: float) -> d
         features=features_test, model=model, threshold=threshold,
     )
 
-    # Re-backtest avec les signaux filtrés
+    # Re-backtest avec les signaux filtrÃ©s
     bt_ml = run_deterministic_backtest(
         df=df_test, signals=signals_ml,
         tp_pips=cfg.tp_points, sl_pips=cfg.sl_points,
         window_hours=cfg.window_hours,
         commission_pips=cfg.commission_pips,
-        slippage_pips=half_cost, pip_size=cfg.pip_size,
+        slippage_pips=half_cost, pip_size=cfg.pip_size, asset_config=cfg,
     )
     trades_ml = bt_ml.get("trades", [])
     metrics_ml = _analyze_trades(trades_ml)
@@ -175,7 +175,7 @@ def diagnose_couple(asset: str, tf: str, model_type: str, threshold: float) -> d
           f"WR={metrics_ml['wr']:.1%}, "
           f"mean_pnl={metrics_ml['mean_pnl']:.2f}")
 
-    # ── 4. Décomposition : trades acceptés vs rejetés par le ML ───────
+    # â”€â”€ 4. DÃ©composition : trades acceptÃ©s vs rejetÃ©s par le ML â”€â”€â”€â”€â”€â”€â”€
     entry_times_baseline = set(pd.to_datetime([t["entry_time"] for t in trades_baseline]))
     entry_times_ml = set(pd.to_datetime([t["entry_time"] for t in trades_ml]))
     accepted_times = entry_times_baseline & entry_times_ml
@@ -187,10 +187,10 @@ def diagnose_couple(asset: str, tf: str, model_type: str, threshold: float) -> d
     metrics_accepted = _analyze_trades(trades_accepted)
     metrics_rejected = _analyze_trades(trades_rejected)
 
-    print(f"  ML décomposition :")
-    print(f"    Acceptés (passe filtre): n={metrics_accepted['n_trades']}, "
+    print(f"  ML dÃ©composition :")
+    print(f"    AcceptÃ©s (passe filtre): n={metrics_accepted['n_trades']}, "
           f"WR={metrics_accepted['wr']:.1%}, mean_pnl={metrics_accepted['mean_pnl']:.2f}")
-    print(f"    Rejetés (rejette filtre): n={metrics_rejected['n_trades']}, "
+    print(f"    RejetÃ©s (rejette filtre): n={metrics_rejected['n_trades']}, "
           f"WR={metrics_rejected['wr']:.1%}, mean_pnl={metrics_rejected['mean_pnl']:.2f}")
 
     inverse_signal = (
@@ -199,9 +199,9 @@ def diagnose_couple(asset: str, tf: str, model_type: str, threshold: float) -> d
         and metrics_rejected["wr"] > metrics_accepted["wr"] + 0.05
     )
     if inverse_signal:
-        print(f"  🔴 INVERSION DÉTECTÉE : le ML rejette les meilleurs trades.")
+        print(f"  ðŸ”´ INVERSION DÃ‰TECTÃ‰E : le ML rejette les meilleurs trades.")
 
-    # ── 5. Snooping guard : 1 read par couple ──────────────────────────
+    # â”€â”€ 5. Snooping guard : 1 read par couple â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     read_oos(
         prompt="diagnose_ml_inverse_edge",
         hypothesis=f"diagnose_{asset}_{tf}",
@@ -223,7 +223,7 @@ def diagnose_couple(asset: str, tf: str, model_type: str, threshold: float) -> d
 def main() -> int:
     set_global_seeds()
     print("=" * 70)
-    print("DIAGNOSTIC POST-FIX : pourquoi le ML détruit-il l'edge Donchian ?")
+    print("DIAGNOSTIC POST-FIX : pourquoi le ML dÃ©truit-il l'edge Donchian ?")
     print("=" * 70)
 
     results: list[dict[str, Any]] = []
@@ -232,12 +232,12 @@ def main() -> int:
             r = diagnose_couple(c["asset"], c["tf"], c["model"], c["threshold"])
             results.append(r)
         except Exception as exc:
-            logger.error("Échec %s %s : %s", c["asset"], c["tf"], exc, exc_info=True)
+            logger.error("Ã‰chec %s %s : %s", c["asset"], c["tf"], exc, exc_info=True)
             results.append({"asset": c["asset"], "tf": c["tf"], "error": str(exc)})
 
-    # Tableau récap
+    # Tableau rÃ©cap
     print("\n" + "=" * 70)
-    print("RÉCAP DIAGNOSTIC")
+    print("RÃ‰CAP DIAGNOSTIC")
     print("=" * 70)
     print(f"{'Couple':<12} {'Donchian':>12} {'ML+Donch':>12} {'Acc/Rej WR':>14} {'Inverse?':>10}")
     for r in results:
@@ -251,7 +251,7 @@ def main() -> int:
         donchian_str = f"{b['sharpe']:+.2f}/{b['wr']:.0%}"
         ml_str = f"{m['sharpe']:+.2f}/{m['wr']:.0%}"
         wr_diff = f"{a['wr']:.0%}/{rej['wr']:.0%}"
-        inv = "🔴 OUI" if r["inverse_signal_detected"] else "  non"
+        inv = "ðŸ”´ OUI" if r["inverse_signal_detected"] else "  non"
         print(f"{couple:<12} {donchian_str:>12} {ml_str:>12} {wr_diff:>14} {inv:>10}")
 
     # Sauvegarde JSON + Markdown
@@ -261,34 +261,34 @@ def main() -> int:
         json.dumps(results, indent=2, default=str, ensure_ascii=False),
         encoding="utf-8",
     )
-    print(f"\nJSON sauvegardé : {out_json}")
+    print(f"\nJSON sauvegardÃ© : {out_json}")
 
     _write_markdown(results)
     return 0
 
 
 def _write_markdown(results: list[dict[str, Any]]) -> None:
-    """Génère docs/diagnostic_ml_inverse_edge.md à partir des résultats."""
+    """GÃ©nÃ¨re docs/diagnostic_ml_inverse_edge.md Ã  partir des rÃ©sultats."""
     lines = [
-        "# Diagnostic post-fix — Pourquoi le ML détruit-il l'edge Donchian ?",
+        "# Diagnostic post-fix â€” Pourquoi le ML dÃ©truit-il l'edge Donchian ?",
         "",
         f"**Date** : {pd.Timestamp.now(tz='UTC').isoformat()}",
-        "**Question** : après correction des bugs F1+F2+F3, Sharpe portfolio = -5.42.",
-        "Le ML inverse-t-il l'edge Donchian, ou Donchian lui-même ne marche plus ?",
+        "**Question** : aprÃ¨s correction des bugs F1+F2+F3, Sharpe portfolio = -5.42.",
+        "Le ML inverse-t-il l'edge Donchian, ou Donchian lui-mÃªme ne marche plus ?",
         "",
-        "## Méthodologie",
+        "## MÃ©thodologie",
         "",
         "Pour chaque couple Donchian+ML :",
         "1. Backtest Donchian SEUL sur 2024+ (baseline pure).",
         "2. Backtest Donchian + filtre ML (config validation_finale).",
-        "3. Décomposition : pour chaque trade baseline, le ML l'a-t-il accepté ou rejeté ?",
-        "   Calcul du WR sur acceptés vs rejetés.",
+        "3. DÃ©composition : pour chaque trade baseline, le ML l'a-t-il acceptÃ© ou rejetÃ© ?",
+        "   Calcul du WR sur acceptÃ©s vs rejetÃ©s.",
         "",
-        "Si **WR_rejetés > WR_acceptés + 5pts** → 🔴 le ML inverse l'edge.",
+        "Si **WR_rejetÃ©s > WR_acceptÃ©s + 5pts** â†’ ðŸ”´ le ML inverse l'edge.",
         "",
-        "## Résultats",
+        "## RÃ©sultats",
         "",
-        "| Couple | Donchian seul | ML+Donchian | Acceptés WR | Rejetés WR | Inverse ? |",
+        "| Couple | Donchian seul | ML+Donchian | AcceptÃ©s WR | RejetÃ©s WR | Inverse ? |",
         "|---|---|---|---|---|---|",
     ]
     for r in results:
@@ -299,7 +299,7 @@ def _write_markdown(results: list[dict[str, Any]]) -> None:
         m = r["ml_donchian"]
         a = r["ml_accepted"]
         rej = r["ml_rejected"]
-        inv = "🔴 OUI" if r["inverse_signal_detected"] else "non"
+        inv = "ðŸ”´ OUI" if r["inverse_signal_detected"] else "non"
         lines.append(
             f"| {couple} | "
             f"Sharpe {b['sharpe']:+.2f}, WR {b['wr']:.1%}, n={b['n_trades']} | "
@@ -311,38 +311,38 @@ def _write_markdown(results: list[dict[str, Any]]) -> None:
 
     lines += [
         "",
-        "## Interprétation",
+        "## InterprÃ©tation",
         "",
-        "**Donchian seul positif → ML+Donchian négatif** : le filtre ML aggrave les résultats.",
-        "C'est la signature d'un **modèle ML défaillant** entraîné sur des features qui",
-        "ne se généralisent pas du train (≤ 2022) au test (≥ 2024). Le ML rejette",
-        "systématiquement les trades qui *auraient gagné* dans le régime 2024-2026.",
+        "**Donchian seul positif â†’ ML+Donchian nÃ©gatif** : le filtre ML aggrave les rÃ©sultats.",
+        "C'est la signature d'un **modÃ¨le ML dÃ©faillant** entraÃ®nÃ© sur des features qui",
+        "ne se gÃ©nÃ©ralisent pas du train (â‰¤ 2022) au test (â‰¥ 2024). Le ML rejette",
+        "systÃ©matiquement les trades qui *auraient gagnÃ©* dans le rÃ©gime 2024-2026.",
         "",
-        "**Donchian seul négatif** : la stratégie Donchian elle-même ne fonctionne plus",
-        "dans le régime 2024-2026. Probable changement de régime de marché.",
+        "**Donchian seul nÃ©gatif** : la stratÃ©gie Donchian elle-mÃªme ne fonctionne plus",
+        "dans le rÃ©gime 2024-2026. Probable changement de rÃ©gime de marchÃ©.",
         "",
-        "**Acceptés WR < Rejetés WR + 5pts** : le ML inverse l'edge directement. Le rejet",
-        "ML est plus prédictif d'un winner que l'acceptation.",
+        "**AcceptÃ©s WR < RejetÃ©s WR + 5pts** : le ML inverse l'edge directement. Le rejet",
+        "ML est plus prÃ©dictif d'un winner que l'acceptation.",
         "",
-        "## Pistes d'amélioration (si Donchian seul a un edge)",
+        "## Pistes d'amÃ©lioration (si Donchian seul a un edge)",
         "",
-        "1. **Régulariser le ML plus fort** : max_depth=2, min_samples_leaf=50.",
-        "2. **Réduire le feature set** : utiliser seulement les 3-5 features les plus stables.",
-        "3. **Train plus récent** : remplacer 2010-2022 par 2018-2022 (5 ans plus proches).",
-        "4. **Walk-forward** : re-entraîner tous les 6 mois plutôt qu'un modèle figé.",
+        "1. **RÃ©gulariser le ML plus fort** : max_depth=2, min_samples_leaf=50.",
+        "2. **RÃ©duire le feature set** : utiliser seulement les 3-5 features les plus stables.",
+        "3. **Train plus rÃ©cent** : remplacer 2010-2022 par 2018-2022 (5 ans plus proches).",
+        "4. **Walk-forward** : re-entraÃ®ner tous les 6 mois plutÃ´t qu'un modÃ¨le figÃ©.",
         "5. **Calibration sur 2023** : utiliser le flag CALIBRATE_THRESHOLD_ON_VAL=True.",
         "",
         "## Pistes (si Donchian seul ne marche plus)",
         "",
-        "1. Passer aux **nouvelles stratégies** (voir plan_v5_amelioration_strategies.md Axe B).",
+        "1. Passer aux **nouvelles stratÃ©gies** (voir plan_v5_amelioration_strategies.md Axe B).",
         "2. Tester **Donchian sur autres timeframes** (H4, H1).",
-        "3. Tester **autres paramètres Donchian** (N=10, 30, 50 au lieu de 20).",
+        "3. Tester **autres paramÃ¨tres Donchian** (N=10, 30, 50 au lieu de 20).",
     ]
 
     md_path = Path("docs/diagnostic_ml_inverse_edge.md")
     md_path.parent.mkdir(parents=True, exist_ok=True)
     md_path.write_text("\n".join(lines), encoding="utf-8")
-    print(f"Markdown sauvegardé : {md_path}")
+    print(f"Markdown sauvegardÃ© : {md_path}")
 
 
 if __name__ == "__main__":

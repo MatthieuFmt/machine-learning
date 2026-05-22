@@ -1,19 +1,19 @@
-"""Test OOS unique des 2 candidates issues du screening (Sharpe train ≥ 0.5).
+"""Test OOS unique des 2 candidates issues du screening (Sharpe train â‰¥ 0.5).
 
 Candidates :
-1. RsiContrarian(14, 30/70) sur US500 D1, SL=1.0×ATR_train, TP=2×SL.
+1. RsiContrarian(14, 30/70) sur US500 D1, SL=1.0Ã—ATR_train, TP=2Ã—SL.
    Train : Sharpe +0.54, WR 50%, n=135.
-2. RsiContrarian(2, 10/90) sur ETHUSD D1, SL=1.5×ATR_train, TP=2×SL.
+2. RsiContrarian(2, 10/90) sur ETHUSD D1, SL=1.5Ã—ATR_train, TP=2Ã—SL.
    Train : Sharpe +0.51, WR 52%, n=197.
 
-Paramètres FIGÉS sur train (ATR moyen calculé sur train ≤ 2022 uniquement).
+ParamÃ¨tres FIGÃ‰S sur train (ATR moyen calculÃ© sur train â‰¤ 2022 uniquement).
 Pas de re-calibration sur test. 2 lectures OOS uniques (2 n_trials).
 
-Critères de succès par couple (pour GO sur ce couple) :
-- Sharpe test ≥ 0.5
-- WR test ≥ 35%
-- Sharpe test - Sharpe train ≥ -0.5 (pas d'effondrement OOS)
-- n_trades test ≥ 10 (sinon variance énorme)
+CritÃ¨res de succÃ¨s par couple (pour GO sur ce couple) :
+- Sharpe test â‰¥ 0.5
+- WR test â‰¥ 35%
+- Sharpe test - Sharpe train â‰¥ -0.5 (pas d'effondrement OOS)
+- n_trades test â‰¥ 10 (sinon variance Ã©norme)
 """
 from __future__ import annotations
 
@@ -92,40 +92,40 @@ def test_one_candidate(spec: dict[str, Any]) -> dict[str, Any]:
     df_test = df.loc[TEST_START:]
     half_cost = (cfg.spread_pips + cfg.slippage_pips) / 2.0
 
-    # ATR figé sur TRAIN uniquement (pas de leak du test)
+    # ATR figÃ© sur TRAIN uniquement (pas de leak du test)
     atr14_train = atr(df_train["High"], df_train["Low"], df_train["Close"], 14)
     atr_pips_train = float((atr14_train / cfg.pip_size).dropna().mean())
     sl_pips = max(round(spec["sl_atr_ratio"] * atr_pips_train), 1)
     tp_pips = max(round(sl_pips * spec["tp_over_sl"]), 1)
     print(f"  ATR train moyen : {atr_pips_train:.1f} pips")
-    print(f"  SL = {sl_pips} pips, TP = {tp_pips} pips (figés sur train)")
-    print(f"  Test : {df_test.index.min().date()} → {df_test.index.max().date()} "
+    print(f"  SL = {sl_pips} pips, TP = {tp_pips} pips (figÃ©s sur train)")
+    print(f"  Test : {df_test.index.min().date()} â†’ {df_test.index.max().date()} "
           f"({len(df_test)} barres)")
 
-    # Stratégie figée
+    # StratÃ©gie figÃ©e
     strat = RsiContrarian(**spec["params"])
 
-    # Backtest TRAIN (référence, pas un n_trial)
+    # Backtest TRAIN (rÃ©fÃ©rence, pas un n_trial)
     signals_train = strat.generate_signals(df_train)
     bt_train = run_deterministic_backtest(
         df=df_train, signals=signals_train,
         tp_pips=tp_pips, sl_pips=sl_pips,
         window_hours=cfg.window_hours,
         commission_pips=cfg.commission_pips,
-        slippage_pips=half_cost, pip_size=cfg.pip_size,
+        slippage_pips=half_cost, pip_size=cfg.pip_size, asset_config=cfg,
     )
     m_train = _analyze(bt_train.get("trades", []))
     print(f"  Train  : Sharpe={m_train['sharpe']:+.2f}, WR={m_train['wr']:.1%}, "
           f"n={m_train['n_trades']}, total_pnl={m_train['total_pnl']:+.0f} pips")
 
-    # Backtest TEST (OOS unique — 1 n_trial)
+    # Backtest TEST (OOS unique â€” 1 n_trial)
     signals_test = strat.generate_signals(df_test)
     bt_test = run_deterministic_backtest(
         df=df_test, signals=signals_test,
         tp_pips=tp_pips, sl_pips=sl_pips,
         window_hours=cfg.window_hours,
         commission_pips=cfg.commission_pips,
-        slippage_pips=half_cost, pip_size=cfg.pip_size,
+        slippage_pips=half_cost, pip_size=cfg.pip_size, asset_config=cfg,
     )
     m_test = _analyze(bt_test.get("trades", []))
     print(f"  TEST   : Sharpe={m_test['sharpe']:+.2f}, WR={m_test['wr']:.1%}, "
@@ -149,11 +149,11 @@ def test_one_candidate(spec: dict[str, Any]) -> dict[str, Any]:
     go = go_sharpe and go_wr and go_stability and go_volume
 
     print(f"\n  Verdict couple :")
-    print(f"    Sharpe test ≥ 0.5      : {'✅' if go_sharpe else '❌'} ({m_test['sharpe']:+.2f})")
-    print(f"    WR test ≥ 35%           : {'✅' if go_wr else '❌'} ({m_test['wr']:.1%})")
-    print(f"    Δ Sharpe ≥ -0.5         : {'✅' if go_stability else '❌'} ({delta_sharpe:+.2f})")
-    print(f"    n_trades test ≥ 10      : {'✅' if go_volume else '❌'} ({m_test['n_trades']})")
-    print(f"  → {'🎯 GO' if go else '❌ NO-GO'}")
+    print(f"    Sharpe test â‰¥ 0.5      : {'âœ…' if go_sharpe else 'âŒ'} ({m_test['sharpe']:+.2f})")
+    print(f"    WR test â‰¥ 35%           : {'âœ…' if go_wr else 'âŒ'} ({m_test['wr']:.1%})")
+    print(f"    Î” Sharpe â‰¥ -0.5         : {'âœ…' if go_stability else 'âŒ'} ({delta_sharpe:+.2f})")
+    print(f"    n_trades test â‰¥ 10      : {'âœ…' if go_volume else 'âŒ'} ({m_test['n_trades']})")
+    print(f"  â†’ {'ðŸŽ¯ GO' if go else 'âŒ NO-GO'}")
 
     return {
         "candidate": spec["name"],
@@ -172,8 +172,8 @@ def test_one_candidate(spec: dict[str, Any]) -> dict[str, Any]:
 def main() -> int:
     set_global_seeds()
     print("=" * 70)
-    print("TEST OOS — 2 candidates issues du screening (Sharpe train ≥ 0.5)")
-    print("Lectures OOS : 2 (les 2 candidates → +2 n_trials)")
+    print("TEST OOS â€” 2 candidates issues du screening (Sharpe train â‰¥ 0.5)")
+    print("Lectures OOS : 2 (les 2 candidates â†’ +2 n_trials)")
     print("=" * 70)
 
     results: list[dict[str, Any]] = []
@@ -182,12 +182,12 @@ def main() -> int:
             r = test_one_candidate(spec)
             results.append(r)
         except Exception as exc:
-            print(f"  ❌ {spec['name']} : {exc}")
+            print(f"  âŒ {spec['name']} : {exc}")
             results.append({"candidate": spec["name"], "error": str(exc)})
 
-    # Récap
+    # RÃ©cap
     print("\n" + "=" * 70)
-    print("RÉCAP")
+    print("RÃ‰CAP")
     print("=" * 70)
     print(f"{'Candidate':<45} {'Train Sh':>8} {'Test Sh':>8} {'Test WR':>8} {'Test n':>7} {'GO?':>5}")
     n_go = 0
@@ -197,13 +197,13 @@ def main() -> int:
             continue
         mt = r["metrics_test"]
         mtr = r["metrics_train"]
-        verdict = "🎯 GO" if r["go"] else "❌"
+        verdict = "ðŸŽ¯ GO" if r["go"] else "âŒ"
         if r["go"]:
             n_go += 1
         print(f"{r['candidate']:<45} {mtr['sharpe']:>+8.2f} {mt['sharpe']:>+8.2f} "
               f"{mt['wr']:>8.1%} {mt['n_trades']:>7} {verdict:>5}")
 
-    print(f"\n{n_go}/{len(CANDIDATES)} couples passent les 4 critères.")
+    print(f"\n{n_go}/{len(CANDIDATES)} couples passent les 4 critÃ¨res.")
 
     out_json = Path("predictions/test_oos_rsi_candidates.json")
     out_json.parent.mkdir(parents=True, exist_ok=True)
@@ -211,7 +211,7 @@ def main() -> int:
         json.dumps(results, indent=2, default=str, ensure_ascii=False),
         encoding="utf-8",
     )
-    print(f"\nJSON sauvegardé : {out_json}")
+    print(f"\nJSON sauvegardÃ© : {out_json}")
 
     return 0 if n_go > 0 else 1
 

@@ -90,6 +90,68 @@ def calc_dist_sma200_d1(
 
 
 # ══════════════════════════════════════════════════════════════════════
+# Regime Detector MVP (Phase F4) — règles déterministes
+# ══════════════════════════════════════════════════════════════════════
+
+
+@look_ahead_safe
+def detect_regime(
+    df: pd.DataFrame,
+    adx_period: int = 14,
+    atr_period: int = 14,
+    adx_threshold: float = 25.0,
+    atr_quantile_window: int = 60,
+    atr_quantile: float = 0.8,
+) -> pd.Series:
+    """Classifie chaque barre en régime {trend, range, vol_high}.
+
+    Règles (priorité décroissante) :
+        1. vol_high : ATR% > quantile glissant sur `atr_quantile_window` barres
+        2. trend    : ADX(period) > `adx_threshold`
+        3. range    : sinon
+
+    Warmup (NaN dans ADX ou ATR% ou quantile) → résultat = pd.NA.
+
+    Args:
+        df: OHLCV avec colonnes [High, Low, Close].
+        adx_period: Période ADX (défaut 14).
+        atr_period: Période ATR (défaut 14).
+        adx_threshold: Seuil ADX au-dessus duquel on parle de tendance.
+        atr_quantile_window: Fenêtre glissante pour le quantile d'ATR%.
+        atr_quantile: Quantile à comparer (défaut 0.8 = top 20% des barres).
+
+    Returns:
+        pd.Series[object] indexée comme df, valeurs ∈ {"trend", "range",
+        "vol_high", pd.NA}. Nom : "regime".
+    """
+    from app.features.indicators import adx as _adx
+    from app.features.indicators import atr as _atr
+    from app.features.indicators import atr_pct as _atr_pct
+
+    high, low, close = df["High"], df["Low"], df["Close"]
+
+    adx_df = _adx(high, low, close, period=adx_period)
+    adx_line = adx_df["adx_line"]
+
+    atr_series = _atr(high, low, close, period=atr_period)
+    atr_pct_series = _atr_pct(close, atr_series)
+    atr_q = atr_pct_series.rolling(atr_quantile_window).quantile(atr_quantile)
+
+    valid = adx_line.notna() & atr_pct_series.notna() & atr_q.notna()
+
+    is_vol_high = (atr_pct_series > atr_q) & valid
+    is_trend = (adx_line > adx_threshold) & valid & ~is_vol_high
+    is_range = valid & ~is_vol_high & ~is_trend
+
+    result: pd.Series = pd.Series(pd.NA, index=df.index, dtype="object")
+    result[is_vol_high] = "vol_high"
+    result[is_trend] = "trend"
+    result[is_range] = "range"
+
+    return result.rename("regime")
+
+
+# ══════════════════════════════════════════════════════════════════════
 # Session-Aware Features (Step 04) — Microstructure FX
 # ══════════════════════════════════════════════════════════════════════
 

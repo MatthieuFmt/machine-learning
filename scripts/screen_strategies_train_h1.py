@@ -1,25 +1,16 @@
-"""Screening exhaustif des 8 stratÃ©gies non testÃ©es sur train â‰¤ 2022.
+"""Screening intraday H1 — 13 stratégies × 9 actifs × 4 ratios = 468 backtests.
 
-8 stratÃ©gies Ã— 9 actifs Ã— 4 ratios TP/SL ATR = 288 backtests, tous sur
-train (zÃ©ro n_trial consommÃ©). Objectif : trouver UNE configuration qui
-montre un edge minimal (Sharpe â‰¥ 0.5 sur train) pour la candidater
-ensuite en OOS unique.
+Pivot après screening D1 + H4 : tester si la résolution H1 capture du
+signal additionnel. H1 = volume maximal (~50-100k bars / actif) mais
+plus de bruit et plus de coûts de transaction relatifs.
 
-StratÃ©gies testÃ©es :
-- BollingerBands (mean-reversion sur bandes)
-- KeltnerChannel (breakout du canal Keltner)
-- DualMovingAverage (position permanente long/short selon trend MA)
-- RsiContrarian (achat survente, vente surachat)
-- TsMomentum (signe du rendement sur T barres)
-- SmaCrossover (croisement de SMA)
-- ParabolicSAR (trend-following stateful)
-- MeanReversionRSIBB (RSI extrÃªme + Bollinger)
+Différences clés vs H4 :
+- 1 jour = 24 bars (vs 6 sur H4). Fenêtres × 6.
+- ATR H1 plus petit → SL/TP plus serrés → ratio coût/move plus défavorable.
+- Plus de signaux mais aussi plus de churn potentiel.
+- Volume de calcul significatif (66k bars × 9 actifs × 13 strats × 4 ratios).
 
-CritÃ¨res de prÃ©-sÃ©lection train (pour candidater OOS) :
-- Sharpe â‰¥ 0.5
-- WR â‰¥ 35%
-- n_trades â‰¥ 30 (sur 12 ans = 2.5/an minimum)
-- max_dd_pips raisonnable (pas > 10Ã— le SL moyen)
+Train ≤ 2022 uniquement. Zéro n_trial consommé.
 """
 from __future__ import annotations
 
@@ -52,33 +43,34 @@ from app.strategies.ts_momentum import TsMomentum  # noqa: E402
 
 from scripts.run_validation_finale import TRAIN_CUTOFF  # noqa: E402
 
-# 8 stratÃ©gies avec params dÃ©faut raisonnables
+# Params H1 : 1 jour = 24 bars. Fenêtres alignées sur multiples de 24
+# pour rester interprétables en jours.
 STRATEGIES: list[tuple[str, callable]] = [
-    ("BollingerBands_20_2", lambda: BollingerBands(N=20, K=2.0)),
-    ("BollingerBands_20_2_5", lambda: BollingerBands(N=20, K=2.5)),
-    ("KeltnerChannel_20_2", lambda: KeltnerChannel(period=20, mult=2.0)),
-    ("DualMovingAverage_10_50", lambda: DualMovingAverage(fast=10, slow=50)),
-    ("DualMovingAverage_20_100", lambda: DualMovingAverage(fast=20, slow=100)),
-    ("RsiContrarian_14_30_70", lambda: RsiContrarian(N=14, oversold=30, overbought=70)),
-    ("RsiContrarian_2_10_90", lambda: RsiContrarian(N=2, oversold=10, overbought=90)),
-    ("TsMomentum_20", lambda: TsMomentum(T=20)),
-    ("TsMomentum_60", lambda: TsMomentum(T=60)),
-    ("SmaCrossover_5_20", lambda: SmaCrossover(fast=5, slow=20)),
-    ("SmaCrossover_20_50", lambda: SmaCrossover(fast=20, slow=50)),
+    ("BollingerBands_120_2", lambda: BollingerBands(N=120, K=2.0)),       # 5j
+    ("BollingerBands_72_2_5", lambda: BollingerBands(N=72, K=2.5)),       # 3j
+    ("KeltnerChannel_72_2", lambda: KeltnerChannel(period=72, mult=2.0)),  # 3j
+    ("DualMovingAverage_72_240", lambda: DualMovingAverage(fast=72, slow=240)),    # 3j/10j
+    ("DualMovingAverage_120_480", lambda: DualMovingAverage(fast=120, slow=480)),  # 5j/20j
+    ("RsiContrarian_14_30_70", lambda: RsiContrarian(N=14, oversold=30, overbought=70)),    # 14h
+    ("RsiContrarian_2_10_90", lambda: RsiContrarian(N=2, oversold=10, overbought=90)),      # 2h
+    ("RsiContrarian_72_20_80", lambda: RsiContrarian(N=72, oversold=20, overbought=80)),    # 3j
+    ("TsMomentum_144", lambda: TsMomentum(T=144)),     # 6j
+    ("TsMomentum_288", lambda: TsMomentum(T=288)),     # 12j
+    ("SmaCrossover_24_120", lambda: SmaCrossover(fast=24, slow=120)),     # 1j/5j
     ("ParabolicSAR_default", lambda: ParabolicSAR(step=0.02, af_max=0.2)),
-    ("MeanReversionRSIBB_14_30_20_2",
-     lambda: MeanReversionRSIBB(rsi_period=14, rsi_long=30, rsi_short=70, bb_period=20, bb_mult=2.0)),
+    ("MeanReversionRSIBB_14_30_72_2",
+     lambda: MeanReversionRSIBB(rsi_period=14, rsi_long=30, rsi_short=70, bb_period=72, bb_mult=2.0)),
 ]
 
 ASSETS: list[str] = [
     "GBPUSD", "EURUSD", "USDCHF", "ETHUSD", "BTCUSD", "US30", "US500", "GER30", "XAUUSD",
 ]
-TF = "D1"
-TP_SL_RATIOS = [0.5, 0.7, 1.0, 1.5]  # SL = ratio Ã— ATR
+TF = "H1"
+TP_SL_RATIOS = [0.5, 0.7, 1.0, 1.5]
 TP_OVER_SL = 2.0
 
 
-def _analyze_trades(trades: list[dict], capital_pips: float = 10_000.0) -> dict[str, float]:
+def _analyze(trades: list[dict], capital_pips: float = 10_000.0) -> dict[str, float]:
     if not trades:
         return {"sharpe": 0.0, "wr": 0.0, "n_trades": 0, "mean_pnl": 0.0, "max_dd_pips": 0.0}
     pnls = np.array([t["pips_net"] for t in trades])
@@ -94,11 +86,10 @@ def _analyze_trades(trades: list[dict], capital_pips: float = 10_000.0) -> dict[
 
 
 def screen_one(strat_name: str, strat_factory: callable, asset: str) -> list[dict[str, Any]]:
-    """Pour un (stratÃ©gie, asset) : balaye 4 ratios TP/SL et retourne 4 lignes."""
     try:
         df = load_asset(asset, TF)
     except Exception as exc:
-        return [{"strat": strat_name, "asset": asset, "error": str(exc)}]
+        return [{"strat": strat_name, "asset": asset, "error": str(exc)[:80]}]
     cfg = ASSET_CONFIGS[asset]
     df_train = df.loc[:TRAIN_CUTOFF]
     if df_train.empty:
@@ -111,14 +102,13 @@ def screen_one(strat_name: str, strat_factory: callable, asset: str) -> list[dic
     if atr_mean <= 0:
         return [{"strat": strat_name, "asset": asset, "error": "ATR=0"}]
 
-    # GÃ©nÃ©rer les signaux (1 seule fois â€” c'est la stratÃ©gie qui change, pas le TP/SL)
     try:
         strat = strat_factory()
         signals = strat.generate_signals(df_train)
     except Exception as exc:
         return [{"strat": strat_name, "asset": asset, "error": f"signal: {exc}"}]
     n_signals = int((signals != 0).sum())
-    if n_signals < 10:
+    if n_signals < 50:
         return [{"strat": strat_name, "asset": asset, "error": f"only {n_signals} signaux"}]
 
     results = []
@@ -132,7 +122,7 @@ def screen_one(strat_name: str, strat_factory: callable, asset: str) -> list[dic
             commission_pips=cfg.commission_pips,
             slippage_pips=half_cost, pip_size=cfg.pip_size, asset_config=cfg,
         )
-        m = _analyze_trades(bt.get("trades", []))
+        m = _analyze(bt.get("trades", []))
         m.update({
             "strat": strat_name, "asset": asset, "tf": TF,
             "sl_atr_ratio": ratio, "sl_pips": sl_pips, "tp_pips": tp_pips,
@@ -145,33 +135,33 @@ def screen_one(strat_name: str, strat_factory: callable, asset: str) -> list[dic
 def main() -> int:
     set_global_seeds()
     print("=" * 70)
-    print(f"SCREENING {len(STRATEGIES)} stratÃ©gies Ã— {len(ASSETS)} actifs Ã— "
+    print(f"SCREENING H1 — {len(STRATEGIES)} strats × {len(ASSETS)} actifs × "
           f"{len(TP_SL_RATIOS)} ratios = {len(STRATEGIES)*len(ASSETS)*len(TP_SL_RATIOS)} backtests")
-    print(f"Train â‰¤ {TRAIN_CUTOFF.date()} uniquement â€” 0 n_trial consommÃ©")
+    print(f"Train ≤ {TRAIN_CUTOFF.date()} uniquement — 0 n_trial consommé")
     print("=" * 70)
 
     all_results: list[dict[str, Any]] = []
+    skipped: list[str] = []
+
     for strat_name, strat_factory in STRATEGIES:
-        print(f"\nâ”€â”€ {strat_name} â”€â”€")
+        print(f"\n── {strat_name} ──")
         for asset in ASSETS:
             rows = screen_one(strat_name, strat_factory, asset)
-            for r in rows:
-                if "error" in r:
-                    continue
+            ok_rows = [r for r in rows if "error" not in r]
+            error_rows = [r for r in rows if "error" in r]
+            for r in ok_rows:
                 all_results.append(r)
-            errors = [r["error"] for r in rows if "error" in r]
-            if errors:
-                print(f"  {asset}: âŒ {errors[0]}")
-            else:
-                best = max(rows, key=lambda x: x.get("sharpe", -np.inf))
+            if error_rows:
+                err = error_rows[0]["error"]
+                skipped.append(f"{strat_name}/{asset}: {err}")
+                print(f"  {asset}: SKIP {err}")
+            elif ok_rows:
+                best = max(ok_rows, key=lambda x: x["sharpe"])
                 print(f"  {asset}: meilleur Sharpe={best['sharpe']:+.2f} "
                       f"(WR={best['wr']:.0%}, n={best['n_trades']}, "
-                      f"SL={best['sl_atr_ratio']}Ã—ATR)")
+                      f"SL={best['sl_atr_ratio']}xATR)")
 
-    # Tri par Sharpe descendant
     all_results.sort(key=lambda x: x["sharpe"], reverse=True)
-
-    # CritÃ¨res de prÃ©-sÃ©lection
     candidates = [
         r for r in all_results
         if r["sharpe"] >= 0.5 and r["wr"] >= 0.35
@@ -179,38 +169,40 @@ def main() -> int:
     ]
 
     print("\n" + "=" * 90)
-    print(f"TOP 20 RÃ‰SULTATS (sur {len(all_results)} backtests valides)")
+    print(f"TOP 20 RESULTATS (sur {len(all_results)} backtests valides, {len(skipped)} skipped)")
     print("=" * 90)
-    print(f"{'Strat':<32} {'Asset':<8} {'SL/ATR':>7} {'Sharpe':>7} {'WR':>5} {'n':>5} {'mean_pnl':>10}")
+    print(f"{'Strat':<35} {'Asset':<8} {'SL/ATR':>7} {'Sharpe':>7} {'WR':>5} {'n':>6} {'mean_pnl':>10}")
     for r in all_results[:20]:
-        print(f"{r['strat']:<32} {r['asset']:<8} {r['sl_atr_ratio']:>7.1f} "
-              f"{r['sharpe']:>+7.2f} {r['wr']:>5.0%} {r['n_trades']:>5} "
+        print(f"{r['strat']:<35} {r['asset']:<8} {r['sl_atr_ratio']:>7.1f} "
+              f"{r['sharpe']:>+7.2f} {r['wr']:>5.0%} {r['n_trades']:>6} "
               f"{r['mean_pnl']:>+10.2f}")
 
     print("\n" + "=" * 70)
     print(f"CANDIDATS pour OOS unique : {len(candidates)} "
-          f"(Sharpeâ‰¥0.5, WRâ‰¥35%, nâ‰¥30 sur train)")
+          f"(Sharpe>=0.5, WR>=35%, n>=30 sur train)")
     print("=" * 70)
     for r in candidates[:30]:
-        print(f"  âœ… {r['strat']:<30} {r['asset']:<8} SL={r['sl_atr_ratio']}Ã—ATR "
-              f"â†’ Sharpe {r['sharpe']:+.2f}, WR {r['wr']:.1%}, n={r['n_trades']}")
+        print(f"  OK {r['strat']:<30} {r['asset']:<8} SL={r['sl_atr_ratio']}xATR "
+              f"-> Sharpe {r['sharpe']:+.2f}, WR {r['wr']:.1%}, n={r['n_trades']}, "
+              f"mean_pnl={r['mean_pnl']:+.1f}")
 
     if not candidates:
-        print("\nðŸ”´ AUCUN couple (stratÃ©gie, actif, ratio) ne passe le critÃ¨re minimal sur train.")
-        print("   â†’ Aucune stratÃ©gie technique simple ne montre d'edge sur ce dataset.")
-        print("   â†’ Implications : revoir l'approche (timeframe, type de feature, type de marchÃ©).")
+        print("\n!! AUCUN couple ne passe le critère minimal H1.")
+        print("   -> Les patterns H1 n'offrent pas d'edge sur ces stratégies.")
     else:
-        print(f"\nðŸ’¡ {len(candidates)} candidates. Tester en OOS unique (1 n_trial par couple).")
-        print("   Recommandation : prendre le TOP 3-5 distincts par stratÃ©gie pour Ã©viter overfitting.")
+        print(f"\n!! {len(candidates)} candidates H1.")
 
-    out_json = Path("predictions/screen_strategies_train.json")
+    out_json = Path("predictions/screen_strategies_train_h1.json")
     out_json.parent.mkdir(parents=True, exist_ok=True)
     out_json.write_text(
-        json.dumps({"all_results": all_results, "candidates": candidates},
-                   indent=2, default=str, ensure_ascii=False),
+        json.dumps({
+            "all_results": all_results,
+            "candidates": candidates,
+            "skipped": skipped,
+        }, indent=2, default=str, ensure_ascii=False),
         encoding="utf-8",
     )
-    print(f"\nJSON sauvegardÃ© : {out_json}")
+    print(f"\nJSON sauvegardé : {out_json}")
     return 0
 
 

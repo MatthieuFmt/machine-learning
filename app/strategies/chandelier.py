@@ -28,15 +28,43 @@ class ChandelierExit(BaseStrategy):
         highest = df["High"].rolling(window=period).max()
         lowest = df["Low"].rolling(window=period).min()
 
-        long_trigger = highest.shift(1) - k_atr * atr_val
-        short_trigger = lowest.shift(1) + k_atr * atr_val
+        import numpy as np
+        n = len(df)
+        trend = np.zeros(n, dtype=int)
 
-        long_cond = df["Close"] > long_trigger
-        short_cond = df["Close"] < short_trigger
+        close_arr = df["Close"].values
+        atr_arr = atr_val.values
+        highest_arr = highest.values
+        lowest_arr = lowest.values
 
-        signals = pd.Series(0, index=df.index, dtype=int)
-        signals[long_cond] = 1
-        signals[short_cond] = -1
+        for i in range(n):
+            if np.isnan(atr_arr[i]) or np.isnan(highest_arr[i]) or np.isnan(lowest_arr[i]):
+                trend[i] = 0
+                continue
 
+            long_stop = highest_arr[i] - k_atr * atr_arr[i]
+            short_stop = lowest_arr[i] + k_atr * atr_arr[i]
+
+            prev_trend = trend[i - 1] if i > 0 else 0
+
+            if prev_trend == 1:
+                if close_arr[i] < long_stop:
+                    trend[i] = -1
+                else:
+                    trend[i] = 1
+            elif prev_trend == -1:
+                if close_arr[i] > short_stop:
+                    trend[i] = 1
+                else:
+                    trend[i] = -1
+            else:
+                if close_arr[i] > short_stop:
+                    trend[i] = 1
+                elif close_arr[i] < long_stop:
+                    trend[i] = -1
+                else:
+                    trend[i] = 0
+
+        signals = pd.Series(trend, index=df.index, dtype=int)
         # shift(1) = anti-look-ahead : le signal à t n'utilise que l'info ≤ t-1
         return signals.shift(1).fillna(0).astype(int)

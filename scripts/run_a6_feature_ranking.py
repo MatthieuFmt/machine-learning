@@ -1,7 +1,7 @@
-"""Pivot v4 A6 — Ranking robuste des features train uniquement.
+"""Pivot v4 A6 â€” Ranking robuste des features train uniquement.
 
-⚠️ Aucune lecture du test set ≥ 2024.
-Hard filter: toutes les données postérieures à 2022-12-31 sont EXCLUES.
+âš ï¸ Aucune lecture du test set â‰¥ 2024.
+Hard filter: toutes les donnÃ©es postÃ©rieures Ã  2022-12-31 sont EXCLUES.
 """
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ from app.strategies.donchian import DonchianBreakout
 
 CUTOFF = pd.Timestamp("2022-12-31 23:59:59", tz="UTC")
 
-# ── AssetConfig EURUSD locale (non présente dans ASSET_CONFIGS) ──────────
+# â”€â”€ AssetConfig EURUSD locale (non prÃ©sente dans ASSET_CONFIGS) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 _EURUSD_CFG = AssetConfig(
     spread_pips=0.5,
     slippage_pips=1.0,
@@ -68,7 +68,7 @@ def _backtest_wrapper(
     strat: DonchianBreakout,
     cfg: AssetConfig,
 ) -> pd.DataFrame:
-    """Exécute le backtest déterministe et retourne le DataFrame trades."""
+    """ExÃ©cute le backtest dÃ©terministe et retourne le DataFrame trades."""
     from app.backtest.deterministic import run_deterministic_backtest
 
     signals = strat.generate_signals(df_train)
@@ -81,6 +81,7 @@ def _backtest_wrapper(
         commission_pips=cfg.commission_pips,
         slippage_pips=cfg.slippage_pips,
         pip_size=cfg.pip_size,
+        asset_config=cfg,
     )
     trades_list: list[dict] = result.get("trades", [])
     if not trades_list:
@@ -98,12 +99,12 @@ def build_target_from_strat(
     strat: DonchianBreakout,
     cfg: AssetConfig,
 ) -> tuple[pd.DataFrame, pd.Series]:
-    """Génère la cible binaire (winner) à partir des trades sur train."""
+    """GÃ©nÃ¨re la cible binaire (winner) Ã  partir des trades sur train."""
     trades = _backtest_wrapper(df_train, strat, cfg)
     if trades.empty:
         return pd.DataFrame(), pd.Series(dtype=int)
 
-    # pips_net: on utilise la colonne si présente, sinon on calcule
+    # pips_net: on utilise la colonne si prÃ©sente, sinon on calcule
     if "pips_net" in trades.columns:
         y = (trades["pips_net"] > 0).astype(int)
     else:
@@ -112,7 +113,7 @@ def build_target_from_strat(
 
 
 def rank_one_config(cfg_entry: dict) -> dict:
-    """Exécute le ranking pour une config (asset, tf, strat)."""
+    """ExÃ©cute le ranking pour une config (asset, tf, strat)."""
     asset = cfg_entry["asset"]
     tf = cfg_entry["tf"]
     cfg = cfg_entry["cfg"]
@@ -162,7 +163,7 @@ def main() -> int:
         print(f"Ranking {key}...")
         out[key] = rank_one_config(entry)
 
-    # ── Sauvegarde JSON ─────────────────────────────────────────────────
+    # â”€â”€ Sauvegarde JSON â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     out_path = Path("predictions/feature_ranking_v4.json")
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(
@@ -170,7 +171,7 @@ def main() -> int:
         encoding="utf-8",
     )
 
-    # ── Génération features_selected.py ──────────────────────────────────
+    # â”€â”€ GÃ©nÃ©ration features_selected.py â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     selected_lines: list[str] = []
     for entry in RANKING_CONFIGS:
         key = f"{entry['asset']}_{entry['tf']}"
@@ -182,7 +183,7 @@ def main() -> int:
             )
 
     config_content = (
-        '"""FROZEN après pivot v4 A6. NE PAS MODIFIER sans nouveau pivot."""\n'
+        '"""FROZEN aprÃ¨s pivot v4 A6. NE PAS MODIFIER sans nouveau pivot."""\n'
         "from __future__ import annotations\n\n"
         "FEATURES_SELECTED: dict[tuple[str, str], tuple[str, ...]] = {\n"
         + "\n".join(selected_lines)
@@ -192,7 +193,7 @@ def main() -> int:
     config_dir.parent.mkdir(parents=True, exist_ok=True)
     config_dir.write_text(config_content, encoding="utf-8")
 
-    print(f"Top features sauvegardés dans {out_path} et {config_dir}")
+    print(f"Top features sauvegardÃ©s dans {out_path} et {config_dir}")
     return 0
 
 

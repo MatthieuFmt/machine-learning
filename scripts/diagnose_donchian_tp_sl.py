@@ -1,16 +1,16 @@
-"""Diagnostic Donchian TP/SL — pourquoi WR=9% sur GBPUSD D1 ?
+"""Diagnostic Donchian TP/SL â€” pourquoi WR=9% sur GBPUSD D1 ?
 
-Hypothèse : SL=10 pips est trop serré pour D1 forex (range moyen 60-80 pips).
-Le bruit intra-day touche le SL juste après l'entrée breakout.
+HypothÃ¨se : SL=10 pips est trop serrÃ© pour D1 forex (range moyen 60-80 pips).
+Le bruit intra-day touche le SL juste aprÃ¨s l'entrÃ©e breakout.
 
-Ce script lit UNIQUEMENT train ≤ 2022 → ZÉRO n_trial consommé. C'est de
-l'analyse structurelle, pas une nouvelle hypothèse OOS.
+Ce script lit UNIQUEMENT train â‰¤ 2022 â†’ ZÃ‰RO n_trial consommÃ©. C'est de
+l'analyse structurelle, pas une nouvelle hypothÃ¨se OOS.
 
 Pour chaque couple :
-1. WR Donchian sur train (12 ans) — était-il déjà mauvais ?
-2. Distribution win / loss_sl / loss_timeout — quel type de perte domine ?
-3. ATR moyen et range D1 moyen — quelle taille de stop serait réaliste ?
-4. Ratio SL/ATR — un SL < 0.5×ATR est mécaniquement touché ~80% du temps.
+1. WR Donchian sur train (12 ans) â€” Ã©tait-il dÃ©jÃ  mauvais ?
+2. Distribution win / loss_sl / loss_timeout â€” quel type de perte domine ?
+3. ATR moyen et range D1 moyen â€” quelle taille de stop serait rÃ©aliste ?
+4. Ratio SL/ATR â€” un SL < 0.5Ã—ATR est mÃ©caniquement touchÃ© ~80% du temps.
 """
 from __future__ import annotations
 
@@ -45,11 +45,11 @@ COUPLES: list[dict[str, Any]] = [
     # Crypto (le seul SL/ATR sain initialement)
     {"asset": "ETHUSD", "tf": "D1"},
     {"asset": "BTCUSD", "tf": "D1"},
-    # Indices — VÉRIFICATION DU RÉSULTAT FONDATEUR H03 (US30 Donchian D1)
+    # Indices â€” VÃ‰RIFICATION DU RÃ‰SULTAT FONDATEUR H03 (US30 Donchian D1)
     {"asset": "US30", "tf": "D1"},
     {"asset": "US500", "tf": "D1"},
     {"asset": "GER30", "tf": "D1"},
-    # Métaux
+    # MÃ©taux
     {"asset": "XAUUSD", "tf": "D1"},
 ]
 
@@ -71,7 +71,7 @@ def diagnose_couple(asset: str, tf: str) -> dict[str, Any]:
         tp_pips=cfg.tp_points, sl_pips=cfg.sl_points,
         window_hours=cfg.window_hours,
         commission_pips=cfg.commission_pips,
-        slippage_pips=half_cost, pip_size=cfg.pip_size,
+        slippage_pips=half_cost, pip_size=cfg.pip_size, asset_config=cfg,
     )
     trades = bt.get("trades", [])
     if not trades:
@@ -86,7 +86,7 @@ def diagnose_couple(asset: str, tf: str) -> dict[str, Any]:
 
     print(f"  Trades train: {len(trades)} (12 ans Donchian D1)")
     print(f"  WR train: {wr_train:.1%}")
-    print(f"  Distribution résultats:")
+    print(f"  Distribution rÃ©sultats:")
     print(f"    win        : {n_win:4d} ({n_win/len(trades):.1%})")
     print(f"    loss_sl    : {n_sl:4d} ({n_sl/len(trades):.1%})")
     print(f"    loss_timeout: {n_timeout:4d} ({n_timeout/len(trades):.1%})")
@@ -105,15 +105,15 @@ def diagnose_couple(asset: str, tf: str) -> dict[str, Any]:
     print(f"  ATR moyen (14, pips): {atr_mean:.1f} (median {atr_median:.1f})")
     print(f"  Range D1 moyen (pips): {range_mean:.1f}")
     print(f"  SL config: {cfg.sl_points} pips, TP: {cfg.tp_points} pips")
-    print(f"  Ratio SL/ATR: {sl_to_atr:.2f} (sain ≥ 0.5, dangereux < 0.3)")
+    print(f"  Ratio SL/ATR: {sl_to_atr:.2f} (sain â‰¥ 0.5, dangereux < 0.3)")
 
     if sl_to_atr < 0.3:
-        print(f"  🔴 SL TROP SERRÉ — touché trivialement par le bruit intra-day")
+        print(f"  ðŸ”´ SL TROP SERRÃ‰ â€” touchÃ© trivialement par le bruit intra-day")
 
     # 3. Suggestions
     suggested_sl_atr = max(int(atr_mean * 0.7), 10)
-    suggested_tp_atr = suggested_sl_atr * 2  # ratio 2:1 conservé
-    print(f"  💡 Suggestion : SL≈{suggested_sl_atr}, TP≈{suggested_tp_atr} pips (0.7×ATR / 2×SL)")
+    suggested_tp_atr = suggested_sl_atr * 2  # ratio 2:1 conservÃ©
+    print(f"  ðŸ’¡ Suggestion : SLâ‰ˆ{suggested_sl_atr}, TPâ‰ˆ{suggested_tp_atr} pips (0.7Ã—ATR / 2Ã—SL)")
 
     return {
         "asset": asset, "tf": tf,
@@ -135,7 +135,7 @@ def diagnose_couple(asset: str, tf: str) -> dict[str, Any]:
 def main() -> int:
     set_global_seeds()
     print("=" * 70)
-    print("DIAGNOSTIC DONCHIAN TP/SL — train ≤ 2022 (0 n_trial consommé)")
+    print("DIAGNOSTIC DONCHIAN TP/SL â€” train â‰¤ 2022 (0 n_trial consommÃ©)")
     print("=" * 70)
 
     results: list[dict[str, Any]] = []
@@ -144,12 +144,12 @@ def main() -> int:
             r = diagnose_couple(c["asset"], c["tf"])
             results.append(r)
         except Exception as exc:
-            print(f"  ❌ {c['asset']} {c['tf']}: {exc}")
+            print(f"  âŒ {c['asset']} {c['tf']}: {exc}")
             results.append({"asset": c["asset"], "tf": c["tf"], "error": str(exc)})
 
-    # Récap
+    # RÃ©cap
     print("\n" + "=" * 70)
-    print("RÉCAP — WR train Donchian + ratio SL/ATR")
+    print("RÃ‰CAP â€” WR train Donchian + ratio SL/ATR")
     print("=" * 70)
     print(f"{'Couple':<12} {'WR train':>10} {'%SL':>6} {'%TO':>6} {'ATR':>8} {'SL':>6} {'SL/ATR':>8} {'verdict':>10}")
     for r in results:
@@ -159,7 +159,7 @@ def main() -> int:
         wr_str = f"{r['wr_train']:.1%}"
         sl_pct = f"{r['loss_sl']/r['n_trades_train']:.0%}"
         to_pct = f"{r['loss_timeout']/r['n_trades_train']:.0%}"
-        verdict = "🔴 trop serré" if r["verdict_sl_too_tight"] else "ok"
+        verdict = "ðŸ”´ trop serrÃ©" if r["verdict_sl_too_tight"] else "ok"
         print(f"{couple:<12} {wr_str:>10} {sl_pct:>6} {to_pct:>6} "
               f"{r['atr_mean_pips']:>8.1f} {r['sl_config_pips']:>6.0f} "
               f"{r['sl_to_atr_ratio']:>8.2f} {verdict:>10}")
@@ -170,7 +170,7 @@ def main() -> int:
         json.dumps(results, indent=2, default=str, ensure_ascii=False),
         encoding="utf-8",
     )
-    print(f"\nJSON sauvegardé : {out_json}")
+    print(f"\nJSON sauvegardÃ© : {out_json}")
     return 0
 
 

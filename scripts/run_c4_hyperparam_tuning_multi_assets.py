@@ -1,7 +1,7 @@
-"""Pivot v4 C4 — Hyperparam tuning multi-actifs (nested CPCV train uniquement).
+"""Pivot v4 C4 â€” Hyperparam tuning multi-actifs (nested CPCV train uniquement).
 
-⚠️ Aucune lecture du test set ≥ 2024.
-0 n_trial consommé.
+âš ï¸ Aucune lecture du test set â‰¥ 2024.
+0 n_trial consommÃ©.
 """
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ SEED = 42
 SHORTLIST_C5_SHARPE = 0.5
 MAX_INNER_OUTER_GAP = 1.0
 
-# ── Grilles d'hyperparams (C4 — identiques A8 pour comparabilité) ──────
+# â”€â”€ Grilles d'hyperparams (C4 â€” identiques A8 pour comparabilitÃ©) â”€â”€â”€â”€â”€â”€
 
 RF_GRID: dict[str, list] = {
     "n_estimators": [100, 200],
@@ -48,11 +48,11 @@ HGBM_GRID: dict[str, list] = {
 
 THRESHOLD_CANDIDATES: list[float] = [0.50, 0.55, 0.60]
 
-# ── Model factories ─────────────────────────────────────────────────────
+# â”€â”€ Model factories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def rf_factory(params: dict, seed: int) -> RandomForestClassifier:
-    """Construit un RandomForest avec les hyperparams donnés."""
+    """Construit un RandomForest avec les hyperparams donnÃ©s."""
     return RandomForestClassifier(
         n_estimators=int(params.get("n_estimators", 200)),
         max_depth=int(params.get("max_depth", 4)),
@@ -64,7 +64,7 @@ def rf_factory(params: dict, seed: int) -> RandomForestClassifier:
 
 
 def hgbm_factory(params: dict, seed: int) -> HistGradientBoostingClassifier:
-    """Construit un HistGradientBoosting avec les hyperparams donnés."""
+    """Construit un HistGradientBoosting avec les hyperparams donnÃ©s."""
     return HistGradientBoostingClassifier(
         max_iter=int(params.get("max_iter", 200)),
         max_depth=params.get("max_depth", 5),
@@ -83,7 +83,7 @@ FACTORIES: dict[str, Any] = {
     "hgbm": hgbm_factory,
 }
 
-# ── Helpers ─────────────────────────────────────────────────────────────
+# â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def _run_backtest(
@@ -91,7 +91,7 @@ def _run_backtest(
     asset: str,
     donchian: dict,
 ) -> pd.DataFrame:
-    """Exécute le backtest Donchian déterministe et retourne le DataFrame trades."""
+    """ExÃ©cute le backtest Donchian dÃ©terministe et retourne le DataFrame trades."""
     from app.backtest.deterministic import run_deterministic_backtest
 
     cfg = ASSET_CONFIGS[asset]
@@ -106,6 +106,7 @@ def _run_backtest(
         commission_pips=cfg.commission_pips,
         slippage_pips=cfg.slippage_pips,
         pip_size=cfg.pip_size,
+        asset_config=cfg,
     )
     trades_list: list[dict] = result.get("trades", [])
     if not trades_list:
@@ -119,7 +120,7 @@ def _run_backtest(
 def _build_X_y_pnl(
     asset: str, tf: str, donchian: dict
 ) -> tuple[pd.DataFrame, pd.Series, pd.Series]:
-    """Reconstruit X, y, pnl filtré par FEATURES_SELECTED."""
+    """Reconstruit X, y, pnl filtrÃ© par FEATURES_SELECTED."""
     df = load_asset(asset, tf)
     df_train = df.loc[:CUTOFF]
     if df_train.empty:
@@ -140,7 +141,7 @@ def _build_X_y_pnl(
 
 
 def _compute_inner_outer_gap(outer_fold_results: list[dict]) -> float:
-    """Écart moyen entre le Sharpe inner (biaisé) et outer (honnête)."""
+    """Ã‰cart moyen entre le Sharpe inner (biaisÃ©) et outer (honnÃªte)."""
     gaps = []
     for r in outer_fold_results:
         inner = r.get("inner_best_score", np.nan)
@@ -150,7 +151,7 @@ def _compute_inner_outer_gap(outer_fold_results: list[dict]) -> float:
     return float(np.mean(gaps)) if gaps else np.nan
 
 
-# ── Core ────────────────────────────────────────────────────────────────
+# â”€â”€ Core â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def _process_couple(asset: str, tf: str, donchian: dict, model_name: str) -> dict:
@@ -252,11 +253,11 @@ def _process_couple(asset: str, tf: str, donchian: dict, model_name: str) -> dic
     }
 
 
-# ── Update hyperparams_tuned.py ─────────────────────────────────────────
+# â”€â”€ Update hyperparams_tuned.py â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def _update_hyperparams_tuned(path: Path, results: list[dict]) -> None:
-    """Merge les nouveaux résultats avec les 3 entrées A8 existantes."""
+    """Merge les nouveaux rÃ©sultats avec les 3 entrÃ©es A8 existantes."""
     from app.config.hyperparams_tuned import HYPERPARAMS_TUNED  # noqa: N811
 
     new_entries: dict[tuple[str, str], dict] = {}
@@ -279,7 +280,7 @@ def _update_hyperparams_tuned(path: Path, results: list[dict]) -> None:
         merged[key] = new_entries[key]
 
     lines = [
-        '"""FROZEN après pivot v4 A8 (3 entrées) + C4 (extension multi-actifs).',
+        '"""FROZEN aprÃ¨s pivot v4 A8 (3 entrÃ©es) + C4 (extension multi-actifs).',
         "",
         "NE PAS MODIFIER MANUELLEMENT. Seules les phases A8 / C4 peuvent y ajouter.",
         '"""',
@@ -299,14 +300,14 @@ def _update_hyperparams_tuned(path: Path, results: list[dict]) -> None:
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-# ── Main ────────────────────────────────────────────────────────────────
+# â”€â”€ Main â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def main() -> int:
     sel_path = _PROJECT_ROOT / "predictions" / "c3_model_selection_multi_assets.json"
     selections = json.loads(sel_path.read_text(encoding="utf-8"))
 
-    # Récupérer les Donchian (N, M) depuis C2
+    # RÃ©cupÃ©rer les Donchian (N, M) depuis C2
     rank_path = _PROJECT_ROOT / "predictions" / "c2_ranking_multi_assets.json"
     rankings = json.loads(rank_path.read_text(encoding="utf-8"))
     donchian_by_couple = {
@@ -316,42 +317,42 @@ def main() -> int:
     }
 
     shortlist = [r for r in selections if r["status"] == "ok" and r.get("pass_c4_threshold", False)]
-    print(f"{len(shortlist)} couples en shortlist C4 (Sharpe CPCV ≥ 0.5).")
+    print(f"{len(shortlist)} couples en shortlist C4 (Sharpe CPCV â‰¥ 0.5).")
 
     results: list[dict] = []
     for r in shortlist:
         asset, tf = r["asset"], r["tf"]
         model_name = r["selected_model"]
         donchian = donchian_by_couple[(asset, tf)]
-        print(f"\n→ tuning {asset}/{tf} ({model_name}) ...")
+        print(f"\nâ†’ tuning {asset}/{tf} ({model_name}) ...")
         res = _process_couple(asset, tf, donchian, model_name)
         results.append(res)
         if res["status"] == "ok":
             print(
-                f"  ✓ params={res['params']}, threshold={res['threshold']}, "
+                f"  âœ“ params={res['params']}, threshold={res['threshold']}, "
                 f"Sharpe outer={res['expected_sharpe_outer']:.2f}, "
                 f"gap={res.get('inner_outer_gap', np.nan):.2f}, "
                 f"pass_c5={res['pass_c5']}"
             )
         elif res["status"] == "stacking_excluded_from_tuning":
-            print("  ⚠ stacking (defaults conservés)")
+            print("  âš  stacking (defaults conservÃ©s)")
         else:
-            print(f"  ✗ {res['status']}: {res.get('error', '')}")
+            print(f"  âœ— {res['status']}: {res.get('error', '')}")
 
     # Sauvegarde JSON
     out_path = _PROJECT_ROOT / "predictions" / "c4_hyperparam_tuning_multi_assets.json"
     out_path.write_text(json.dumps(results, indent=2, default=str), encoding="utf-8")
 
-    # Mise à jour hyperparams_tuned.py
+    # Mise Ã  jour hyperparams_tuned.py
     cfg_path = _PROJECT_ROOT / "app" / "config" / "hyperparams_tuned.py"
     _update_hyperparams_tuned(cfg_path, results)
 
-    # Résumé
+    # RÃ©sumÃ©
     ok_results = [r for r in results if r["status"] in ("ok", "stacking_excluded_from_tuning")]
     final_shortlist = [r for r in results if r["status"] == "ok" and r.get("pass_c5", False)]
     print()
-    print(f"Couples tunés : {len(ok_results)}")
-    print(f"Shortlist finale C5 (Sharpe outer ≥ 0.5, gap < 1.0) : {len(final_shortlist)}")
+    print(f"Couples tunÃ©s : {len(ok_results)}")
+    print(f"Shortlist finale C5 (Sharpe outer â‰¥ 0.5, gap < 1.0) : {len(final_shortlist)}")
     for r in final_shortlist:
         print(f"  {r['asset']}/{r['tf']} : {r['model']} Sharpe={r['expected_sharpe_outer']:.2f} gap={r['inner_outer_gap']:.2f}")
 

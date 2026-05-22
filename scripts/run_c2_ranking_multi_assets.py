@@ -1,7 +1,7 @@
-"""Pivot v4 C2 — Ranking robuste multi-actifs train uniquement.
+"""Pivot v4 C2 â€” Ranking robuste multi-actifs train uniquement.
 
-⚠️ Aucune lecture du test set ≥ 2024.
-Hard filter: toutes les données postérieures à 2022-12-31 sont EXCLUES.
+âš ï¸ Aucune lecture du test set â‰¥ 2024.
+Hard filter: toutes les donnÃ©es postÃ©rieures Ã  2022-12-31 sont EXCLUES.
 """
 from __future__ import annotations
 
@@ -31,9 +31,9 @@ DEFAULT_DONCHIAN: dict[str, tuple[int, int]] = {
     "H1": (50, 20),
 }
 
-FALLBACK_DONCHIAN = (10, 10)  # si trop peu de trades avec le défaut
+FALLBACK_DONCHIAN = (10, 10)  # si trop peu de trades avec le dÃ©faut
 
-# Top-N à figer par couple
+# Top-N Ã  figer par couple
 TOP_K = 15
 MIN_TRADES_TRAIN = 50  # seuil minimum pour ranking fiable
 
@@ -43,7 +43,7 @@ def _backtest_target(
     strat: DonchianBreakout,
     cfg: AssetConfig,
 ) -> pd.DataFrame:
-    """Génère les trades (target = winner) sur le train."""
+    """GÃ©nÃ¨re les trades (target = winner) sur le train."""
     from app.backtest.deterministic import run_deterministic_backtest
 
     signals = strat.generate_signals(df_train)
@@ -56,6 +56,7 @@ def _backtest_target(
         commission_pips=cfg.commission_pips,
         slippage_pips=cfg.slippage_pips,
         pip_size=cfg.pip_size,
+        asset_config=cfg,
     )
     trades_list = result.get("trades", [])
     if not trades_list:
@@ -97,7 +98,7 @@ def _process_couple(asset: str, tf: str, inventory_entry: dict) -> dict:
 
     feat_train = build_superset(df_train, asset=asset)
 
-    # Tentative 1 : Donchian par défaut
+    # Tentative 1 : Donchian par dÃ©faut
     N, M = DEFAULT_DONCHIAN[tf]  # noqa: N806
     strat = DonchianBreakout(N=N, M=M)
     trades = _backtest_target(df_train, strat, cfg)
@@ -149,24 +150,24 @@ def main() -> int:
     inv_path = _PROJECT_ROOT / "predictions" / "c1_couples_inventory.json"
     inventory = json.loads(inv_path.read_text(encoding="utf-8"))
     new_couples = [e for e in inventory if e["status"] == "new_phase_c"]
-    print(f"{len(new_couples)} couples nouveaux à traiter.")
+    print(f"{len(new_couples)} couples nouveaux Ã  traiter.")
 
     results: list[dict] = []
     for entry in new_couples:
         asset, tf = entry["asset"], entry["tf"]
-        print(f"  → ranking {asset}/{tf} ...")
+        print(f"  â†’ ranking {asset}/{tf} ...")
         res = _process_couple(asset, tf, entry)
         results.append(res)
         if res["status"] == "ok":
-            print(f"    ✓ {len(res['top_features'])} features, stability moy={res['stability_mean']:.2f}, n_trades={res['n_trades_train']}")
+            print(f"    âœ“ {len(res['top_features'])} features, stability moy={res['stability_mean']:.2f}, n_trades={res['n_trades_train']}")
         else:
-            print(f"    ✗ {res['status']}")
+            print(f"    âœ— {res['status']}")
 
     # Sauvegarde JSON
     out_path = _PROJECT_ROOT / "predictions" / "c2_ranking_multi_assets.json"
     out_path.write_text(json.dumps(results, indent=2), encoding="utf-8")
 
-    # Mise à jour features_selected.py
+    # Mise Ã  jour features_selected.py
     cfg_path = _PROJECT_ROOT / "app" / "config" / "features_selected.py"
     _update_features_selected(cfg_path, results)
 
@@ -175,14 +176,14 @@ def main() -> int:
     shortlist = [r for r in ok if r["stability_mean"] >= 0.5]
     print()
     print(f"Couples ranked OK : {len(ok)} / {len(new_couples)}")
-    print(f"Shortlist (stab moyenne ≥ 0.5) pour C3 : {len(shortlist)}")
+    print(f"Shortlist (stab moyenne â‰¥ 0.5) pour C3 : {len(shortlist)}")
     for r in shortlist:
         print(f"  {r['asset']}/{r['tf']} : stab={r['stability_mean']:.2f}, n_trades={r['n_trades_train']}")
     return 0
 
 
 def _update_features_selected(path: Path, results: list[dict]) -> None:
-    """Ajoute les nouvelles entrées tout en préservant les 3 originales."""
+    """Ajoute les nouvelles entrÃ©es tout en prÃ©servant les 3 originales."""
     from app.config.features_selected import FEATURES_SELECTED as EXISTING  # noqa: E402
 
     new_entries: dict[tuple[str, str], tuple[str, ...]] = {}
@@ -193,7 +194,7 @@ def _update_features_selected(path: Path, results: list[dict]) -> None:
     merged = {**EXISTING, **new_entries}
 
     lines = [
-        '"""FROZEN après pivot v4 A6 (3 entrées) + C2 (extension multi-actifs).',
+        '"""FROZEN aprÃ¨s pivot v4 A6 (3 entrÃ©es) + C2 (extension multi-actifs).',
         '',
         'NE PAS MODIFIER MANUELLEMENT. Seules les phases A6 / C2 peuvent y ajouter.',
         '"""',
