@@ -497,4 +497,24 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
         swap_long_pips_per_night=-80.0,
         swap_short_pips_per_night=-10.0,
     ),
+    # ── USDJPY (Forex) — NOUVEAU H2 (Asian Range), PROVISOIRE ────────────
+    # ⚠️ PROVISOIRE — à valider en démo XTB MT5 (Symbol Specifications)
+    # Pair JPY : pip_size = 0.01 (2ème décimale), spread XTB Standard ~1.0 pip
+    "USDJPY": AssetConfig(
+        spread_pips=1.0,
+        slippage_pips=0.2,     # majeure : 0.2× spread
+        commission_pips=0.0,
+        pip_size=0.01,         # pair JPY : 1 pip = 0.01 JPY (2ème décimale)
+        pip_value_eur=6.1,     # 1 pip × 1 lot std (100k USD) = 1000 JPY ≈ $6.67 ≈ 6.1 EUR @USDJPY=150
+        tp_points=20,
+        sl_points=10,
+        window_hours=120,
+        min_lot=0.01,
+        max_lot=10.0,
+        # F6 — swaps estimés (différentiel BoJ-Fed : Fed ~5%, BoJ ~0-0.5%)
+        # Long USDJPY = long USD/short JPY = carry positif (Fed > BoJ)
+        # Markup broker → avantage long modeste, short fortement défavorable
+        swap_long_pips_per_night=0.5,
+        swap_short_pips_per_night=-1.5,
+    ),
 }

@@ -101,68 +101,68 @@ def _generate_all_holidays():
                 dec24, dec26, dec31, may1, oct3
             ])
             XTB_HOLIDAYS[asset].extend(observed_holidays)
-            
-    # ── Japanese holidays for JPY crosses ─────────────────────────────────
-    # Sources: https://www.japan-guide.com/e/e2062.html
-    # Japanese fixed holidays
-    feb11 = date(y, 2, 11)          # National Foundation Day
-    apr29 = date(y, 4, 29)          # Showa Day
-    may3 = date(y, 5, 3)            # Constitution Memorial Day
-    may4 = date(y, 5, 4)            # Greenery Day
-    may5 = date(y, 5, 5)            # Children's Day
-    aug11 = date(y, 8, 11)          # Mountain Day (from 2016)
-    nov3 = date(y, 11, 3)           # Culture Day
-    nov23 = date(y, 11, 23)         # Labor Thanksgiving Day
-    
-    # Japanese floating holidays (computed)
-    # Coming of Age Day: 2nd Monday of January
-    d_jan2nd = date(y, 1, 8)        # Jan 8 is earliest 2nd Monday
-    while d_jan2nd.weekday() != 0:
-        d_jan2nd += timedelta(days=1)
-    coming_of_age_day = d_jan2nd
-    
-    # Marine Day: 3rd Monday of July
-    d_mar = date(y, 7, 15)          # Jul 15 is earliest 3rd Monday
-    while d_mar.weekday() != 0:
-        d_mar += timedelta(days=1)
-    marine_day = d_mar
-    
-    # Respect for the Aged Day: 3rd Monday of September
-    d_resp = date(y, 9, 15)         # Sep 15 is earliest 3rd Monday
-    while d_resp.weekday() != 0:
-        d_resp += timedelta(days=1)
-    respect_day = d_resp
-    
-    # Sports Day: 2nd Monday of October
-    d_sports = date(y, 10, 8)       # Oct 8 is earliest 2nd Monday
-    while d_sports.weekday() != 0:
-        d_sports += timedelta(days=1)
-    sports_day = d_sports
-    
-    jpy_holidays = [
-        jan1, feb11, apr29, may3, may4, may5,
-        nov3, nov23,
-        coming_of_age_day, marine_day, respect_day, sports_day,
-    ]
-    if y >= 2016:
-        jpy_holidays.append(aug11)
-    # Emperor's Birthday: Dec 23 (Showa era), changed to Feb 23 from 2020
-    if y >= 2020:
-        jpy_holidays.append(date(y, 2, 23))
-    else:
-        jpy_holidays.append(date(y, 12, 23))
-    # Golden Week bridge holidays: Apr 30, May 1, May 2
-    # If Apr 29 is a weekend, the next weekday after Golden Week may be a holiday
-    # We keep it simple: add Apr 30, May 1, May 2
-    jpy_holidays.extend([date(y, 4, 30), date(y, 5, 1), date(y, 5, 2)])
-    
-    for asset in ["USDJPY", "EURJPY", "GBPJPY", "AUDJPY", "NZDJPY", "CADJPY", "CHFJPY"]:
-        if asset not in XTB_HOLIDAYS:
-            XTB_HOLIDAYS[asset] = []
-        XTB_HOLIDAYS[asset].extend(jpy_holidays)
-        # Also add standard forex holidays (Christmas, New Year, Easter)
-        XTB_HOLIDAYS[asset].extend([jan1, dec25, good_friday, easter_monday, dec24, dec31])
-        XTB_HOLIDAYS[asset].extend(observed_holidays)
+
+        # ── Japanese holidays for JPY crosses ─────────────────────────────────
+        # Sources: https://www.japan-guide.com/e/e2062.html
+        # Japanese fixed holidays
+        feb11 = date(y, 2, 11)          # National Foundation Day
+        apr29 = date(y, 4, 29)          # Showa Day
+        may3 = date(y, 5, 3)            # Constitution Memorial Day
+        may4 = date(y, 5, 4)            # Greenery Day
+        may5 = date(y, 5, 5)            # Children's Day
+        aug11 = date(y, 8, 11)          # Mountain Day (from 2016)
+        nov3 = date(y, 11, 3)           # Culture Day
+        nov23 = date(y, 11, 23)         # Labor Thanksgiving Day
+
+        # Japanese floating holidays (computed)
+        # Coming of Age Day: 2nd Monday of January
+        d_jan2nd = date(y, 1, 8)        # Jan 8 is earliest 2nd Monday
+        while d_jan2nd.weekday() != 0:
+            d_jan2nd += timedelta(days=1)
+        coming_of_age_day = d_jan2nd
+
+        # Marine Day: 3rd Monday of July
+        d_mar = date(y, 7, 15)          # Jul 15 is earliest 3rd Monday
+        while d_mar.weekday() != 0:
+            d_mar += timedelta(days=1)
+        marine_day = d_mar
+
+        # Respect for the Aged Day: 3rd Monday of September
+        d_resp = date(y, 9, 15)         # Sep 15 is earliest 3rd Monday
+        while d_resp.weekday() != 0:
+            d_resp += timedelta(days=1)
+        respect_day = d_resp
+
+        # Sports Day: 2nd Monday of October
+        d_sports = date(y, 10, 8)       # Oct 8 is earliest 2nd Monday
+        while d_sports.weekday() != 0:
+            d_sports += timedelta(days=1)
+        sports_day = d_sports
+
+        jpy_holidays = [
+            jan1, feb11, apr29, may3, may4, may5,
+            nov3, nov23,
+            coming_of_age_day, marine_day, respect_day, sports_day,
+        ]
+        if y >= 2016:
+            jpy_holidays.append(aug11)
+        # Emperor's Birthday: Dec 23 (Showa era), changed to Feb 23 from 2020
+        if y >= 2020:
+            jpy_holidays.append(date(y, 2, 23))
+        else:
+            jpy_holidays.append(date(y, 12, 23))
+        # Golden Week bridge holidays: Apr 30, May 1, May 2
+        # If Apr 29 is a weekend, the next weekday after Golden Week may be a holiday
+        # We keep it simple: add Apr 30, May 1, May 2
+        jpy_holidays.extend([date(y, 4, 30), date(y, 5, 1), date(y, 5, 2)])
+
+        for asset in ["USDJPY", "EURJPY", "GBPJPY", "AUDJPY", "NZDJPY", "CADJPY", "CHFJPY"]:
+            if asset not in XTB_HOLIDAYS:
+                XTB_HOLIDAYS[asset] = []
+            XTB_HOLIDAYS[asset].extend(jpy_holidays)
+            # Also add standard forex holidays (Christmas, New Year, Easter)
+            XTB_HOLIDAYS[asset].extend([jan1, dec25, good_friday, easter_monday, dec24, dec31])
+            XTB_HOLIDAYS[asset].extend(observed_holidays)
 
     # Add GER30 specific known historical exchange closure or data gap on Friday 2014-08-01
     XTB_HOLIDAYS["GER30"].append(date(2014, 8, 1))
