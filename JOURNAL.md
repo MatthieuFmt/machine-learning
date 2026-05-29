@@ -828,3 +828,34 @@ Le Donchian et les stratégies trend-following méritent d'être retestés en hy
   - (B) Vérification spreads démo XTB + correction ASSET_CONFIGS → 0 n_trial
   - (C) Prompt 18 validation finale sur portfolio existant → +1 n_trial
 - **Recommandation** : Option B (spreads démo) puis Option A si gros candidat, sinon Option C.
+---
+
+## 2026-05-29 — Refonte « bases saines » (audit complet + couche data)
+
+### Contexte
+Audit complet du projet (4 axes : histoire/post-mortems, méthodologie/look-ahead,
+réalisme backtest, gap déploiement). Décision mainteneur : **bases saines d'abord,
+trouver un VRAI edge avant tout déploiement** ; ouvert à des stratégies NON-ML.
+
+### Constat central
+- **Aucun edge statistiquement valide n'a jamais été trouvé.** Les « +8.84 » (Donchian
+  US30) et « portfolio +4.97 / DSR 19.5 » étaient des **artefacts de bugs** (F1/F2/F3) ;
+  après correction → Sharpe négatif. La prémisse de `prompts/00_constitution.md` §1 est fausse.
+- Backlog de ~15 bugs critiques recensé dans `CLAUDE.md` §6 (fuites CPCV/labels,
+  anti-snooping no-op, n_trials en dur, swap/sizing jamais exécutés, fill look-ahead…).
+
+### Réalisé
+- **Doc** : `CLAUDE.md` réécrit (source de vérité honnête) ; `prompts/00_constitution.md`
+  corrigé (bloc d'avertissement daté). Commit `e661226`.
+- **Tâche A — couche data restaurée** : `app/data/loader.py` (`load_asset` + `_find_csv`),
+  `app/data/registry.py` (`discover_assets`), `app/data/__init__.py`. Répare ~45 imports cassés.
+- **Tests** : ✅ `tests/unit/test_data_loader.py` 14/14 ; tests registry-dépendants OK.
+
+### Environnement (session cloud)
+- Aucune donnée dans le repo (`data/` vide) ; PyPI accessible ; Dukascopy/Yahoo en 403 direct.
+- numpy 2.2.6 + pandas 3.0.2 installés à la demande.
+
+### Prochaine étape
+- **Tâche B'** : backtest & validation fiables génériques (swap appliqué, entrée open[i+1],
+  stop-slippage, coûts XTB réels, Sharpe unique, embargo ≥ horizon, anti-snooping actif).
+- **n_trials cumul** : 28 (inchangé — aucun nouveau test OOS).
