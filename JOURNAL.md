@@ -828,3 +828,112 @@ Le Donchian et les stratégies trend-following méritent d'être retestés en hy
   - (B) Vérification spreads démo XTB + correction ASSET_CONFIGS → 0 n_trial
   - (C) Prompt 18 validation finale sur portfolio existant → +1 n_trial
 - **Recommandation** : Option B (spreads démo) puis Option A si gros candidat, sinon Option C.
+---
+
+## 2026-05-29 — Refonte « bases saines » (audit complet + couche data)
+
+### Contexte
+Audit complet du projet (4 axes : histoire/post-mortems, méthodologie/look-ahead,
+réalisme backtest, gap déploiement). Décision mainteneur : **bases saines d'abord,
+trouver un VRAI edge avant tout déploiement** ; ouvert à des stratégies NON-ML.
+
+### Constat central
+- **Aucun edge statistiquement valide n'a jamais été trouvé.** Les « +8.84 » (Donchian
+  US30) et « portfolio +4.97 / DSR 19.5 » étaient des **artefacts de bugs** (F1/F2/F3) ;
+  après correction → Sharpe négatif. La prémisse de `prompts/00_constitution.md` §1 est fausse.
+- Backlog de ~15 bugs critiques recensé dans `CLAUDE.md` §6 (fuites CPCV/labels,
+  anti-snooping no-op, n_trials en dur, swap/sizing jamais exécutés, fill look-ahead…).
+
+### Réalisé
+- **Doc** : `CLAUDE.md` réécrit (source de vérité honnête) ; `prompts/00_constitution.md`
+  corrigé (bloc d'avertissement daté). Commit `e661226`.
+- **Tâche A — couche data restaurée** : `app/data/loader.py` (`load_asset` + `_find_csv`),
+  `app/data/registry.py` (`discover_assets`), `app/data/__init__.py`. Répare ~45 imports cassés.
+- **Tests** : ✅ `tests/unit/test_data_loader.py` 14/14 ; tests registry-dépendants OK.
+
+### Environnement (session cloud)
+- Aucune donnée dans le repo (`data/` vide) ; PyPI accessible ; Dukascopy/Yahoo en 403 direct.
+- numpy 2.2.6 + pandas 3.0.2 installés à la demande.
+
+### Prochaine étape
+- **Tâche B'** : backtest & validation fiables génériques (swap appliqué, entrée open[i+1],
+  stop-slippage, coûts XTB réels, Sharpe unique, embargo ≥ horizon, anti-snooping actif).
+- **n_trials cumul** : 28 (inchangé — aucun nouveau test OOS).
+
+## 2026-05-29 (suite) — Tâche B' : backtest & validation fiables (partie 1)
+
+### Réalisé
+- **B'1 — Fill honnête** : `run_deterministic_backtest(entry_on_next_open=...)`.
+  Entrée à `open[i+1]` (le signal n'est connu qu'à la clôture de i → pas de
+  look-ahead d'exécution), barre d'entrée scannée (risque de gap), fenêtre de
+  détention comptée depuis l'entrée. **Défaut False (legacy préservé)** ; la
+  recherche d'edge Phase 1 DOIT passer `entry_on_next_open=True`.
+  Boucle d'exécution unifiée (legacy + next_open) sans changer le comportement legacy.
+- **B'2 — Sharpe fréquence-aware** : `sharpe_daily_from_trades(frequency_aware=True)`
+  route l'annualisation (≥100 t/an daily √252 · 30-99 weekly √52 · <30 per-trade ×√tpy),
+  supprimant l'inflation par jours nuls fantômes (ffill) sur les stratégies basse-fréquence (E4).
+
+### Tests
+- ✅ Nouveaux : `test_deterministic_entry_next_open.py` (4), `test_sharpe_frequency_aware.py` (3).
+- ✅ Non-régression : `test_deterministic_sl_prime` (4), `test_deterministic_window_bars` (2),
+  `test_swap_overnight` (10), `test_sharpe_linear_consistency` (3). Total 26/26.
+
+### Reste à faire (B' partie 2)
+- B'3 — câbler l'anti-snooping : `n_trials` du DSR auto via `snooping_guard.n_trials_from_history()`
+  au lieu de constantes en dur ; rendre `verify_no_snooping` opérant (TEST_SET_LOCK).
+- Chemin ML (`simulator.py`/`base.py`) : entrée open[i+1] + `asset_cfg` passé.
+- Stop-slippage / gaps sur fills SL/TP ; coûts XTB round-trip réalistes.
+- **À re-valider sur données réelles (Phase 1) avant de basculer `entry_on_next_open` en défaut.**
+
+## 2026-05-29 (suite) — Tâche B'3 : câblage anti-snooping du DSR
+
+### Réalisé
+- **C4 — n_trials automatique** : `validate_edge(equity, trades, n_trials=None)`
+  lit désormais `n_trials` depuis `snooping_guard.n_trials_from_history()` quand
+  il vaut None (défaut), au lieu d'une constante en dur. Chaque `read_oos()`
+  enregistré compte comme un essai → le DSR pénalise réellement le data-snooping.
+  Override par entier explicite toujours possible (rétrocompat).
+
+### Tests
+- ✅ `test_validate_edge_n_trials_auto.py` (2) : auto == explicite ; DSR plus
+  sévère quand l'historique grossit.
+- ✅ Non-régression : `test_edge_validation` (43), `test_dsr_sanity` inclus.
+
+### Bilan suite (deps lourdes absentes du conteneur)
+- 646 passés, 22 skipped. Échecs = 18 `test_regime` (pandas_ta absent) + 21
+  erreurs de collection (sklearn/numba/statsmodels absents) — TOUS environnementaux,
+  zéro régression liée aux modifications.
+
+## 2026-05-29 (suite) — Harnais de recherche d'edge (Phase 1) + CLI + guide
+
+### Contexte
+Réseau du conteneur bloqué pour Yahoo ET Dukascopy (testé) → recherche empirique
+impossible ici. Construction de l'outillage honnête, à lancer en local par le mainteneur.
+Le mainteneur (débutant) est ouvert aux stratégies NON-ML.
+
+### Réalisé
+- **app/research/edge_harness.py** : point d'entrée unique honnête.
+  - `run_honest_backtest` : entrée open[i+1], coûts round-trip = total_cost_pips, swap.
+  - `evaluate_oos` : split IS/OOS, Sharpe freq-aware, verdict `validate_edge`,
+    une lecture OOS journalisée, n_trials = hypothèses UNIQUES (rerun-safe).
+  - `screen_candidates` : sélection sur IS, UN seul regard OOS sur le gagnant.
+- **scripts/screen_edge.py** : CLI multi-actifs (stratégies trend/momentum simples :
+  Donchian, DualMA, TsMomentum, SmaCrossover ; TP/SL calés sur la volatilité IS),
+  classe par GO puis DSR, écrit predictions/edge_screen_results.csv.
+- **docs/HOWTO_recherche_edge.md** : guide pas-à-pas débutant (install, données, run, lecture).
+- **.gitignore** : TEST_SET_LOCK.json (registre local).
+
+### Tests
+- ✅ `test_edge_harness.py` (5) : backtest honnête, split IS/OOS, 1 lecture OOS,
+  sélection IS, NO-GO sans trades. Total touché : 44/44 verts.
+- ✅ End-to-end CLI validé sur données synthétiques (loader rejette bien un CSV à
+  prix non positifs ; XAUUSD synthétique évalué → NO-GO honnête).
+
+### Prochaine étape (mainteneur, en LOCAL)
+1. `pip install -r requirements.txt`
+2. Télécharger les données (Dukascopy) → data/raw/<ACTIF>/<*>_<TF>.csv
+3. `python scripts/screen_edge.py --assets BTCUSD,ETHUSD,XAUUSD --timeframes D1`
+4. Si rien ne passe (attendu) : ajouter de nouvelles familles de stratégies (carry JPY,
+   ORB, pairs trading, pre-FOMC) dans app/strategies/ et re-screener.
+
+### n_trials cumul : inchangé (aucune lecture OOS sur données réelles enregistrée)

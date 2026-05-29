@@ -34,6 +34,7 @@ def run_deterministic_backtest(
     swap_long_pips_per_night: float = 0.0,
     swap_short_pips_per_night: float = 0.0,
     asset_config: AssetConfig | None = None,
+    entry_on_next_open: bool = False,
 ) -> dict[str, Any]:
     """Backtest bar-by-bar avec TP/SL fixes, moteur stateful.
 
@@ -55,6 +56,14 @@ def run_deterministic_backtest(
             les paramètres swap_* explicites. Si un appelant a passé des
             swap_*_pips_per_night non-zéro, ces valeurs explicites priment
             sur la config (= override manuel).
+        entry_on_next_open: Fix C2-bt (2026-05-29) — fill honnête sans look-ahead
+            d'exécution. Le signal n'étant connu qu'à la CLÔTURE de la barre i,
+            l'entrée réaliste se fait à l'OUVERTURE de la barre i+1 (et la barre
+            d'entrée est elle-même scannée pour le risque de gap intra-barre).
+            Défaut False = comportement legacy (entrée au Close de la barre de
+            signal, légèrement optimiste). **La recherche d'edge (Phase 1) DOIT
+            passer True.** Le défaut restera False tant que l'ensemble du suite
+            de tests/scripts n'aura pas été re-validé sur données réelles.
 
     Returns:
         dict avec clés:
@@ -87,6 +96,7 @@ def run_deterministic_backtest(
     if n == 0:
         return _empty_result()
 
+    opens = df["Open"].values
     closes = df["Close"].values
     highs = df["High"].values
     lows = df["Low"].values
@@ -124,8 +134,22 @@ def run_deterministic_backtest(
             continue
 
         signal = sig_val  # 1 ou -1
-        entry_time = times[i]
-        entry_price = closes[i]
+
+        # ── Détermination de la barre et du prix d'entrée ──────────────
+        if entry_on_next_open:
+            # Fill honnête (C2-bt) : entrée à l'ouverture de la barre suivante.
+            # La barre d'entrée e est elle-même scannée (risque de gap).
+            e = i + 1
+            if e >= n:
+                break  # pas de barre suivante : impossible d'entrer
+            entry_time = times[e]
+            entry_price = opens[e]
+            scan_start, scan_end = e, e + window_bars
+        else:
+            # Legacy (optimiste) : entrée au Close de la barre de signal.
+            entry_time = times[i]
+            entry_price = closes[i]
+            scan_start, scan_end = i + 1, i + window_bars
 
         if signal == 1:
             tp_price = entry_price + tp_dist
@@ -138,12 +162,12 @@ def run_deterministic_backtest(
         result_type = "loss_timeout"
         exit_time = entry_time
         exit_price = entry_price
+        hit = False
 
-        # Boucle forward jusqu'à window_bars
-        for j in range(1, window_bars + 1):
-            idx = i + j
+        # Boucle forward sur la fenêtre de détention.
+        for idx in range(scan_start, scan_end + 1):
             if idx >= n:
-                # Fin des données
+                # Fin des données : sortie au dernier Close disponible.
                 exit_idx = n - 1
                 exit_time = times[exit_idx]
                 exit_price = closes[exit_idx]
@@ -152,6 +176,7 @@ def run_deterministic_backtest(
                 else:
                     pips_net = (entry_price - exit_price) / pip_size - cost_total
                 result_type = "loss_timeout"
+                hit = True
                 i = n
                 break
 
@@ -161,49 +186,32 @@ def run_deterministic_backtest(
             if signal == 1:
                 tp_hit = curr_high >= tp_price
                 sl_hit = curr_low <= sl_price
-
-                if sl_hit:
-                    # SL-prime même barre (fix F3) : pire cas réaliste,
-                    # aligné avec _simulate_stateful_core.
-                    exit_idx = idx
-                    exit_time = times[idx]
-                    exit_price = sl_price
-                    pips_net = -sl_pips - cost_total
-                    result_type = "loss_sl"
-                    i = idx
-                    break
-                elif tp_hit:
-                    exit_idx = idx
-                    exit_time = times[idx]
-                    exit_price = tp_price
-                    pips_net = tp_pips - cost_total
-                    result_type = "win"
-                    i = idx
-                    break
             else:  # signal == -1
                 tp_hit = curr_low <= tp_price
                 sl_hit = curr_high >= sl_price
 
-                if sl_hit:
-                    # SL-prime même barre (fix F3).
-                    exit_idx = idx
-                    exit_time = times[idx]
-                    exit_price = sl_price
-                    pips_net = -sl_pips - cost_total
-                    result_type = "loss_sl"
-                    i = idx
-                    break
-                elif tp_hit:
-                    exit_idx = idx
-                    exit_time = times[idx]
-                    exit_price = tp_price
-                    pips_net = tp_pips - cost_total
-                    result_type = "win"
-                    i = idx
-                    break
-        else:
-            # Timeout : sortie au Close de la dernière barre
-            exit_idx = min(i + window_bars, n - 1)
+            if sl_hit:
+                # SL-prime même barre (fix F3) : pire cas réaliste,
+                # aligné avec _simulate_stateful_core.
+                exit_time = times[idx]
+                exit_price = sl_price
+                pips_net = -sl_pips - cost_total
+                result_type = "loss_sl"
+                hit = True
+                i = idx
+                break
+            if tp_hit:
+                exit_time = times[idx]
+                exit_price = tp_price
+                pips_net = tp_pips - cost_total
+                result_type = "win"
+                hit = True
+                i = idx
+                break
+
+        if not hit:
+            # Timeout : sortie au Close de la dernière barre de la fenêtre.
+            exit_idx = min(scan_end, n - 1)
             exit_time = times[exit_idx]
             exit_price = closes[exit_idx]
             if signal == 1:
@@ -211,17 +219,13 @@ def run_deterministic_backtest(
             else:
                 pips_net = (entry_price - exit_price) / pip_size - cost_total
             result_type = "loss_timeout"
-            i += window_bars
+            i = exit_idx
 
         # ── Audit v6 F1 — Charge swap overnight ────────────────────────
         # nights_held = nombre de jours civils entre entry et exit (V1 simple).
-        if isinstance(entry_time, pd.Timestamp) and isinstance(exit_time, pd.Timestamp):
-            nights_held = max(0, (exit_time.normalize() - entry_time.normalize()).days)
-        else:
-            # Fallback : conversion via pd.Timestamp (gère datetime nu, str ISO).
-            _et = pd.Timestamp(entry_time)
-            _xt = pd.Timestamp(exit_time)
-            nights_held = max(0, (_xt.normalize() - _et.normalize()).days)
+        _et = entry_time if isinstance(entry_time, pd.Timestamp) else pd.Timestamp(entry_time)
+        _xt = exit_time if isinstance(exit_time, pd.Timestamp) else pd.Timestamp(exit_time)
+        nights_held = max(0, (_xt.normalize() - _et.normalize()).days)
         swap_per_night = (
             swap_long_pips_per_night if signal == 1 else swap_short_pips_per_night
         )
@@ -238,7 +242,6 @@ def run_deterministic_backtest(
             "result": result_type,
             "nights_held": int(nights_held),
         })
-        continue
 
     return _compute_metrics(trades)
 

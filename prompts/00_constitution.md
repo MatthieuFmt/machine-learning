@@ -5,6 +5,24 @@
 
 ---
 
+> ## ⚠️ CORRECTION CRITIQUE (2026-05-29) — À LIRE EN PREMIER
+>
+> Ce document contenait deux affirmations **FAUSSES**, démenties par les post-mortems du projet :
+>
+> 1. **§1 — « la base a trouvé un edge réel (Donchian US30 D1, Sharpe +8.84) » → FAUX.**
+>    Ce +8.84 était un **artefact de bug** (simulateur « TP-prime » optimiste, bug F3, voir
+>    `docs/diagnostic_final_donchian_dead.md`). Après correction → Sharpe **négatif**.
+>    **Aucun edge statistiquement valide n'a jamais été trouvé.** Donchian est déclaré mort.
+>
+> 2. **§3 — « Split FIGÉ train ≤2022 / val=2023 / test ≥2024 » → l'OOS ≥2024 est BRÛLÉ.**
+>    Plus de 48 scripts l'ont consulté → ce n'est plus un OOS. Un edge ne comptera que sur une
+>    période **jamais touchée** (ex. ≥2026), verrouillée dans `TEST_SET_LOCK.json`.
+>
+> **La source de vérité à jour est `CLAUDE.md` (statut réel + protocole + backlog de bugs).**
+> Les critères de succès §2 restent valides, mais doivent être évalués sur un OOS vierge.
+
+---
+
 ## 1. Mission globale
 
 Reconstruire un bot de trading ML qui :
