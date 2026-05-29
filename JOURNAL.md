@@ -859,3 +859,28 @@ trouver un VRAI edge avant tout déploiement** ; ouvert à des stratégies NON-M
 - **Tâche B'** : backtest & validation fiables génériques (swap appliqué, entrée open[i+1],
   stop-slippage, coûts XTB réels, Sharpe unique, embargo ≥ horizon, anti-snooping actif).
 - **n_trials cumul** : 28 (inchangé — aucun nouveau test OOS).
+
+## 2026-05-29 (suite) — Tâche B' : backtest & validation fiables (partie 1)
+
+### Réalisé
+- **B'1 — Fill honnête** : `run_deterministic_backtest(entry_on_next_open=...)`.
+  Entrée à `open[i+1]` (le signal n'est connu qu'à la clôture de i → pas de
+  look-ahead d'exécution), barre d'entrée scannée (risque de gap), fenêtre de
+  détention comptée depuis l'entrée. **Défaut False (legacy préservé)** ; la
+  recherche d'edge Phase 1 DOIT passer `entry_on_next_open=True`.
+  Boucle d'exécution unifiée (legacy + next_open) sans changer le comportement legacy.
+- **B'2 — Sharpe fréquence-aware** : `sharpe_daily_from_trades(frequency_aware=True)`
+  route l'annualisation (≥100 t/an daily √252 · 30-99 weekly √52 · <30 per-trade ×√tpy),
+  supprimant l'inflation par jours nuls fantômes (ffill) sur les stratégies basse-fréquence (E4).
+
+### Tests
+- ✅ Nouveaux : `test_deterministic_entry_next_open.py` (4), `test_sharpe_frequency_aware.py` (3).
+- ✅ Non-régression : `test_deterministic_sl_prime` (4), `test_deterministic_window_bars` (2),
+  `test_swap_overnight` (10), `test_sharpe_linear_consistency` (3). Total 26/26.
+
+### Reste à faire (B' partie 2)
+- B'3 — câbler l'anti-snooping : `n_trials` du DSR auto via `snooping_guard.n_trials_from_history()`
+  au lieu de constantes en dur ; rendre `verify_no_snooping` opérant (TEST_SET_LOCK).
+- Chemin ML (`simulator.py`/`base.py`) : entrée open[i+1] + `asset_cfg` passé.
+- Stop-slippage / gaps sur fills SL/TP ; coûts XTB round-trip réalistes.
+- **À re-valider sur données réelles (Phase 1) avant de basculer `entry_on_next_open` en défaut.**

@@ -58,6 +58,7 @@ def sharpe_daily_from_trades(
     trades: list[dict[str, Any]],
     annual_factor: float = 252.0,
     initial_capital_pips: float = 10_000.0,
+    frequency_aware: bool = True,
 ) -> float:
     """Sharpe annualisé à partir d'une liste de trades, sur retours linéaires.
 
@@ -66,37 +67,55 @@ def sharpe_daily_from_trades(
     calculé une fois sur un capital fixe → les retours doivent être linéaires
     pour rester cohérents.
 
-    Méthode :
-        1. cumsum(pips_net) puis resample daily (last + ffill).
-        2. retours journaliers = daily_diff(equity) / initial_capital_pips.
-        3. Sharpe = mean / std × √annual_factor.
+    Fix E4 (2026-05-29) — annualisation routée par fréquence. Le resample daily
+    avec `ffill` insère des jours à retour nul (jours sans trade) qui écrasent
+    la volatilité et GONFLENT le Sharpe pour les stratégies basse-fréquence
+    (ex. ~12 trades / 30 mois en D1). On route donc selon trades/an :
+        ≥ 100 trades/an → daily  (√252)
+        30-99 trades/an → weekly (√52)
+        < 30 trades/an  → per-trade × √(trades_par_an)  (sans jours nuls fantômes)
+    Mettre `frequency_aware=False` pour retrouver l'ancien comportement daily pur.
 
     Args:
         trades: Liste de dicts avec 'pips_net' (float) et 'exit_time' (str).
-        annual_factor: Facteur d'annualisation (252 = quotidien).
+        annual_factor: Facteur d'annualisation utilisé si `frequency_aware=False`.
         initial_capital_pips: Capital de référence en pips. Défaut 10 000.
+        frequency_aware: Si True (défaut), route l'annualisation par fréquence.
 
     Returns:
-        Sharpe ratio annualisé. 0.0 si < 2 jours de returns.
+        Sharpe ratio annualisé. 0.0 si insuffisamment d'observations.
     """
     if not trades or len(trades) < 2:
         return 0.0
 
     pnls = np.array([t["pips_net"] for t in trades], dtype=np.float64)
-    equity = np.cumsum(pnls)
-
-    if len(pnls) > 0 and np.all(pnls <= 0):
+    if np.all(pnls <= 0):
         return 0.0
 
     exit_times = pd.to_datetime([t["exit_time"] for t in trades])
-    equity_series = pd.Series(equity, index=exit_times).sort_index()
 
-    equity_daily = equity_series.resample("D").last().ffill()
-    if len(equity_daily) < 2:
+    if frequency_aware:
+        span_seconds = (exit_times.max() - exit_times.min()).total_seconds()
+        years = max(span_seconds / (365.25 * 86400), 1e-3)
+        tpy = len(trades) / years
+
+        if tpy < 30.0:
+            # Per-trade : pas de jours nuls fantômes. Annualisation √(trades/an).
+            per_trade = pnls / initial_capital_pips
+            return sharpe_ratio(per_trade, annual_factor=tpy)
+
+        resample_rule, factor = ("W-FRI", 52.0) if tpy < 100.0 else ("D", 252.0)
+    else:
+        resample_rule, factor = "D", annual_factor
+
+    equity = np.cumsum(pnls)
+    equity_series = pd.Series(equity, index=exit_times).sort_index()
+    equity_resampled = equity_series.resample(resample_rule).last().ffill()
+    if len(equity_resampled) < 2:
         return 0.0
 
-    daily_returns = equity_daily.diff().dropna() / initial_capital_pips
-    return sharpe_ratio(daily_returns, annual_factor=annual_factor)
+    returns = equity_resampled.diff().dropna() / initial_capital_pips
+    return sharpe_ratio(returns, annual_factor=factor)
 
 
 def sharpe_annualized(

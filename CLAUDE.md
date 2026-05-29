@@ -116,10 +116,10 @@ Priorité décroissante. Chacun fausse les résultats ou casse le pipeline.
 - `n_trials` codé en dur et incohérent (4/5/23/29/62…) alors que ~48 scripts touchent l'OOS (C4).
 
 **Backtest (edge gonflé)**
-- `app/pipelines/base.py:156` — `asset_cfg` **jamais passé** → swap overnight + sizing au risque **jamais exécutés** (C1-bt).
-- `app/backtest/simulator.py:79` — entrée au **close de la barre de signal** = look-ahead d'exécution (corriger → `open[i+1]`) (C2-bt).
-- `simulator.py` — SL/TP rempli au prix exact, **aucun stop-slippage/gap** ; friction 1.5 pip optimiste vs ~2-3 pips round-trip XTB réel.
-- `metrics.py:139` — resample daily + `ffill` écrase la variance → **Sharpe gonflé** (E4).
+- `app/pipelines/base.py:156` — `asset_cfg` **jamais passé** → swap overnight + sizing au risque **jamais exécutés** dans le chemin ML (C1-bt). *(NB : le chemin déterministe `deterministic.py` applique déjà le swap.)*
+- ✅ `deterministic.py` — fill honnête `entry_on_next_open` ajouté (entrée `open[i+1]`, scan depuis la barre d'entrée). **Défaut False (legacy)** ; la recherche d'edge Phase 1 DOIT passer True. *(`simulator.py:79` ML path reste à corriger.)*
+- `simulator.py` / `deterministic.py` — SL/TP rempli au prix exact, **aucun stop-slippage/gap** ; friction optimiste vs ~2-3 pips round-trip XTB réel (à traiter).
+- ✅ `metrics.py` `sharpe_daily_from_trades` — annualisation **routée par fréquence** (daily/weekly/per-trade) → tue l'inflation basse-fréquence (E4). *(`sharpe_annualized` routait déjà ; cohérence rétablie.)*
 
 **Infra**
 - `app/data/` manquant → restaurer (loader/registry/downloader).
