@@ -1,0 +1,200 @@
+{
+  "timestamp": "2026-05-14T10:39:45.864945",
+  "phase": "v3_phase1",
+  "hypotheses": [
+    "H06",
+    "H07",
+    "H08"
+  ],
+  "dsr_n_trials_cumulative": 8,
+  "split": {
+    "train_end": "2023-01-01",
+    "val_end": "2024-01-01"
+  },
+  "h06_go_assets": [
+    {
+      "asset_name": "GBPUSD",
+      "tf": "D1",
+      "strategy_name": "DonchianBreakout",
+      "best_params": {
+        "N": 100,
+        "M": 20
+      },
+      "sharpe_train": 0.615717276147976,
+      "sharpe_val": 1.3879249794586865,
+      "sharpe_test": 1.4983331586724493,
+      "wr_test": 0.2826086956521739,
+      "asset_config": {
+        "name": "GBPUSD",
+        "tf": "D1",
+        "tp_pips": 160,
+        "sl_pips": 80,
+        "window_hours": 120,
+        "commission_pips": 3,
+        "slippage_pips": 5,
+        "pip_size": 0.0001
+      }
+    },
+    {
+      "asset_name": "BTCUSD",
+      "tf": "D1",
+      "strategy_name": "DonchianBreakout",
+      "best_params": {
+        "N": 20,
+        "M": 50
+      },
+      "sharpe_train": 0.4306909198802032,
+      "sharpe_val": 0.06819434999792867,
+      "sharpe_test": 0.5539045023205226,
+      "wr_test": 0.3684210526315789,
+      "asset_config": {
+        "name": "BTCUSD",
+        "tf": "D1",
+        "tp_pips": 4000,
+        "sl_pips": 2000,
+        "window_hours": 120,
+        "commission_pips": 15,
+        "slippage_pips": 10,
+        "pip_size": 1.0
+      }
+    }
+  ],
+  "h07_go_strategies": [
+    {
+      "asset_name": "GBPUSD",
+      "tf": "D1",
+      "strategy_name": "ChandelierExit",
+      "best_params": {
+        "period": 44,
+        "k_atr": 4.0
+      },
+      "sharpe_train": 0.896609194670332,
+      "sharpe_val": 0.62871910683414,
+      "sharpe_test": 1.3096573261726618,
+      "wr_test": 0.41013824884792627,
+      "asset_config": {
+        "name": "GBPUSD",
+        "tf": "D1",
+        "tp_pips": 160,
+        "sl_pips": 80,
+        "window_hours": 120,
+        "commission_pips": 3,
+        "slippage_pips": 5,
+        "pip_size": 0.0001
+      }
+    },
+    {
+      "asset_name": "BTCUSD",
+      "tf": "D1",
+      "strategy_name": "DualMovingAverage",
+      "best_params": {
+        "fast": 20,
+        "slow": 200
+      },
+      "sharpe_train": 0.8743581613868784,
+      "sharpe_val": 1.9325738625313662,
+      "sharpe_test": 0.13135650907605018,
+      "wr_test": 0.3709090909090909,
+      "asset_config": {
+        "name": "BTCUSD",
+        "tf": "D1",
+        "tp_pips": 4000,
+        "sl_pips": 2000,
+        "window_hours": 120,
+        "commission_pips": 15,
+        "slippage_pips": 10,
+        "pip_size": 1.0
+      }
+    },
+    {
+      "asset_name": "BTCUSD",
+      "tf": "D1",
+      "strategy_name": "KeltnerChannel",
+      "best_params": {
+        "period": 20,
+        "mult": 2.5
+      },
+      "sharpe_train": 0.4632224437151172,
+      "sharpe_val": 0.36587040180379166,
+      "sharpe_test": 0.8662075698914354,
+      "wr_test": 0.42424242424242425,
+      "asset_config": {
+        "name": "BTCUSD",
+        "tf": "D1",
+        "tp_pips": 4000,
+        "sl_pips": 2000,
+        "window_hours": 120,
+        "commission_pips": 15,
+        "slippage_pips": 10,
+        "pip_size": 1.0
+      }
+    }
+  ],
+  "h08_portfolio": {
+    "sharpe_portfolio": 1.8648999079660957,
+    "n_strategies": 5,
+    "weights": {
+      "GBPUSD_DonchianBreakout": 0.5296,
+      "BTCUSD_DonchianBreakout": 0.0006,
+      "GBPUSD_ChandelierExit": 0.2646,
+      "BTCUSD_DualMovingAverage": 0.009,
+      "BTCUSD_KeltnerChannel": 0.1961
+    },
+    "daily_returns_mean": 0.0007400396460182919,
+    "daily_returns_std": 0.00629940788348712,
+    "vol_target": 0.1,
+    "scale_factor": 0.1101
+  },
+  "all_go_strategies": [
+    {
+      "asset": "GBPUSD",
+      "strategy": "DonchianBreakout",
+      "sharpe_test": 1.4983331586724493,
+      "wr_test": 0.2826086956521739,
+      "best_params": {
+        "N": 100,
+        "M": 20
+      }
+    },
+    {
+      "asset": "BTCUSD",
+      "strategy": "DonchianBreakout",
+      "sharpe_test": 0.5539045023205226,
+      "wr_test": 0.3684210526315789,
+      "best_params": {
+        "N": 20,
+        "M": 50
+      }
+    },
+    {
+      "asset": "GBPUSD",
+      "strategy": "ChandelierExit",
+      "sharpe_test": 1.3096573261726618,
+      "wr_test": 0.41013824884792627,
+      "best_params": {
+        "period": 44,
+        "k_atr": 4.0
+      }
+    },
+    {
+      "asset": "BTCUSD",
+      "strategy": "DualMovingAverage",
+      "sharpe_test": 0.13135650907605018,
+      "wr_test": 0.3709090909090909,
+      "best_params": {
+        "fast": 20,
+        "slow": 200
+      }
+    },
+    {
+      "asset": "BTCUSD",
+      "strategy": "KeltnerChannel",
+      "sharpe_test": 0.8662075698914354,
+      "wr_test": 0.42424242424242425,
+      "best_params": {
+        "period": 20,
+        "mult": 2.5
+      }
+    }
+  ]
+}

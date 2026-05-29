@@ -1,0 +1,78 @@
+[project]
+name = "trading-bot-ml"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "pandas-ta>=0.3.14b0",
+    "dukascopy-python>=0.0.1",
+    "yfinance>=0.2.40",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["data", "ready-data", "cleaned-data", "models/snapshots"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "W", "UP", "N", "SIM"]
+ignore = ["E501"]  # géré par black
+
+[tool.ruff.lint.per-file-ignores]
+# ML code convention: X (feature matrix), y (target) are uppercase
+"app/backtest/cpcv.py" = ["N806"]
+"app/backtest/walk_forward.py" = ["N806"]
+"app/features/ranking.py" = ["N803", "N806"]
+"app/models/candidates.py" = ["N806"]
+"app/models/cpcv_evaluation.py" = ["N803", "N806"]
+"app/models/meta_rf.py" = ["N803", "N806"]
+"app/models/nested_tuning.py" = ["N803", "N806"]
+"app/pipelines/base.py" = ["N803", "N806"]
+"app/pipelines/us30.py" = ["N803", "N806"]
+"app/pipelines/xauusd.py" = ["N803", "N806"]
+"app/strategies/bollinger.py" = ["N806"]
+"app/strategies/donchian.py" = ["N806"]
+"app/strategies/rsi_contrarian.py" = ["N806"]
+"app/strategies/ts_momentum.py" = ["N806"]
+"scripts/run_a6_feature_ranking.py" = ["N803", "N806", "E402"]
+"scripts/run_a7_model_selection.py" = ["N803", "N806", "E402"]
+"scripts/run_a8_hyperparam_tuning.py" = ["N803", "N806", "E402"]
+"scripts/run_c3_model_selection_multi_assets.py" = ["N803", "N806", "N811", "E402"]
+"scripts/run_c4_hyperparam_tuning_multi_assets.py" = ["N802", "N803", "N806", "N811", "E402"]
+"scripts/run_a9_pipeline_lock.py" = ["N806"]
+"scripts/run_c1_inventory.py" = ["E402"]
+"scripts/run_h_new1_meta_us30.py" = ["N806"]
+"scripts/run_h_new3_eurusd_h4.py" = ["N806"]
+"scripts/run_h06_donchian_multi_asset.py" = ["E402"]
+"scripts/run_h07_strategies_alt.py" = ["E402"]
+"scripts/run_h1_xauusd_meta.py" = ["N806", "E402"]
+"scripts/run_h2_us30_meta.py" = ["N803", "N806", "E402"]
+"scripts/run_h5_rsi2_us30_h1.py" = ["E402"]
+"scripts/run_pivot_a4_replay.py" = ["N806", "E402"]
+"scripts/scrape_forexfactory.py" = ["N806"]
+"tests/unit/test_feature_ranking.py" = ["N803", "N806"]
+"tests/unit/test_model_selection.py" = ["N806"]
+"tests/unit/test_c3_model_selected_extended.py" = ["N806"]
+"tests/unit/test_nested_tuning.py" = ["N803", "N806"]
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+
+[tool.mypy]
+python_version = "3.12"
+strict_optional = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unreachable = true
+disallow_untyped_defs = false  # progressive
+ignore_missing_imports = true
+exclude = ["data/", "ready-data/", "cleaned-data/", "models/snapshots/"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "unit: tests unitaires rapides (<100ms)",
+    "integration: tests d'intégration (I/O)",
+    "acceptance: tests bout-en-bout (lents)",
+]
+addopts = "-ra --strict-markers"

@@ -1,0 +1,18 @@
+name: CI
+on:
+  push:
+    branches: [main, test-deepseek]
+  pull_request:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: make lint
+      - run: make typecheck
+      - run: make test
+      - run: make snooping_check

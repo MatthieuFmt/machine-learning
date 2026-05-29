@@ -1,0 +1,74 @@
+{
+  "hypothesis": "v2_01",
+  "instrument": "USA30IDXUSD",
+  "primary_tf": "D1",
+  "target_mode": "directional_clean",
+  "rf_params": {
+    "n_estimators": 200,
+    "max_depth": 4,
+    "min_samples_leaf": 20,
+    "class_weight": "balanced_subsample",
+    "random_state": 42
+  },
+  "backtest_config": {
+    "tp_pips": 200.0,
+    "sl_pips": 100.0,
+    "window_hours": 120,
+    "commission_pips": 3.0,
+    "slippage_pips": 5.0,
+    "confidence_threshold": 0.55
+  },
+  "split": {
+    "train_end": "2022-12-31",
+    "val": "2023-01-01 \u2192 2023-12-31",
+    "test_start": "2024-01-01"
+  },
+  "metrics": {
+    "2023": {
+      "annee": 2023,
+      "profit_net": 0.0,
+      "dd": 0.0,
+      "trades": 0,
+      "win_rate": 0.0,
+      "sharpe": 0.0,
+      "sharpe_per_trade": 0.0,
+      "total_return_pct": 0.0,
+      "max_dd_pct": 0.0,
+      "bh_pips": 0.0,
+      "bh_return_pct": 0.0,
+      "alpha_pips": 0.0,
+      "alpha_return_pct": 0.0
+    },
+    "2024": {
+      "annee": 2024,
+      "profit_net": -1137.6,
+      "dd": -1209.6000000000001,
+      "trades": 31,
+      "win_rate": 25.806451612903224,
+      "sharpe": -1.1727126705557203,
+      "sharpe_per_trade": -1.2970568691229885,
+      "total_return_pct": -10.465919999999999,
+      "max_dd_pct": -11.12832,
+      "bh_pips": 4843.616000000002,
+      "bh_return_pct": 44.56126720000002,
+      "alpha_pips": -5981.216000000002,
+      "alpha_return_pct": -55.027187200000014
+    },
+    "2025": {
+      "annee": 2025,
+      "profit_net": -1526.4,
+      "dd": -1396.8000000000002,
+      "trades": 35,
+      "win_rate": 22.857142857142858,
+      "sharpe": -1.479744455154757,
+      "sharpe_per_trade": -1.7121352717449705,
+      "total_return_pct": -14.042880000000002,
+      "max_dd_pct": -12.850560000000003,
+      "bh_pips": 5545.341999999997,
+      "bh_return_pct": 51.01714639999998,
+      "alpha_pips": -7071.741999999997,
+      "alpha_return_pct": -65.06002639999998
+    }
+  },
+  "sharpe": -1.2702607023732853
+}

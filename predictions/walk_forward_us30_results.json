@@ -1,0 +1,128 @@
+{
+  "hypothesis": "v2_05",
+  "instrument": "USA30IDXUSD",
+  "primary_tf": "D1",
+  "strategy": "Donchian(20,20) \u00b1 RF m\u00e9ta-labeling",
+  "walk_forward_config": {
+    "retrain_dates": [
+      "2023-07-01",
+      "2024-01-01",
+      "2024-07-01",
+      "2025-01-01"
+    ],
+    "initial_train_end": "2022-12-31",
+    "tp_pips": 200.0,
+    "sl_pips": 100.0,
+    "window_hours": 120,
+    "commission_pips": 3.0,
+    "slippage_pips": 5.0,
+    "slippage_random": 2.0,
+    "spread_pips": 2.0,
+    "pip_size": 1.0
+  },
+  "rf_params": {
+    "n_estimators": 200,
+    "max_depth": 4,
+    "min_samples_leaf": 10,
+    "class_weight": "balanced_subsample",
+    "random_state": 42
+  },
+  "thresholds": [
+    0.45,
+    0.5,
+    0.55,
+    0.6
+  ],
+  "config_a_baseline": {
+    "sharpe": 3.6555930513584607,
+    "wr": 0.5111111111111111,
+    "trades": 135,
+    "pnl_pips": 4670.131194149388,
+    "segment_details": [
+      {
+        "segment": "2023-01-02 -> 2023-07-01",
+        "sharpe": 3.315436489973512,
+        "wr": 0.5,
+        "trades": 16,
+        "pnl_pips": 517.5965855267455
+      },
+      {
+        "segment": "2023-07-02 -> 2024-01-01",
+        "sharpe": 6.80225760901595,
+        "wr": 0.6153846153846154,
+        "trades": 26,
+        "pnl_pips": 1639.4091196040713
+      },
+      {
+        "segment": "2024-01-02 -> 2024-07-01",
+        "sharpe": -0.1500947574246543,
+        "wr": 0.3888888888888889,
+        "trades": 18,
+        "pnl_pips": -25.70146187222221
+      },
+      {
+        "segment": "2024-07-02 -> 2025-01-01",
+        "sharpe": 7.182062611442853,
+        "wr": 0.6190476190476191,
+        "trades": 21,
+        "pnl_pips": 1419.9984840750208
+      },
+      {
+        "segment": "2025-01-02 -> 2026-05-08",
+        "sharpe": 2.176299819529366,
+        "wr": 0.46296296296296297,
+        "trades": 54,
+        "pnl_pips": 1118.8284668157726
+      }
+    ]
+  },
+  "config_b_meta_rf": {
+    "sharpe": 8.843787271246951,
+    "wr": 0.6666666666666666,
+    "trades": 12,
+    "pnl_pips": 989.0474669108912,
+    "segment_details": [
+      {
+        "segment": "2023-01-02 -> 2023-07-01",
+        "sharpe": 6.004827556158135,
+        "wr": 0.6,
+        "trades": 5,
+        "pnl_pips": 311.4519111406657
+      },
+      {
+        "segment": "2023-07-02 -> 2024-01-01",
+        "sharpe": 0.0,
+        "wr": 0.0,
+        "trades": 0,
+        "pnl_pips": 0.0
+      },
+      {
+        "segment": "2024-01-02 -> 2024-07-01",
+        "sharpe": 0.0,
+        "wr": 0.0,
+        "trades": 0,
+        "pnl_pips": 0.0
+      },
+      {
+        "segment": "2024-07-02 -> 2025-01-01",
+        "sharpe": 0.0,
+        "wr": 1.0,
+        "trades": 1,
+        "pnl_pips": 183.90248940654703
+      },
+      {
+        "segment": "2025-01-02 -> 2026-05-08",
+        "sharpe": 8.432485948484981,
+        "wr": 0.6666666666666666,
+        "trades": 6,
+        "pnl_pips": 493.6930663636784
+      }
+    ]
+  },
+  "decision": {
+    "deployment": "Config B (Donchian + RF m\u00e9ta-labeling)",
+    "verdict": "GO \u2014 Config B (RF) d\u00e9ploie Sharpe WF=8.844 > 3.656 (\u00e9cart > 0.5)",
+    "best_config": "B"
+  },
+  "n_trials_cumulatif_v2": 5
+}
