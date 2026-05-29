@@ -517,4 +517,54 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
         swap_long_pips_per_night=0.5,
         swap_short_pips_per_night=-1.5,
     ),
+    # ── Paires JPY (crosses) — NOUVEAU, PROVISOIRE (carry research) ───────
+    # ⚠️ PROVISOIRE — spreads/swaps à valider en démo XTB MT5.
+    # Toutes : pip_size=0.01, pip_value_eur≈6.1 (1 pip × 1 lot std = 1000 JPY).
+    # Le swap encode le carry : taux locaux 2026 ≈ AUD 4.35 %, GBP 4.5 %,
+    # EUR 2.5 %, JPY 0.5 % → long cross = carry positif, short = fortement négatif.
+    "AUDJPY": AssetConfig(
+        spread_pips=1.8,
+        slippage_pips=0.4,     # mineure : ~0.2-0.5× spread
+        commission_pips=0.0,
+        pip_size=0.01,
+        pip_value_eur=6.1,
+        tp_points=20,
+        sl_points=10,
+        window_hours=120,
+        min_lot=0.01,
+        max_lot=10.0,
+        # Carry AUD(4.35%)-JPY(0.5%) ≈ +3.85 %/an, markup broker déduit
+        swap_long_pips_per_night=0.9,
+        swap_short_pips_per_night=-2.4,
+    ),
+    "EURJPY": AssetConfig(
+        spread_pips=1.6,
+        slippage_pips=0.3,
+        commission_pips=0.0,
+        pip_size=0.01,
+        pip_value_eur=6.1,
+        tp_points=20,
+        sl_points=10,
+        window_hours=120,
+        min_lot=0.01,
+        max_lot=10.0,
+        # Carry EUR(2.5%)-JPY(0.5%) ≈ +2 %/an, modeste
+        swap_long_pips_per_night=0.3,
+        swap_short_pips_per_night=-1.6,
+    ),
+    "GBPJPY": AssetConfig(
+        spread_pips=2.5,       # cross volatile, spread plus large
+        slippage_pips=0.6,
+        commission_pips=0.0,
+        pip_size=0.01,
+        pip_value_eur=6.1,
+        tp_points=20,
+        sl_points=10,
+        window_hours=120,
+        min_lot=0.01,
+        max_lot=10.0,
+        # Carry GBP(4.5%)-JPY(0.5%) ≈ +4 %/an
+        swap_long_pips_per_night=1.0,
+        swap_short_pips_per_night=-2.6,
+    ),
 }

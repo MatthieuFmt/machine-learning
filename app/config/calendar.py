@@ -67,8 +67,9 @@ def _generate_all_holidays():
         first_thurs_offset = (3 - first_nov.weekday()) % 7
         thanksgiving = date(y, 11, 1 + first_thurs_offset + 21)
         
-        # Forex & Metals standard holidays
-        for asset in ["EURUSD", "GBPUSD", "USDCHF", "XAUUSD"]:
+        # Forex, Metals & Commodities standard holidays
+        # (XAGUSD = argent, USOIL = WTI : mêmes fermetures majeures Noël/Nouvel An/Pâques)
+        for asset in ["EURUSD", "GBPUSD", "USDCHF", "XAUUSD", "XAGUSD", "USOIL"]:
             if asset not in XTB_HOLIDAYS:
                 XTB_HOLIDAYS[asset] = []
             XTB_HOLIDAYS[asset].extend([jan1, dec25, good_friday, easter_monday, dec24, dec31])
