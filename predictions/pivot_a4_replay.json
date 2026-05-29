@@ -1,0 +1,153 @@
+{
+  "h06_replay": {
+    "EURUSD": {
+      "best_params": {
+        "N": 20,
+        "M": 20
+      },
+      "sharpe_train_v4": 1.075429461951256,
+      "sharpe_val_v4": 0.9836880553638434,
+      "wr_val": 0.6744186046511628,
+      "max_dd_pips_val": -20.799999999999955,
+      "max_dd_pct_val": -2.079999999999995,
+      "trades_val": 43,
+      "pnl_val_pips": 422.80000000000007,
+      "total_cost_pips": 0.8999999999999999
+    },
+    "GER30": {
+      "best_params": {
+        "N": 100,
+        "M": 50
+      },
+      "sharpe_train_v4": 0.1982871830845804,
+      "sharpe_val_v4": 1.4697880862715782,
+      "wr_val": 0.375,
+      "max_dd_pips_val": -558.279296875,
+      "max_dd_pct_val": -5.58279296875,
+      "trades_val": 8,
+      "pnl_val_pips": -526.537890625,
+      "total_cost_pips": 1.2
+    },
+    "US30": {
+      "best_params": {
+        "N": 20,
+        "M": 20
+      },
+      "sharpe_train_v4": 0.7493614246312239,
+      "sharpe_val_v4": 1.8728249550269551,
+      "wr_val": 0.575,
+      "max_dd_pips_val": -402.39999999999964,
+      "max_dd_pct_val": -3.7020799999999974,
+      "trades_val": 40,
+      "pnl_val_pips": 2782.550000000003,
+      "total_cost_pips": 1.8
+    },
+    "US500": {
+      "best_params": {
+        "N": 100,
+        "M": 50
+      },
+      "sharpe_train_v4": 0.6892223344819539,
+      "sharpe_val_v4": 0.9039729405310956,
+      "wr_val": 0.7142857142857143,
+      "max_dd_pips_val": -300.59999999999945,
+      "max_dd_pct_val": -0.2765519999999995,
+      "trades_val": 21,
+      "pnl_val_pips": 2395.800000000001,
+      "total_cost_pips": 0.6
+    },
+    "USOIL": {
+      "error": "load_asset: data\\raw\\USOIL\\USOIL_D1.csv : 2 barres avec prix négatifs ou nuls"
+    },
+    "XAGUSD": {
+      "best_params": {
+        "N": 20,
+        "M": 10
+      },
+      "sharpe_train_v4": 0.9281659478597191,
+      "sharpe_val_v4": 0.9654763635838757,
+      "wr_val": 0.4222222222222222,
+      "max_dd_pips_val": -900.4199999999996,
+      "max_dd_pct_val": -8.283863999999996,
+      "trades_val": 45,
+      "pnl_val_pips": 1552.100000000001,
+      "total_cost_pips": 0.035
+    },
+    "XAUUSD": {
+      "best_params": {
+        "N": 50,
+        "M": 50
+      },
+      "sharpe_train_v4": 0.5716551636928116,
+      "sharpe_val_v4": -0.8858765358201738,
+      "wr_val": 0.3125,
+      "max_dd_pips_val": -60.6,
+      "max_dd_pct_val": -0.55752,
+      "trades_val": 16,
+      "pnl_val_pips": -9.453000000000069,
+      "total_cost_pips": 0.35
+    }
+  },
+  "h07_replay": {
+    "donchian_baseline": {
+      "best_params": {
+        "N": 20,
+        "M": 20
+      },
+      "sharpe_train_v4": 0.7493614246312239,
+      "sharpe_val_v4": 1.8728249550269551,
+      "wr_val": 0.575,
+      "trades_val": 40,
+      "pnl_val_pips": 2782.550000000003,
+      "total_cost_pips": 1.8
+    },
+    "dual_ma": {
+      "best_params": {
+        "fast": 5,
+        "slow": 100
+      },
+      "sharpe_train_v4": 0.4320245913390772,
+      "sharpe_val_v4": -0.07596941805117807,
+      "wr_val": 0.4585987261146497,
+      "trades_val": 157,
+      "pnl_val_pips": 5812.350000000004,
+      "total_cost_pips": 1.8
+    },
+    "keltner": {
+      "best_params": {
+        "period": 50,
+        "mult": 2.0
+      },
+      "sharpe_train_v4": 0.5262378545591265,
+      "sharpe_val_v4": 1.0492905097977057,
+      "wr_val": 0.5609756097560976,
+      "trades_val": 82,
+      "pnl_val_pips": 5557.350000000002,
+      "total_cost_pips": 1.8
+    },
+    "chandelier": {
+      "best_params": {
+        "period": 22,
+        "k_atr": 2.0
+      },
+      "sharpe_train_v4": 0.4331450317392637,
+      "sharpe_val_v4": 1.2392357207500018,
+      "wr_val": 0.5,
+      "trades_val": 192,
+      "pnl_val_pips": 9491.350000000002,
+      "total_cost_pips": 1.8
+    },
+    "parabolic": {
+      "best_params": {
+        "step": 0.03,
+        "af_max": 0.1
+      },
+      "sharpe_train_v4": -0.13252883766312265,
+      "sharpe_val_v4": 1.8431098931253524,
+      "wr_val": 0.452991452991453,
+      "trades_val": 234,
+      "pnl_val_pips": 8204.229999999998,
+      "total_cost_pips": 1.8
+    }
+  }
+}

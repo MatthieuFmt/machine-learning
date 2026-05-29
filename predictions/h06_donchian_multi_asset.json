@@ -1,0 +1,552 @@
+{
+  "hypothesis": "H06",
+  "prompt": "07",
+  "title": "Donchian Breakout multi-actif grid search",
+  "timestamp": "2026-05-14T16:05:19.909396+00:00",
+  "split": {
+    "train": "≤ 2022-12-31",
+    "val": "2023-01-01 → 2023-12-31",
+    "test": "≥ 2024-01-01"
+  },
+  "grid": {
+    "N_values": [
+      20,
+      50,
+      100
+    ],
+    "M_values": [
+      10,
+      20,
+      50
+    ],
+    "combinations": 9
+  },
+  "n_trials_cumul": 6,
+  "n_assets_tested": 5,
+  "n_assets_skipped": 0,
+  "n_assets_error": 1,
+  "n_go": 0,
+  "missing_data": [
+    "BUND"
+  ],
+  "results": {
+    "GER30": {
+      "status": "ok",
+      "config": {
+        "spread_pips": 2.0,
+        "slippage_pips": 3.0,
+        "tp_points": 400,
+        "sl_points": 200,
+        "window_hours": 120,
+        "pip_size": 1.0
+      },
+      "grid_search": {
+        "best_N": 50,
+        "best_M": 10,
+        "sharpe_train": 0.28639527943789816,
+        "all_combinations": [
+          {
+            "N": 20,
+            "M": 10,
+            "sharpe_train": -0.06933844476644742,
+            "n_trades_train": 684
+          },
+          {
+            "N": 20,
+            "M": 20,
+            "sharpe_train": 0.11043709983885827,
+            "n_trades_train": 582
+          },
+          {
+            "N": 20,
+            "M": 50,
+            "sharpe_train": 0.2173111346721717,
+            "n_trades_train": 478
+          },
+          {
+            "N": 50,
+            "M": 10,
+            "sharpe_train": 0.28639527943789816,
+            "n_trades_train": 583
+          },
+          {
+            "N": 50,
+            "M": 20,
+            "sharpe_train": 0.2836422149290938,
+            "n_trades_train": 481
+          },
+          {
+            "N": 50,
+            "M": 50,
+            "sharpe_train": -0.20345277395723235,
+            "n_trades_train": 377
+          },
+          {
+            "N": 100,
+            "M": 10,
+            "sharpe_train": 0.15299258806918575,
+            "n_trades_train": 532
+          },
+          {
+            "N": 100,
+            "M": 20,
+            "sharpe_train": 0.1413994826642909,
+            "n_trades_train": 430
+          },
+          {
+            "N": 100,
+            "M": 50,
+            "sharpe_train": -0.24981301861176092,
+            "n_trades_train": 326
+          }
+        ]
+      },
+      "val": {
+        "sharpe": 1.86218483343687,
+        "wr": 0.2631578947368421,
+        "n_trades": 19,
+        "total_pnl_pips": -1460.71875,
+        "max_drawdown_pips": -1817.048828125
+      },
+      "test": {
+        "sharpe": -1.0139314704535605,
+        "wr": 0.41818181818181815,
+        "n_trades": 55,
+        "total_pnl_pips": 130.154296875,
+        "max_drawdown_pips": -1687.390625
+      },
+      "edge_report": {
+        "go": false,
+        "reasons": [
+          "Sharpe -3.74 < 1.0",
+          "DSR=-4.43 (p=1.000) non significatif",
+          "Max DD 4829.9% ≥ 15%",
+          "Trades/an 28.3 < 30"
+        ],
+        "metrics": {
+          "sharpe": -3.7388872424206956,
+          "dsr": -4.434284904959342,
+          "p_value": 0.9999953810801556,
+          "max_dd": 48.29904974846283,
+          "wr": 0.41818181818181815,
+          "n_trades": 55.0,
+          "trades_per_year": 28.2542194092827
+        }
+      }
+    },
+    "US30": {
+      "status": "ok",
+      "config": {
+        "spread_pips": 3.0,
+        "slippage_pips": 5.0,
+        "tp_points": 200,
+        "sl_points": 100,
+        "window_hours": 120,
+        "pip_size": 1.0
+      },
+      "grid_search": {
+        "best_N": 100,
+        "best_M": 10,
+        "sharpe_train": 0.3459186856747579,
+        "all_combinations": [
+          {
+            "N": 20,
+            "M": 10,
+            "sharpe_train": 0.33763046936975427,
+            "n_trades_train": 414
+          },
+          {
+            "N": 20,
+            "M": 20,
+            "sharpe_train": -0.3173708501962171,
+            "n_trades_train": 347
+          },
+          {
+            "N": 20,
+            "M": 50,
+            "sharpe_train": -0.30894850081374786,
+            "n_trades_train": 285
+          },
+          {
+            "N": 50,
+            "M": 10,
+            "sharpe_train": -0.21004736161912246,
+            "n_trades_train": 350
+          },
+          {
+            "N": 50,
+            "M": 20,
+            "sharpe_train": -0.2398296265774499,
+            "n_trades_train": 283
+          },
+          {
+            "N": 50,
+            "M": 50,
+            "sharpe_train": -0.34959962360788277,
+            "n_trades_train": 221
+          },
+          {
+            "N": 100,
+            "M": 10,
+            "sharpe_train": 0.3459186856747579,
+            "n_trades_train": 312
+          },
+          {
+            "N": 100,
+            "M": 20,
+            "sharpe_train": -0.35212304567987746,
+            "n_trades_train": 245
+          },
+          {
+            "N": 100,
+            "M": 50,
+            "sharpe_train": 0.19787496877971175,
+            "n_trades_train": 183
+          }
+        ]
+      },
+      "val": {
+        "sharpe": 0.5831524473073266,
+        "wr": 0.47058823529411764,
+        "n_trades": 34,
+        "total_pnl_pips": 856.0,
+        "max_drawdown_pips": -492.0
+      },
+      "test": {
+        "sharpe": -0.08630549132118093,
+        "wr": 0.4533333333333333,
+        "n_trades": 75,
+        "total_pnl_pips": 1500.0,
+        "max_drawdown_pips": -976.0
+      },
+      "edge_report": {
+        "go": false,
+        "reasons": [
+          "Sharpe -0.27 < 1.0",
+          "DSR=-7.85 (p=1.000) non significatif",
+          "Max DD 362.5% ≥ 15%"
+        ],
+        "metrics": {
+          "sharpe": -0.27366093153040266,
+          "dsr": -7.846117491036747,
+          "p_value": 0.9999999999999979,
+          "max_dd": 3.625,
+          "wr": 0.4533333333333333,
+          "n_trades": 75.0,
+          "trades_per_year": 36.33123342175066
+        }
+      }
+    },
+    "US500": {
+      "status": "ok",
+      "config": {
+        "spread_pips": 1.5,
+        "slippage_pips": 2.0,
+        "tp_points": 200,
+        "sl_points": 100,
+        "window_hours": 120,
+        "pip_size": 1.0
+      },
+      "grid_search": {
+        "best_N": 50,
+        "best_M": 50,
+        "sharpe_train": 0.617215751320767,
+        "all_combinations": [
+          {
+            "N": 20,
+            "M": 10,
+            "sharpe_train": 0.3448175279900165,
+            "n_trades_train": 289
+          },
+          {
+            "N": 20,
+            "M": 20,
+            "sharpe_train": 0.3424853863590735,
+            "n_trades_train": 251
+          },
+          {
+            "N": 20,
+            "M": 50,
+            "sharpe_train": 0.37080072558507515,
+            "n_trades_train": 209
+          },
+          {
+            "N": 50,
+            "M": 10,
+            "sharpe_train": -0.18555147753052773,
+            "n_trades_train": 246
+          },
+          {
+            "N": 50,
+            "M": 20,
+            "sharpe_train": -0.1873841123653782,
+            "n_trades_train": 208
+          },
+          {
+            "N": 50,
+            "M": 50,
+            "sharpe_train": 0.617215751320767,
+            "n_trades_train": 166
+          },
+          {
+            "N": 100,
+            "M": 10,
+            "sharpe_train": -0.2310254672774416,
+            "n_trades_train": 229
+          },
+          {
+            "N": 100,
+            "M": 20,
+            "sharpe_train": -0.23113302696726884,
+            "n_trades_train": 191
+          },
+          {
+            "N": 100,
+            "M": 50,
+            "sharpe_train": 0.26071684695271896,
+            "n_trades_train": 149
+          }
+        ]
+      },
+      "val": {
+        "sharpe": 1.6185269726989913,
+        "wr": 0.4375,
+        "n_trades": 16,
+        "total_pnl_pips": -85.83899999999994,
+        "max_drawdown_pips": -156.0030000000006
+      },
+      "test": {
+        "sharpe": -0.8537300596712747,
+        "wr": 0.5652173913043478,
+        "n_trades": 46,
+        "total_pnl_pips": 422.9360000000015,
+        "max_drawdown_pips": -293.8719999999994
+      },
+      "edge_report": {
+        "go": false,
+        "reasons": [
+          "Sharpe -3.60 < 1.0",
+          "DSR=-4.81 (p=1.000) non significatif",
+          "Max DD 411.0% ≥ 15%",
+          "Trades/an 21.5 < 30"
+        ],
+        "metrics": {
+          "sharpe": -3.600726031399833,
+          "dsr": -4.814154690104846,
+          "p_value": 0.9999992608786448,
+          "max_dd": 4.109952606633734,
+          "wr": 0.5652173913043478,
+          "n_trades": 46.0,
+          "trades_per_year": 21.540384615384614
+        }
+      }
+    },
+    "USOIL": {
+      "status": "error",
+      "reason": "data\\raw\\USOIL\\USOIL_D1.csv : 2 barres avec prix négatifs ou nuls"
+    },
+    "XAGUSD": {
+      "status": "ok",
+      "config": {
+        "spread_pips": 30.0,
+        "slippage_pips": 15.0,
+        "tp_points": 150,
+        "sl_points": 75,
+        "window_hours": 120,
+        "pip_size": 1.0
+      },
+      "grid_search": {
+        "best_N": 20,
+        "best_M": 10,
+        "sharpe_train": 0.0,
+        "all_combinations": [
+          {
+            "N": 20,
+            "M": 10,
+            "sharpe_train": 0.0,
+            "n_trades_train": 292
+          },
+          {
+            "N": 20,
+            "M": 20,
+            "sharpe_train": 0.0,
+            "n_trades_train": 239
+          },
+          {
+            "N": 20,
+            "M": 50,
+            "sharpe_train": 0.0,
+            "n_trades_train": 192
+          },
+          {
+            "N": 50,
+            "M": 10,
+            "sharpe_train": 0.0,
+            "n_trades_train": 237
+          },
+          {
+            "N": 50,
+            "M": 20,
+            "sharpe_train": 0.0,
+            "n_trades_train": 184
+          },
+          {
+            "N": 50,
+            "M": 50,
+            "sharpe_train": 0.0,
+            "n_trades_train": 137
+          },
+          {
+            "N": 100,
+            "M": 10,
+            "sharpe_train": 0.0,
+            "n_trades_train": 204
+          },
+          {
+            "N": 100,
+            "M": 20,
+            "sharpe_train": 0.0,
+            "n_trades_train": 149
+          },
+          {
+            "N": 100,
+            "M": 50,
+            "sharpe_train": 0.0,
+            "n_trades_train": 102
+          }
+        ]
+      },
+      "val": {
+        "sharpe": 0.0,
+        "wr": 0.0,
+        "n_trades": 29,
+        "total_pnl_pips": -2608.8849999999998,
+        "max_drawdown_pips": -2518.9480000000003
+      },
+      "test": {
+        "sharpe": 0.0,
+        "wr": 0.0,
+        "n_trades": 70,
+        "total_pnl_pips": -6295.907,
+        "max_drawdown_pips": -6205.194999999999
+      },
+      "edge_report": {
+        "go": false,
+        "reasons": [
+          "WR 0.0% ≤ 30%"
+        ],
+        "metrics": {
+          "sharpe": 8.041150943583286,
+          "dsr": 2.5353852628097155,
+          "p_value": 0.005616185881395341,
+          "max_dd": -0.0,
+          "wr": 0.0,
+          "n_trades": 70.0,
+          "trades_per_year": 30.47377830750894
+        }
+      }
+    },
+    "XAUUSD": {
+      "status": "ok",
+      "config": {
+        "spread_pips": 25.0,
+        "slippage_pips": 10.0,
+        "tp_points": 600,
+        "sl_points": 300,
+        "window_hours": 120,
+        "pip_size": 1.0
+      },
+      "grid_search": {
+        "best_N": 100,
+        "best_M": 20,
+        "sharpe_train": 1.1271598358753518,
+        "all_combinations": [
+          {
+            "N": 20,
+            "M": 10,
+            "sharpe_train": 1.0160424616842163,
+            "n_trades_train": 350
+          },
+          {
+            "N": 20,
+            "M": 20,
+            "sharpe_train": 0.9942537485204572,
+            "n_trades_train": 304
+          },
+          {
+            "N": 20,
+            "M": 50,
+            "sharpe_train": 0.9615858121739064,
+            "n_trades_train": 243
+          },
+          {
+            "N": 50,
+            "M": 10,
+            "sharpe_train": 0.9458860609500936,
+            "n_trades_train": 286
+          },
+          {
+            "N": 50,
+            "M": 20,
+            "sharpe_train": 0.9285910325398178,
+            "n_trades_train": 239
+          },
+          {
+            "N": 50,
+            "M": 50,
+            "sharpe_train": 0.8858130186775687,
+            "n_trades_train": 177
+          },
+          {
+            "N": 100,
+            "M": 10,
+            "sharpe_train": 0.8990532539062914,
+            "n_trades_train": 249
+          },
+          {
+            "N": 100,
+            "M": 20,
+            "sharpe_train": 1.1271598358753518,
+            "n_trades_train": 201
+          },
+          {
+            "N": 100,
+            "M": 50,
+            "sharpe_train": 1.1188818831144876,
+            "n_trades_train": 139
+          }
+        ]
+      },
+      "val": {
+        "sharpe": 0.0,
+        "wr": 0.0,
+        "n_trades": 15,
+        "total_pnl_pips": -1105.9359999999995,
+        "max_drawdown_pips": -1025.6289999999995
+      },
+      "test": {
+        "sharpe": 1.462219922564211,
+        "wr": 0.225,
+        "n_trades": 40,
+        "total_pnl_pips": -1806.865000000001,
+        "max_drawdown_pips": -2034.9050000000009
+      },
+      "edge_report": {
+        "go": false,
+        "reasons": [
+          "WR 22.5% ≤ 30%",
+          "Trades/an 18.1 < 30"
+        ],
+        "metrics": {
+          "sharpe": 7.18327475808796,
+          "dsr": 2.8766930632307086,
+          "p_value": 0.0020093313938500668,
+          "max_dd": -0.0,
+          "wr": 0.225,
+          "n_trades": 40.0,
+          "trades_per_year": 18.149068322981364
+        }
+      }
+    }
+  }
+}

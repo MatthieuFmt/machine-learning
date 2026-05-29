@@ -1,0 +1,146 @@
+[
+  {
+    "asset": "GBPUSD",
+    "tf": "D1",
+    "model": "rf",
+    "threshold": 0.5,
+    "accuracy_train": 0.8691275167785235,
+    "baseline_donchian": {
+      "sharpe": -4.3118848196320405,
+      "wr": 0.08771929824561403,
+      "n_trades": 114,
+      "mean_pnl": -8.468421052631577,
+      "max_dd_pips": -954.3000000000018
+    },
+    "ml_donchian": {
+      "sharpe": -1.8588779839196146,
+      "wr": 0.09090909090909091,
+      "n_trades": 22,
+      "mean_pnl": -8.372727272727271,
+      "max_dd_pips": -173.09999999999994
+    },
+    "ml_accepted": {
+      "sharpe": -1.8588779839196146,
+      "wr": 0.09090909090909091,
+      "n_trades": 22,
+      "mean_pnl": -8.372727272727271,
+      "max_dd_pips": -173.09999999999994
+    },
+    "ml_rejected": {
+      "sharpe": -3.852316589210949,
+      "wr": 0.08695652173913043,
+      "n_trades": 92,
+      "mean_pnl": -8.491304347826086,
+      "max_dd_pips": -770.1000000000014
+    },
+    "inverse_signal_detected": false
+  },
+  {
+    "asset": "EURUSD",
+    "tf": "D1",
+    "model": "stacking",
+    "threshold": 0.5,
+    "accuracy_train": 0.915702479338843,
+    "baseline_donchian": {
+      "sharpe": -4.074310705078715,
+      "wr": 0.0970873786407767,
+      "n_trades": 103,
+      "mean_pnl": -7.987378640776698,
+      "max_dd_pips": -841.7999999999985
+    },
+    "ml_donchian": {
+      "sharpe": -2.830523649056272,
+      "wr": 0.0851063829787234,
+      "n_trades": 47,
+      "mean_pnl": -8.346808510638294,
+      "max_dd_pips": -381.39999999999975
+    },
+    "ml_accepted": {
+      "sharpe": -2.830523649056272,
+      "wr": 0.0851063829787234,
+      "n_trades": 47,
+      "mean_pnl": -8.346808510638294,
+      "max_dd_pips": -381.39999999999975
+    },
+    "ml_rejected": {
+      "sharpe": -2.9107677447350087,
+      "wr": 0.10714285714285714,
+      "n_trades": 56,
+      "mean_pnl": -7.685714285714286,
+      "max_dd_pips": -449.49999999999943
+    },
+    "inverse_signal_detected": false
+  },
+  {
+    "asset": "USDCHF",
+    "tf": "D1",
+    "model": "stacking",
+    "threshold": 0.5,
+    "accuracy_train": 0.9754098360655737,
+    "baseline_donchian": {
+      "sharpe": -2.354192556750102,
+      "wr": 0.18085106382978725,
+      "n_trades": 94,
+      "mean_pnl": -5.668085106382982,
+      "max_dd_pips": -535.5999999999993
+    },
+    "ml_donchian": {
+      "sharpe": -1.1167972622554776,
+      "wr": 0.19047619047619047,
+      "n_trades": 21,
+      "mean_pnl": -5.485714285714286,
+      "max_dd_pips": -122.80000000000001
+    },
+    "ml_accepted": {
+      "sharpe": -1.1167972622554776,
+      "wr": 0.19047619047619047,
+      "n_trades": 21,
+      "mean_pnl": -5.485714285714286,
+      "max_dd_pips": -122.80000000000001
+    },
+    "ml_rejected": {
+      "sharpe": -2.0854832186951704,
+      "wr": 0.1780821917808219,
+      "n_trades": 73,
+      "mean_pnl": -5.720547945205479,
+      "max_dd_pips": -420.39999999999947
+    },
+    "inverse_signal_detected": false
+  },
+  {
+    "asset": "ETHUSD",
+    "tf": "D1",
+    "model": "hgbm",
+    "threshold": 0.5,
+    "accuracy_train": 0.9230769230769231,
+    "baseline_donchian": {
+      "sharpe": -0.5772911686069515,
+      "wr": 0.29292929292929293,
+      "n_trades": 99,
+      "mean_pnl": -612.060606060606,
+      "max_dd_pips": -90342.0
+    },
+    "ml_donchian": {
+      "sharpe": 0.06628337553487604,
+      "wr": 0.36363636363636365,
+      "n_trades": 33,
+      "mean_pnl": 448.54545454545456,
+      "max_dd_pips": -40048.0
+    },
+    "ml_accepted": {
+      "sharpe": 0.13635573519731245,
+      "wr": 0.375,
+      "n_trades": 32,
+      "mean_pnl": 619.0,
+      "max_dd_pips": -40048.0
+    },
+    "ml_rejected": {
+      "sharpe": -0.7812967180026974,
+      "wr": 0.2537313432835821,
+      "n_trades": 67,
+      "mean_pnl": -1200.0298507462687,
+      "max_dd_pips": -105216.0
+    },
+    "inverse_signal_detected": false
+  }
+]

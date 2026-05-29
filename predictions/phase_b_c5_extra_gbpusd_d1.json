@@ -1,0 +1,61 @@
+{
+  "hypothesis": "C5_EXTRA_GBPUSD_D1",
+  "phase": "Phase B C5 Extra",
+  "asset": "GBPUSD",
+  "tf": "D1",
+  "model": "rf",
+  "hyperparams": {
+    "max_depth": 3,
+    "min_samples_leaf": 10,
+    "n_estimators": 200
+  },
+  "threshold": 0.5,
+  "features": [
+    "usdchf_return_5",
+    "range_atr_ratio",
+    "volume_zscore_20",
+    "day_cos",
+    "day_sin",
+    "xauusd_return_5",
+    "close_zscore_20",
+    "cci_20",
+    "efficiency_ratio_20",
+    "skew_returns_20",
+    "slope_sma_20",
+    "kurt_returns_20",
+    "autocorr_returns_lag1_20",
+    "return_percentile_20",
+    "atr_pct_14"
+  ],
+  "donchian_params": {
+    "N": 20,
+    "M": 20
+  },
+  "train_cutoff": "2022-12-31",
+  "test_start": "2024-01-01",
+  "capital_eur": 10000.0,
+  "risk_per_trade": 0.02,
+  "config": {
+    "spread_pips": 0.9,
+    "slippage_pips": 0.2,
+    "tp_points": 20,
+    "sl_points": 10,
+    "window_hours": 120,
+    "pip_size": 0.0001,
+    "pip_value_eur": 9.2
+  },
+  "metrics": {
+    "sharpe_backtest": 1.4916819580181695,
+    "sharpe_compute_metrics": 5.168650528294051,
+    "win_rate_backtest": 0.6583850931677019,
+    "win_rate_compute_metrics": 65.83850931677019,
+    "total_trades": 483,
+    "max_dd_pips": -55.500000000000114,
+    "profit_factor": 3.281572481572483,
+    "max_dd_pct": -5.078910078066279,
+    "total_return_pct": 834.2356680000045
+  },
+  "n_train_trades_donchian": 597,
+  "n_train_samples": 596,
+  "accuracy_train": 0.7550335570469798
+}

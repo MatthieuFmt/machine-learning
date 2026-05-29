@@ -1,0 +1,70 @@
+[
+  {
+    "candidate": "RsiContrarian_14_30_70_US500_1.0xATR",
+    "asset": "US500",
+    "params": {
+      "N": 14,
+      "oversold": 30,
+      "overbought": 70
+    },
+    "sl_pips": 391,
+    "tp_pips": 782,
+    "atr_train_pips": 391.24541492519853,
+    "metrics_train": {
+      "sharpe": 0.5404623369119393,
+      "wr": 0.4962962962962963,
+      "n_trades": 135,
+      "mean_pnl": 76.65711111111116,
+      "max_dd_pips": -3822.7200000000003,
+      "total_pnl": 10348.710000000006
+    },
+    "metrics_test": {
+      "sharpe": -0.9745581093712414,
+      "wr": 0.2564102564102564,
+      "n_trades": 39,
+      "mean_pnl": -141.30461538461557,
+      "max_dd_pips": -5119.280000000005,
+      "total_pnl": -5510.880000000007
+    },
+    "delta_sharpe": -1.5150204462831809,
+    "go_sharpe": false,
+    "go_wr": false,
+    "go_stability": false,
+    "go_volume": true,
+    "go": false
+  },
+  {
+    "candidate": "RsiContrarian_2_10_90_ETHUSD_1.5xATR",
+    "asset": "ETHUSD",
+    "params": {
+      "N": 2,
+      "oversold": 10,
+      "overbought": 90
+    },
+    "sl_pips": 13598,
+    "tp_pips": 27196,
+    "atr_train_pips": 9065.593144046647,
+    "metrics_train": {
+      "sharpe": 0.5067813056975596,
+      "wr": 0.5177664974619289,
+      "n_trades": 197,
+      "mean_pnl": 1305.279187817259,
+      "max_dd_pips": -104740.00000000003,
+      "total_pnl": 257140.00000000006
+    },
+    "metrics_test": {
+      "sharpe": 0.2550310658814003,
+      "wr": 0.4444444444444444,
+      "n_trades": 117,
+      "mean_pnl": 554.8888888888903,
+      "max_dd_pips": -139026.0,
+      "total_pnl": 64922.00000000016
+    },
+    "delta_sharpe": -0.25175023981615935,
+    "go_sharpe": false,
+    "go_wr": true,
+    "go_stability": true,
+    "go_volume": true,
+    "go": false
+  }
+]

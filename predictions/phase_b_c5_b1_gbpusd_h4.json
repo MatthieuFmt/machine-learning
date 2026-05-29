@@ -1,0 +1,159 @@
+{
+  "hypothesis": "B1_C5_GBPUSD_H4_meta_labeling",
+  "phase": "Phase B C5 — B1",
+  "asset": "GBPUSD",
+  "tf": "H4",
+  "model_primary": "rf",
+  "hyperparams_primary": {
+    "max_depth": 10,
+    "min_samples_leaf": 10,
+    "n_estimators": 100
+  },
+  "threshold_primary": 0.5,
+  "features": [
+    "autocorr_returns_lag1_20",
+    "kurt_returns_20",
+    "dist_ema_12",
+    "stoch_k_14",
+    "range_atr_ratio",
+    "cci_20",
+    "slope_sma_50",
+    "rsi_7",
+    "usdchf_return_5",
+    "dist_sma_200",
+    "atr_zscore_60",
+    "btcusd_return_5",
+    "session_tokyo",
+    "slope_sma_20",
+    "close_zscore_20"
+  ],
+  "train_cutoff": "2022-12-31",
+  "test_start": "2024-01-01",
+  "retrain_months": 6,
+  "capital_eur": 10000.0,
+  "risk_per_trade": 0.02,
+  "n_trials_cumul": 26,
+  "config": {
+    "spread_pips": 0.9,
+    "slippage_pips": 0.2,
+    "tp_points": 20,
+    "sl_points": 10,
+    "window_hours": 120,
+    "pip_size": 0.0001,
+    "pip_value_eur": 9.2
+  },
+  "metrics_baseline": {
+    "annee": null,
+    "profit_net": -661.1999999999994,
+    "profit_net_eur": -13200.196799999985,
+    "dd": -650.1000000000034,
+    "trades": 236,
+    "win_rate": 27.54237288135593,
+    "sharpe": -1.7192925463361566,
+    "sharpe_method": "daily",
+    "sharpe_per_trade": -0.18812233074487428,
+    "total_return_pct": -99.9999,
+    "max_dd_pct": -99.9998977337764,
+    "bh_pips": -2760.899999999999,
+    "bh_return_pct": -254.0027999999999,
+    "alpha_pips": 2099.7,
+    "alpha_return_pct": 154.0028999999999,
+    "final_equity_eur": 0.01,
+    "blowup_detected": true
+  },
+  "metrics_meta": {
+    "annee": null,
+    "profit_net": -380.70000000000005,
+    "profit_net_eur": -7600.294799999999,
+    "dd": -404.10000000000167,
+    "trades": 137,
+    "win_rate": 27.73722627737226,
+    "sharpe": -1.3541178215372636,
+    "sharpe_method": "weekly",
+    "sharpe_per_trade": -1.0687781109120338,
+    "total_return_pct": -76.0029480000002,
+    "max_dd_pct": -82.5027891067166,
+    "bh_pips": -2760.899999999999,
+    "bh_return_pct": -254.0027999999999,
+    "alpha_pips": 2380.199999999999,
+    "alpha_return_pct": 177.9998519999997,
+    "final_equity_eur": 2399.7051999999794,
+    "blowup_detected": false
+  },
+  "sharpe_improvement": 0.365174724798893,
+  "segments": [
+    {
+      "start": "2024-01-01",
+      "end": "2024-06-30",
+      "n_train_trades": 1058,
+      "n_oos_trades_baseline": 42,
+      "n_oos_trades_meta": 28,
+      "sharpe_baseline": -3.8349098543236444,
+      "sharpe_meta": -9.655070856369806,
+      "meta_disabled": false,
+      "threshold": 0.5
+    },
+    {
+      "start": "2024-07-01",
+      "end": "2024-12-31",
+      "n_train_trades": 1177,
+      "n_oos_trades_baseline": 45,
+      "n_oos_trades_meta": 26,
+      "sharpe_baseline": -4.719469242776282,
+      "sharpe_meta": -14.057743409300894,
+      "meta_disabled": false,
+      "threshold": 0.5
+    },
+    {
+      "start": "2025-01-01",
+      "end": "2025-06-30",
+      "n_train_trades": 1153,
+      "n_oos_trades_baseline": 42,
+      "n_oos_trades_meta": 28,
+      "sharpe_baseline": -1.3008944276529966,
+      "sharpe_meta": -14.155328796369707,
+      "meta_disabled": false,
+      "threshold": 0.5
+    },
+    {
+      "start": "2025-07-01",
+      "end": "2025-12-31",
+      "n_train_trades": 1260,
+      "n_oos_trades_baseline": 59,
+      "n_oos_trades_meta": 29,
+      "sharpe_baseline": 1.4579192741277744,
+      "sharpe_meta": -14.630761997152995,
+      "meta_disabled": false,
+      "threshold": 0.5
+    },
+    {
+      "start": "2026-01-01",
+      "end": "2026-05-19",
+      "n_train_trades": 1397,
+      "n_oos_trades_baseline": 48,
+      "n_oos_trades_meta": 26,
+      "sharpe_baseline": -3.9103317300826244,
+      "sharpe_meta": -12.039479693914508,
+      "meta_disabled": false,
+      "threshold": 0.5
+    }
+  ],
+  "validate_edge": {
+    "go": false,
+    "reasons": [
+      "Sharpe -1.42 < 1.0",
+      "DSR=-17.80 (p=1.000) non significatif",
+      "Max DD 82.5% >= 15%",
+      "WR 27.7% <= 30%"
+    ],
+    "metrics": {
+      "sharpe": -1.4175726025384603,
+      "dsr": -17.79688297650336,
+      "p_value": 1.0,
+      "max_dd": 0.825027891067166,
+      "wr": 0.2773722627737226,
+      "n_trades": 137.0,
+      "trades_per_year": 61.4732800982801
+    }
+  }
+}

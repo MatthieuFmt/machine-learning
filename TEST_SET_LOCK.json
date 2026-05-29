@@ -1,0 +1,455 @@
+{
+  "locked": false,
+  "n_reads": 56,
+  "read_history": [
+    {
+      "prompt": "07",
+      "hypothesis": "H06",
+      "timestamp": "2026-05-14T15:34:11.850804+00:00",
+      "sharpe": -0.08630549132118093,
+      "n_trades": 75
+    },
+    {
+      "prompt": "07",
+      "hypothesis": "H06",
+      "timestamp": "2026-05-14T15:34:12.094369+00:00",
+      "sharpe": 1.462219922564211,
+      "n_trades": 40
+    },
+    {
+      "prompt": "07",
+      "hypothesis": "H06",
+      "timestamp": "2026-05-14T15:40:20.753128+00:00",
+      "sharpe": -0.08630549132118093,
+      "n_trades": 75
+    },
+    {
+      "prompt": "07",
+      "hypothesis": "H06",
+      "timestamp": "2026-05-14T15:40:20.991378+00:00",
+      "sharpe": 1.462219922564211,
+      "n_trades": 40
+    },
+    {
+      "prompt": "07",
+      "hypothesis": "H06",
+      "timestamp": "2026-05-14T15:57:31.980636+00:00",
+      "sharpe": -0.08630549132118093,
+      "n_trades": 75
+    },
+    {
+      "prompt": "07",
+      "hypothesis": "H06",
+      "timestamp": "2026-05-14T15:57:32.175036+00:00",
+      "sharpe": -0.8537300596712747,
+      "n_trades": 46
+    },
+    {
+      "prompt": "07",
+      "hypothesis": "H06",
+      "timestamp": "2026-05-14T15:57:32.373093+00:00",
+      "sharpe": 0.0,
+      "n_trades": 70
+    },
+    {
+      "prompt": "07",
+      "hypothesis": "H06",
+      "timestamp": "2026-05-14T15:57:32.613803+00:00",
+      "sharpe": 1.462219922564211,
+      "n_trades": 40
+    },
+    {
+      "prompt": "07",
+      "hypothesis": "H06",
+      "timestamp": "2026-05-14T16:00:52.857526+00:00",
+      "sharpe": -0.08630549132118093,
+      "n_trades": 75
+    },
+    {
+      "prompt": "07",
+      "hypothesis": "H06",
+      "timestamp": "2026-05-14T16:00:53.039003+00:00",
+      "sharpe": -0.8537300596712747,
+      "n_trades": 46
+    },
+    {
+      "prompt": "07",
+      "hypothesis": "H06",
+      "timestamp": "2026-05-14T16:00:53.249379+00:00",
+      "sharpe": 0.0,
+      "n_trades": 70
+    },
+    {
+      "prompt": "07",
+      "hypothesis": "H06",
+      "timestamp": "2026-05-14T16:00:53.492172+00:00",
+      "sharpe": 1.462219922564211,
+      "n_trades": 40
+    },
+    {
+      "prompt": "07",
+      "hypothesis": "H06",
+      "timestamp": "2026-05-14T16:03:22.704706+00:00",
+      "sharpe": -0.08630549132118093,
+      "n_trades": 75
+    },
+    {
+      "prompt": "07",
+      "hypothesis": "H06",
+      "timestamp": "2026-05-14T16:03:22.895395+00:00",
+      "sharpe": -0.8537300596712747,
+      "n_trades": 46
+    },
+    {
+      "prompt": "07",
+      "hypothesis": "H06",
+      "timestamp": "2026-05-14T16:03:23.107740+00:00",
+      "sharpe": 0.0,
+      "n_trades": 70
+    },
+    {
+      "prompt": "07",
+      "hypothesis": "H06",
+      "timestamp": "2026-05-14T16:03:23.353015+00:00",
+      "sharpe": 1.462219922564211,
+      "n_trades": 40
+    },
+    {
+      "prompt": "07",
+      "hypothesis": "H06",
+      "timestamp": "2026-05-14T16:04:46.897465+00:00",
+      "sharpe": -0.08630549132118093,
+      "n_trades": 75
+    },
+    {
+      "prompt": "07",
+      "hypothesis": "H06",
+      "timestamp": "2026-05-14T16:04:47.084560+00:00",
+      "sharpe": -0.8537300596712747,
+      "n_trades": 46
+    },
+    {
+      "prompt": "07",
+      "hypothesis": "H06",
+      "timestamp": "2026-05-14T16:04:47.297188+00:00",
+      "sharpe": 0.0,
+      "n_trades": 70
+    },
+    {
+      "prompt": "07",
+      "hypothesis": "H06",
+      "timestamp": "2026-05-14T16:04:47.538108+00:00",
+      "sharpe": 1.462219922564211,
+      "n_trades": 40
+    },
+    {
+      "prompt": "07",
+      "hypothesis": "H06",
+      "timestamp": "2026-05-14T16:05:19.022698+00:00",
+      "sharpe": -1.0139314704535605,
+      "n_trades": 55
+    },
+    {
+      "prompt": "07",
+      "hypothesis": "H06",
+      "timestamp": "2026-05-14T16:05:19.246497+00:00",
+      "sharpe": -0.08630549132118093,
+      "n_trades": 75
+    },
+    {
+      "prompt": "07",
+      "hypothesis": "H06",
+      "timestamp": "2026-05-14T16:05:19.438597+00:00",
+      "sharpe": -0.8537300596712747,
+      "n_trades": 46
+    },
+    {
+      "prompt": "07",
+      "hypothesis": "H06",
+      "timestamp": "2026-05-14T16:05:19.660074+00:00",
+      "sharpe": 0.0,
+      "n_trades": 70
+    },
+    {
+      "prompt": "07",
+      "hypothesis": "H06",
+      "timestamp": "2026-05-14T16:05:19.905186+00:00",
+      "sharpe": 1.462219922564211,
+      "n_trades": 40
+    },
+    {
+      "prompt": "08",
+      "hypothesis": "H07",
+      "timestamp": "2026-05-14T20:17:16.577932+00:00",
+      "sharpe": 0.3571699548792437,
+      "n_trades": 594
+    },
+    {
+      "prompt": "08",
+      "hypothesis": "H07",
+      "timestamp": "2026-05-14T20:17:16.960979+00:00",
+      "sharpe": -0.7563591533803108,
+      "n_trades": 75
+    },
+    {
+      "prompt": "08",
+      "hypothesis": "H07",
+      "timestamp": "2026-05-14T20:17:17.533426+00:00",
+      "sharpe": NaN,
+      "n_trades": 595
+    },
+    {
+      "prompt": "08",
+      "hypothesis": "H07",
+      "timestamp": "2026-05-14T20:17:18.136258+00:00",
+      "sharpe": -0.01133759333905697,
+      "n_trades": 627
+    },
+    {
+      "prompt": "11",
+      "hypothesis": "H1",
+      "timestamp": "2026-05-14T21:33:02.474230+00:00",
+      "sharpe": 0.0,
+      "n_trades": 0
+    },
+    {
+      "prompt": "12",
+      "hypothesis": "H5",
+      "timestamp": "2026-05-15T05:32:33.735598+00:00",
+      "sharpe": 2.8127328379311622,
+      "n_trades": 1765
+    },
+    {
+      "prompt": "12",
+      "hypothesis": "H5",
+      "timestamp": "2026-05-15T05:39:14.977568+00:00",
+      "sharpe": -0.9532576948998823,
+      "n_trades": 1765
+    },
+    {
+      "prompt": "12",
+      "hypothesis": "H5",
+      "timestamp": "2026-05-15T05:42:07.086685+00:00",
+      "sharpe": -0.9532576948998823,
+      "n_trades": 1765
+    },
+    {
+      "prompt": "12",
+      "hypothesis": "H5",
+      "timestamp": "2026-05-15T05:42:55.262050+00:00",
+      "sharpe": -0.9532576948998823,
+      "n_trades": 1765
+    },
+    {
+      "prompt": "12",
+      "hypothesis": "H5",
+      "timestamp": "2026-05-15T05:45:04.078989+00:00",
+      "sharpe": -0.9532576948998823,
+      "n_trades": 1765
+    },
+    {
+      "prompt": "12",
+      "hypothesis": "H2",
+      "timestamp": "2026-05-15T06:08:59.774308+00:00",
+      "sharpe": 0.0,
+      "n_trades": 4
+    },
+    {
+      "prompt": "pivot_v4_B1",
+      "hypothesis": "H_new1_meta_us30_d1",
+      "timestamp": "2026-05-16T09:33:34.209078+00:00",
+      "sharpe": 0.0,
+      "n_trades": 0
+    },
+    {
+      "prompt": "pivot_v4_B1",
+      "hypothesis": "H_new1_meta_us30_d1",
+      "timestamp": "2026-05-16T09:36:20.481498+00:00",
+      "sharpe": 0.823998894326029,
+      "n_trades": 12
+    },
+    {
+      "prompt": "pivot_v4_B2",
+      "hypothesis": "H_new3_eurusd_h4_meanrev",
+      "timestamp": "2026-05-16T15:48:22.220657+00:00",
+      "sharpe": 1.7332591664367052,
+      "n_trades": 54
+    },
+    {
+      "prompt": "pivot_v4_B3",
+      "hypothesis": "H_new2_us30_rolling",
+      "timestamp": "2026-05-16T16:20:45.450991+00:00",
+      "sharpe": 0.8179104098612876,
+      "n_trades": 34
+    },
+    {
+      "prompt": "pivot_v4_B3",
+      "hypothesis": "H_new2_xauusd_rolling",
+      "timestamp": "2026-05-16T16:20:47.445569+00:00",
+      "sharpe": 2.5856759846565676,
+      "n_trades": 23
+    },
+    {
+      "prompt": "pivot_v4_B4",
+      "hypothesis": "H_new4_portfolio_single_sleeve",
+      "timestamp": "2026-05-16T17:14:52.915965+00:00",
+      "sharpe": 1.7332591664367052,
+      "n_trades": 54
+    },
+    {
+      "prompt": "pivot_v4_phase_b_c5_b1",
+      "hypothesis": "B1_C5_GBPUSD_H4_meta_labeling",
+      "timestamp": "2026-05-18T05:50:15.453149+00:00",
+      "sharpe": 2.4398816987678806,
+      "n_trades": 468
+    },
+    {
+      "prompt": "18",
+      "hypothesis": "validation_finale_portfolio",
+      "timestamp": "2026-05-18T20:18:29.347643+00:00",
+      "sharpe": 4.974430029044031,
+      "n_trades": 3021
+    },
+    {
+      "prompt": "18",
+      "hypothesis": "validation_finale_portfolio",
+      "timestamp": "2026-05-19T06:24:46.451108+00:00",
+      "sharpe": -5.433181049863284,
+      "n_trades": 236
+    },
+    {
+      "prompt": "diagnose_ml_inverse_edge",
+      "hypothesis": "diagnose_GBPUSD_D1",
+      "timestamp": "2026-05-19T06:33:41.064607+00:00",
+      "sharpe": -1.8588779839196146,
+      "n_trades": 22
+    },
+    {
+      "prompt": "diagnose_ml_inverse_edge",
+      "hypothesis": "diagnose_EURUSD_D1",
+      "timestamp": "2026-05-19T06:33:47.140382+00:00",
+      "sharpe": -2.830523649056272,
+      "n_trades": 47
+    },
+    {
+      "prompt": "diagnose_ml_inverse_edge",
+      "hypothesis": "diagnose_USDCHF_D1",
+      "timestamp": "2026-05-19T06:33:51.138668+00:00",
+      "sharpe": -1.1167972622554776,
+      "n_trades": 21
+    },
+    {
+      "prompt": "diagnose_ml_inverse_edge",
+      "hypothesis": "diagnose_ETHUSD_D1",
+      "timestamp": "2026-05-19T06:33:52.898170+00:00",
+      "sharpe": 0.06628337553487604,
+      "n_trades": 33
+    },
+    {
+      "prompt": "test_oos_rsi_candidates",
+      "hypothesis": "RsiContrarian_14_30_70_US500_1.0xATR",
+      "timestamp": "2026-05-19T19:10:21.295004+00:00",
+      "sharpe": -0.9745581093712414,
+      "n_trades": 39
+    },
+    {
+      "prompt": "test_oos_rsi_candidates",
+      "hypothesis": "RsiContrarian_2_10_90_ETHUSD_1.5xATR",
+      "timestamp": "2026-05-19T19:10:21.343327+00:00",
+      "sharpe": 0.2550310658814003,
+      "n_trades": 117
+    },
+    {
+      "prompt": "test_oos_h4_candidate",
+      "hypothesis": "TsMomentum_60_ETHUSD_H4_1.5xATR",
+      "timestamp": "2026-05-19T19:38:36.421577+00:00",
+      "sharpe": 0.21803789046050284,
+      "n_trades": 1064
+    },
+    {
+      "prompt": "test_oos_h4_candidate",
+      "hypothesis": "SmaCrossover_10_50_GBPUSD_H4_1.0xATR",
+      "timestamp": "2026-05-19T19:38:36.603755+00:00",
+      "sharpe": -0.13861921839498267,
+      "n_trades": 103
+    },
+    {
+      "prompt": "test_oos_h4_candidate",
+      "hypothesis": "SmaCrossover_10_50_EURUSD_H4_1.0xATR",
+      "timestamp": "2026-05-19T19:38:36.778644+00:00",
+      "sharpe": 0.7513393963568215,
+      "n_trades": 93
+    },
+    {
+      "prompt": "pivot_v4_phase_b_c5_b1",
+      "hypothesis": "B1_C5_GBPUSD_H4_meta_labeling",
+      "timestamp": "2026-05-20T13:26:12.799588+00:00",
+      "sharpe": -1.3541178215372636,
+      "n_trades": 137
+    },
+    {
+      "prompt": "test_oos_g2_ethusd_smacross_h1",
+      "hypothesis": "SmaCrossover_24_120_ETHUSD_H1_1.5xATR",
+      "timestamp": "2026-05-22T10:35:26.676325+00:00",
+      "sharpe": -0.38529230344961257,
+      "n_trades": 224
+    }
+  ],
+  "pipeline_locked": {
+    "locked_at": "2026-05-15T20:34:59.907037+00:00",
+    "pipeline_version": "v4.1.0-extended",
+    "configured_pairs": [
+      {
+        "asset": "ETHUSD",
+        "tf": "D1"
+      },
+      {
+        "asset": "ETHUSD",
+        "tf": "H1"
+      },
+      {
+        "asset": "ETHUSD",
+        "tf": "H4"
+      },
+      {
+        "asset": "EURUSD",
+        "tf": "D1"
+      },
+      {
+        "asset": "EURUSD",
+        "tf": "H4"
+      },
+      {
+        "asset": "GBPUSD",
+        "tf": "D1"
+      },
+      {
+        "asset": "GBPUSD",
+        "tf": "H4"
+      },
+      {
+        "asset": "US30",
+        "tf": "D1"
+      },
+      {
+        "asset": "USDCHF",
+        "tf": "D1"
+      },
+      {
+        "asset": "USDCHF",
+        "tf": "H4"
+      },
+      {
+        "asset": "XAUUSD",
+        "tf": "D1"
+      }
+    ],
+    "config_checksums": {
+      "app\\config\\features_selected.py": "7dbfe8a3ae53afc4433da3a6b54831bbf0e994b3238cdb32e600f177fbaf0ef2",
+      "app\\config\\model_selected.py": "ddae630e519b8636c1ba179a55530db646dcf75bfdf17ffa906432a9ea0b73f9",
+      "app\\config\\hyperparams_tuned.py": "8ec912fa2e9ebebf6896b4f7542b7fb157d0602ad1502736b80e3265ab1d4bf5",
+      "app\\config\\ml_pipeline_v4.py": "a55a894e1cfc860ad0f4bef43eea2ef0e8fa5f75db441bd5f3d55fd7930176d2"
+    },
+    "phase_a_extended_completed_at": "2026-05-18T05:10:26.853165+00:00"
+  }
+}

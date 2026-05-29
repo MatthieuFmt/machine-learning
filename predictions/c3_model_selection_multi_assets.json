@@ -1,0 +1,497 @@
+[
+  {
+    "asset": "BTCUSD",
+    "tf": "D1",
+    "status": "ok",
+    "n_trades_train": 149,
+    "wr_train": 0.436241610738255,
+    "candidates": {
+      "rf": {
+        "sharpe_mean": 0.2596703046415171,
+        "sharpe_std": 0.33097789491536994,
+        "sharpes_per_fold": [
+          0.7356212254808414,
+          -0.023104791203286953,
+          0.585835088930031,
+          0.0,
+          0.0
+        ],
+        "stability_inter_fold": 1.274608177079343,
+        "n_kept_mean": 12.6,
+        "wr_meta_mean": 0.3142857142857142
+      },
+      "hgbm": {
+        "sharpe_mean": 0.28029828455810823,
+        "sharpe_std": 0.5258222338358643,
+        "sharpes_per_fold": [
+          0.4527137464640712,
+          0.38190262393459695,
+          1.0211992677003703,
+          -0.6002761710092125,
+          0.14595195570071506
+        ],
+        "stability_inter_fold": 1.8759381021146375,
+        "n_kept_mean": 14.0,
+        "wr_meta_mean": 0.433975279106858
+      },
+      "stacking": {
+        "sharpe_mean": 0.020962830788897657,
+        "sharpe_std": 0.7443029572791742,
+        "sharpes_per_fold": [
+          1.1839825298814675,
+          -0.8353090210220656,
+          -0.6888697881794447,
+          0.4450104332645311,
+          0.0
+        ],
+        "stability_inter_fold": 35.50584027838129,
+        "n_kept_mean": 7.4,
+        "wr_meta_mean": 0.4138827838827838
+      }
+    },
+    "selected_model": "hgbm",
+    "selected_sharpe_mean": 0.28029828455810823,
+    "selected_stability": 1.8759381021146375,
+    "pass_c4_threshold": false
+  },
+  {
+    "asset": "ETHUSD",
+    "tf": "D1",
+    "status": "ok",
+    "n_trades_train": 145,
+    "wr_train": 0.503448275862069,
+    "candidates": {
+      "rf": {
+        "sharpe_mean": 0.8922554877092903,
+        "sharpe_std": 0.33903391230928,
+        "sharpes_per_fold": [
+          0.22911175368644532,
+          1.189385917822496,
+          1.0332045318257765,
+          1.0319930439964908,
+          0.9775821912152431
+        ],
+        "stability_inter_fold": 0.37997402829061455,
+        "n_kept_mean": 14.2,
+        "wr_meta_mean": 0.5142642140468229
+      },
+      "hgbm": {
+        "sharpe_mean": 1.5544359670595242,
+        "sharpe_std": 0.8204751413047929,
+        "sharpes_per_fold": [
+          2.048959053650609,
+          1.552198858976548,
+          1.1222467477311537,
+          2.7353264521807996,
+          0.3134487227585108
+        ],
+        "stability_inter_fold": 0.5278282014594855,
+        "n_kept_mean": 13.2,
+        "wr_meta_mean": 0.5883362251783304
+      },
+      "stacking": {
+        "sharpe_mean": 0.21169841384501012,
+        "sharpe_std": 0.6646727327400771,
+        "sharpes_per_fold": [
+          0.7430718779793569,
+          -0.4870621641600546,
+          -0.5322478212565716,
+          1.1519292570871413,
+          0.18280091957517847
+        ],
+        "stability_inter_fold": 3.1397152086693763,
+        "n_kept_mean": 14.2,
+        "wr_meta_mean": 0.4160317460317461
+      }
+    },
+    "selected_model": "hgbm",
+    "selected_sharpe_mean": 1.5544359670595242,
+    "selected_stability": 0.5278282014594855,
+    "pass_c4_threshold": true
+  },
+  {
+    "asset": "ETHUSD",
+    "tf": "H4",
+    "status": "ok",
+    "n_trades_train": 467,
+    "wr_train": 0.40471092077087795,
+    "candidates": {
+      "rf": {
+        "sharpe_mean": 0.5311632549287921,
+        "sharpe_std": 0.5894199540425902,
+        "sharpes_per_fold": [
+          1.2821491412443615,
+          0.5449623520725425,
+          0.9405462998822666,
+          -0.4533999647852069,
+          0.34155844622999715
+        ],
+        "stability_inter_fold": 1.1096775755166468,
+        "n_kept_mean": 37.6,
+        "wr_meta_mean": 0.4389137931034483
+      },
+      "hgbm": {
+        "sharpe_mean": 0.5501546297257859,
+        "sharpe_std": 0.4034452263880821,
+        "sharpes_per_fold": [
+          1.075296630790022,
+          1.0089172180945214,
+          0.16572194228551074,
+          0.2585195396774908,
+          0.2423178177813846
+        ],
+        "stability_inter_fold": 0.7333306017179955,
+        "n_kept_mean": 35.8,
+        "wr_meta_mean": 0.41016601762656285
+      },
+      "stacking": {
+        "sharpe_mean": -0.41409359034136156,
+        "sharpe_std": 0.8271483419055218,
+        "sharpes_per_fold": [
+          0.0,
+          0.0,
+          0.0,
+          -0.002078460969082653,
+          -2.0683894907377254
+        ],
+        "stability_inter_fold": 1.997491289894547,
+        "n_kept_mean": 5.0,
+        "wr_meta_mean": 0.09333333333333334
+      }
+    },
+    "selected_model": "hgbm",
+    "selected_sharpe_mean": 0.5501546297257859,
+    "selected_stability": 0.7333306017179955,
+    "pass_c4_threshold": true
+  },
+  {
+    "asset": "ETHUSD",
+    "tf": "H1",
+    "status": "ok",
+    "n_trades_train": 845,
+    "wr_train": 0.40710059171597635,
+    "candidates": {
+      "rf": {
+        "sharpe_mean": 1.8920543942098837,
+        "sharpe_std": 1.0962999301135006,
+        "sharpes_per_fold": [
+          2.7856335937990235,
+          3.044915854782982,
+          1.0093170171669836,
+          2.4114444173681107,
+          0.20896108793231913
+        ],
+        "stability_inter_fold": 0.5794230508853256,
+        "n_kept_mean": 70.6,
+        "wr_meta_mean": 0.4797248168498169
+      },
+      "hgbm": {
+        "sharpe_mean": 2.016199392756909,
+        "sharpe_std": 0.9221063918293886,
+        "sharpes_per_fold": [
+          1.9072927653277336,
+          2.070494681512792,
+          2.3656009531367457,
+          3.295524343720465,
+          0.4420842200868089
+        ],
+        "stability_inter_fold": 0.45734880919251275,
+        "n_kept_mean": 72.8,
+        "wr_meta_mean": 0.49481598687294887
+      },
+      "stacking": {
+        "sharpe_mean": -0.06751518109066143,
+        "sharpe_std": 0.8792932043387854,
+        "sharpes_per_fold": [
+          0.0,
+          0.0,
+          1.2153354970420185,
+          -1.5529114024953257,
+          0.0
+        ],
+        "stability_inter_fold": 13.023636715635957,
+        "n_kept_mean": 4.6,
+        "wr_meta_mean": 0.15333333333333332
+      }
+    },
+    "selected_model": "hgbm",
+    "selected_sharpe_mean": 2.016199392756909,
+    "selected_stability": 0.45734880919251275,
+    "pass_c4_threshold": true
+  },
+  {
+    "asset": "EURUSD",
+    "tf": "D1",
+    "status": "ok",
+    "n_trades_train": 498,
+    "wr_train": 0.642570281124498,
+    "candidates": {
+      "rf": {
+        "sharpe_mean": 6.0807471140351605,
+        "sharpe_std": 2.038491881525644,
+        "sharpes_per_fold": [
+          9.567446038713967,
+          3.398788455165013,
+          5.822018712336163,
+          5.029515876472689,
+          6.585966487487967
+        ],
+        "stability_inter_fold": 0.3352370758003241,
+        "n_kept_mean": 61.0,
+        "wr_meta_mean": 0.6995570754804042
+      },
+      "hgbm": {
+        "sharpe_mean": 5.06057283449652,
+        "sharpe_std": 0.9684417779890632,
+        "sharpes_per_fold": [
+          6.585966487487967,
+          3.5867285150651487,
+          5.302151302810754,
+          5.124997560975029,
+          4.703020306143701
+        ],
+        "stability_inter_fold": 0.19136999100103735,
+        "n_kept_mean": 57.0,
+        "wr_meta_mean": 0.6623618013584719
+      },
+      "stacking": {
+        "sharpe_mean": 6.211423902651362,
+        "sharpe_std": 1.4803703540558206,
+        "sharpes_per_fold": [
+          8.833970785066102,
+          4.691986226818527,
+          5.635430666304655,
+          6.754198694145738,
+          5.141533140921782
+        ],
+        "stability_inter_fold": 0.23833027290016232,
+        "n_kept_mean": 94.4,
+        "wr_meta_mean": 0.6466170862509308
+      }
+    },
+    "selected_model": "stacking",
+    "selected_sharpe_mean": 6.211423902651362,
+    "selected_stability": 0.23833027290016232,
+    "pass_c4_threshold": true
+  },
+  {
+    "asset": "GBPUSD",
+    "tf": "D1",
+    "status": "ok",
+    "n_trades_train": 482,
+    "wr_train": 0.6929460580912863,
+    "candidates": {
+      "rf": {
+        "sharpe_mean": 8.616652677451487,
+        "sharpe_std": 1.3785095224274468,
+        "sharpes_per_fold": [
+          8.06311374576947,
+          7.838250129347647,
+          10.916713655539242,
+          6.943009291704237,
+          9.322176564896836
+        ],
+        "stability_inter_fold": 0.1599820224708397,
+        "n_kept_mean": 62.8,
+        "wr_meta_mean": 0.7854329609411422
+      },
+      "hgbm": {
+        "sharpe_mean": 7.464662808162894,
+        "sharpe_std": 0.8463712224272212,
+        "sharpes_per_fold": [
+          7.267478080599322,
+          6.904398498962717,
+          8.024346157309175,
+          6.360187385929076,
+          8.766903918014178
+        ],
+        "stability_inter_fold": 0.11338371793409051,
+        "n_kept_mean": 61.6,
+        "wr_meta_mean": 0.7541445711317925
+      },
+      "stacking": {
+        "sharpe_mean": 7.365055879100948,
+        "sharpe_std": 0.6536454171631422,
+        "sharpes_per_fold": [
+          7.712409170865821,
+          7.7245164845856165,
+          7.204706878986903,
+          6.166790545453334,
+          8.016856315613069
+        ],
+        "stability_inter_fold": 0.08874955299784949,
+        "n_kept_mean": 88.6,
+        "wr_meta_mean": 0.7033695614892558
+      }
+    },
+    "selected_model": "rf",
+    "selected_sharpe_mean": 8.616652677451487,
+    "selected_stability": 0.1599820224708397,
+    "pass_c4_threshold": true
+  },
+  {
+    "asset": "GBPUSD",
+    "tf": "H4",
+    "status": "ok",
+    "n_trades_train": 1000,
+    "wr_train": 0.457,
+    "candidates": {
+      "rf": {
+        "sharpe_mean": 3.6907167675936856,
+        "sharpe_std": 1.1402319836485058,
+        "sharpes_per_fold": [
+          2.0742321529641385,
+          5.149107078290732,
+          3.479288998757119,
+          2.9678035528178746,
+          4.783152055138564
+        ],
+        "stability_inter_fold": 0.30894594604261133,
+        "n_kept_mean": 83.4,
+        "wr_meta_mean": 0.5470107828009906
+      },
+      "hgbm": {
+        "sharpe_mean": 2.8624950949341015,
+        "sharpe_std": 0.5327206396250593,
+        "sharpes_per_fold": [
+          2.195848594268523,
+          2.871590675644258,
+          2.6825613256178302,
+          2.7374591532933024,
+          3.8250157258465944
+        ],
+        "stability_inter_fold": 0.18610359905305607,
+        "n_kept_mean": 84.6,
+        "wr_meta_mean": 0.5031695729403436
+      },
+      "stacking": {
+        "sharpe_mean": 1.3603328130666388,
+        "sharpe_std": 0.4168495958825683,
+        "sharpes_per_fold": [
+          1.4971102599457338,
+          0.8673843182554984,
+          1.1563031769553507,
+          1.1884535406072119,
+          2.0924127695693993
+        ],
+        "stability_inter_fold": 0.3064320668972321,
+        "n_kept_mean": 23.4,
+        "wr_meta_mean": 0.5116841736694677
+      }
+    },
+    "selected_model": "rf",
+    "selected_sharpe_mean": 3.6907167675936856,
+    "selected_stability": 0.30894594604261133,
+    "pass_c4_threshold": true
+  },
+  {
+    "asset": "USDCHF",
+    "tf": "D1",
+    "status": "ok",
+    "n_trades_train": 210,
+    "wr_train": 0.580952380952381,
+    "candidates": {
+      "rf": {
+        "sharpe_mean": 2.2914226766516927,
+        "sharpe_std": 1.238185711239589,
+        "sharpes_per_fold": [
+          4.45276151089992,
+          0.852461092678085,
+          1.438394166345852,
+          2.662796314126621,
+          2.0507002992079846
+        ],
+        "stability_inter_fold": 0.540356750116706,
+        "n_kept_mean": 25.6,
+        "wr_meta_mean": 0.5598329944458238
+      },
+      "hgbm": {
+        "sharpe_mean": 2.870253069858538,
+        "sharpe_std": 1.071825041373455,
+        "sharpes_per_fold": [
+          4.839026693172086,
+          1.8278307382336783,
+          2.0493901531919194,
+          3.0432862867305057,
+          2.5917314779645007
+        ],
+        "stability_inter_fold": 0.37342527467546793,
+        "n_kept_mean": 24.6,
+        "wr_meta_mean": 0.6206590765338393
+      },
+      "stacking": {
+        "sharpe_mean": 3.331457715584489,
+        "sharpe_std": 1.0482063151219176,
+        "sharpes_per_fold": [
+          4.433547895899608,
+          2.1843626072609834,
+          3.0592906464177707,
+          2.2986414960303674,
+          4.6814459323137125
+        ],
+        "stability_inter_fold": 0.31463893715468505,
+        "n_kept_mean": 35.2,
+        "wr_meta_mean": 0.6146230158730159
+      }
+    },
+    "selected_model": "stacking",
+    "selected_sharpe_mean": 3.331457715584489,
+    "selected_stability": 0.31463893715468505,
+    "pass_c4_threshold": true
+  },
+  {
+    "asset": "USDCHF",
+    "tf": "H4",
+    "status": "ok",
+    "n_trades_train": 905,
+    "wr_train": 0.36685082872928176,
+    "candidates": {
+      "rf": {
+        "sharpe_mean": 1.1451645346369084,
+        "sharpe_std": 0.7338643848716306,
+        "sharpes_per_fold": [
+          1.124259436659682,
+          0.7478438810811189,
+          1.9046386604607042,
+          0.0,
+          1.9490806949830366
+        ],
+        "stability_inter_fold": 0.640837505907809,
+        "n_kept_mean": 57.0,
+        "wr_meta_mean": 0.34419040154936104
+      },
+      "hgbm": {
+        "sharpe_mean": 0.40377485383422707,
+        "sharpe_std": 1.092404730021149,
+        "sharpes_per_fold": [
+          0.7766306516498852,
+          -1.5956156507169377,
+          1.2047904382090686,
+          0.16546231527987812,
+          1.4676065147492412
+        ],
+        "stability_inter_fold": 2.7054798409119467,
+        "n_kept_mean": 55.8,
+        "wr_meta_mean": 0.36962569343561774
+      },
+      "stacking": {
+        "sharpe_mean": -0.14012980994907412,
+        "sharpe_std": 0.28025961989814824,
+        "sharpes_per_fold": [
+          0.0,
+          -0.7006490497453706,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "stability_inter_fold": 1.9999999857275195,
+        "n_kept_mean": 4.4,
+        "wr_meta_mean": 0.05333333333333333
+      }
+    },
+    "selected_model": "rf",
+    "selected_sharpe_mean": 1.1451645346369084,
+    "selected_stability": 0.640837505907809,
+    "pass_c4_threshold": true
+  }
+]

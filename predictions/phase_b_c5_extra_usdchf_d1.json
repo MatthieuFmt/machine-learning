@@ -1,0 +1,62 @@
+{
+  "hypothesis": "C5_EXTRA_USDCHF_D1",
+  "phase": "Phase B C5 Extra",
+  "asset": "USDCHF",
+  "tf": "D1",
+  "model": "stacking",
+  "hyperparams": {
+    "rf": "default",
+    "hgbm": "default",
+    "meta": "LogisticRegression",
+    "cv": 5
+  },
+  "threshold": 0.5,
+  "features": [
+    "williams_r_14",
+    "upper_shadow_ratio",
+    "btcusd_return_5",
+    "body_to_range_ratio",
+    "lower_shadow_ratio",
+    "slope_sma_20",
+    "stoch_d_14",
+    "dist_sma_50",
+    "rsi_7",
+    "day_sin",
+    "efficiency_ratio_20",
+    "slope_sma_50",
+    "ema_12",
+    "bb_width_20",
+    "skew_returns_20"
+  ],
+  "donchian_params": {
+    "N": 20,
+    "M": 20
+  },
+  "train_cutoff": "2022-12-31",
+  "test_start": "2024-01-01",
+  "capital_eur": 10000.0,
+  "risk_per_trade": 0.02,
+  "config": {
+    "spread_pips": 1.0,
+    "slippage_pips": 0.2,
+    "tp_points": 20,
+    "sl_points": 10,
+    "window_hours": 120,
+    "pip_size": 0.0001,
+    "pip_value_eur": 10.5
+  },
+  "metrics": {
+    "sharpe_backtest": 1.1284167334936066,
+    "sharpe_compute_metrics": 3.2911636562698474,
+    "win_rate_backtest": 0.541371158392435,
+    "win_rate_compute_metrics": 54.1371158392435,
+    "total_trades": 423,
+    "max_dd_pips": -125.60000000000173,
+    "profit_factor": 1.9814064801178208,
+    "max_dd_pct": -13.073225612111939,
+    "total_return_pct": 425.4137999999974
+  },
+  "n_train_trades_donchian": 585,
+  "n_train_samples": 244,
+  "accuracy_train": 0.8688524590163934
+}

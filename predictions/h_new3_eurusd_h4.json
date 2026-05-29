@@ -1,0 +1,106 @@
+{
+  "config": {
+    "strat": "MeanReversionRSIBB(rsi=14/30/70, bb=20/2.0)",
+    "asset": "EURUSD",
+    "tf": "H4",
+    "retrain_months": 6,
+    "capital_eur": 10000.0,
+    "risk_per_trade": 0.02,
+    "features": [
+      "RSI_14",
+      "ADX_14",
+      "Dist_SMA_50",
+      "ATR_Norm_14",
+      "Log_Return_5",
+      "BB_Width",
+      "Hour_UTC",
+      "Is_London_NY_Overlap"
+    ]
+  },
+  "metrics_walk_forward_oos": {
+    "annee": null,
+    "profit_net": 281.4000000000002,
+    "profit_net_eur": 5628.0,
+    "dd": -54.50000000000003,
+    "trades": 54,
+    "win_rate": 53.70370370370371,
+    "sharpe": 1.7332591664367052,
+    "sharpe_method": "per_trade",
+    "sharpe_per_trade": 2.6764680939195973,
+    "total_return_pct": 56.279999999999994,
+    "max_dd_pct": -8.077664147028308,
+    "bh_pips": 0.0,
+    "bh_return_pct": 0.0,
+    "alpha_pips": 281.4000000000002,
+    "alpha_return_pct": 56.279999999999994,
+    "final_equity_eur": 15628.0,
+    "blowup_detected": false
+  },
+  "segments": [
+    {
+      "start": "2024-01-01",
+      "end": "2024-06-30",
+      "n_train": 779,
+      "n_oos_trades": 3,
+      "sharpe_oos": 2.3490951822313373,
+      "wr_oos": 1.0,
+      "meta_disabled": false,
+      "threshold": 0.5
+    },
+    {
+      "start": "2024-07-01",
+      "end": "2024-12-31",
+      "n_train": 794,
+      "n_oos_trades": 6,
+      "sharpe_oos": 0.6038744091289455,
+      "wr_oos": 0.16666666666666666,
+      "meta_disabled": false,
+      "threshold": 0.5
+    },
+    {
+      "start": "2025-01-01",
+      "end": "2025-06-30",
+      "n_train": 822,
+      "n_oos_trades": 30,
+      "sharpe_oos": 2.3066989193531056,
+      "wr_oos": 0.5666666666666667,
+      "meta_disabled": false,
+      "threshold": 0.5
+    },
+    {
+      "start": "2025-07-01",
+      "end": "2025-12-31",
+      "n_train": 861,
+      "n_oos_trades": 4,
+      "sharpe_oos": -2.5002583849569135,
+      "wr_oos": 0.5,
+      "meta_disabled": false,
+      "threshold": 0.5
+    },
+    {
+      "start": "2026-01-01",
+      "end": "2026-05-08",
+      "n_train": 885,
+      "n_oos_trades": 11,
+      "sharpe_oos": 2.4784402525377103,
+      "wr_oos": 0.5454545454545454,
+      "meta_disabled": false,
+      "threshold": 0.5
+    }
+  ],
+  "validate_edge": {
+    "go": false,
+    "reasons": [
+      "Trades/an 25.2 < 30"
+    ],
+    "metrics": {
+      "sharpe": 5.3850452723644855,
+      "dsr": 23.40785132117318,
+      "p_value": 0.0,
+      "max_dd": 0.08077664147028309,
+      "wr": 0.5370370370370371,
+      "n_trades": 54.0,
+      "trades_per_year": 25.221867007672632
+    }
+  }
+}

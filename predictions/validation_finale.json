@@ -1,0 +1,134 @@
+{
+  "config": {
+    "sleeves": [
+      {
+        "asset": "GBPUSD",
+        "tf": "D1",
+        "model": "rf"
+      },
+      {
+        "asset": "EURUSD",
+        "tf": "D1",
+        "model": "stacking"
+      },
+      {
+        "asset": "USDCHF",
+        "tf": "D1",
+        "model": "stacking"
+      },
+      {
+        "asset": "ETHUSD",
+        "tf": "D1",
+        "model": "hgbm"
+      },
+      {
+        "asset": "GBPUSD",
+        "tf": "H4",
+        "model": "rf"
+      },
+      {
+        "asset": "EURUSD",
+        "tf": "H4",
+        "model": "rf"
+      }
+    ],
+    "portfolio_weighting": "equal_risk",
+    "vol_targeting": false,
+    "capital_eur": 10000.0,
+    "risk_per_trade": 0.02
+  },
+  "metrics": {
+    "sharpe_portfolio": -5.420531018613723,
+    "dsr": -18.28650064999537,
+    "p_value": 1.0,
+    "max_dd": 0.31261204551656385,
+    "wr": 0.2245762711864407,
+    "trades_per_year": 103.10885167464114,
+    "n_trades": 236
+  },
+  "benchmarks": {
+    "bh_sharpe": 0.5202449418309295,
+    "bh_ok": false,
+    "mc_p95_sharpe": -0.9819980928792578,
+    "mc_p50_sharpe": -1.9098068027227495,
+    "mc_ok": false
+  },
+  "strategy_details": [
+    {
+      "asset": "GBPUSD",
+      "tf": "D1",
+      "model": "rf",
+      "n_train_trades": 597,
+      "n_test_trades": 22,
+      "accuracy_train": 0.8691275167785235,
+      "sharpe": -3.1599037336069244,
+      "wr": 9.090909090909092,
+      "max_dd_pct": -35.34083839240931
+    },
+    {
+      "asset": "EURUSD",
+      "tf": "D1",
+      "model": "stacking",
+      "n_train_trades": 610,
+      "n_test_trades": 47,
+      "accuracy_train": 0.915702479338843,
+      "sharpe": -4.776956841519511,
+      "wr": 8.51063829787234,
+      "max_dd_pct": -77.97996319771008
+    },
+    {
+      "asset": "USDCHF",
+      "tf": "D1",
+      "model": "stacking",
+      "n_train_trades": 585,
+      "n_test_trades": 21,
+      "accuracy_train": 0.9754098360655737,
+      "sharpe": -1.569572538763818,
+      "wr": 19.047619047619047,
+      "max_dd_pct": -24.13270000256117
+    },
+    {
+      "asset": "ETHUSD",
+      "tf": "D1",
+      "model": "hgbm",
+      "n_train_trades": 169,
+      "n_test_trades": 34,
+      "accuracy_train": 0.9230769230769231,
+      "sharpe": 0.15447654831319227,
+      "wr": 35.294117647058826,
+      "max_dd_pct": -12.453389562398643
+    },
+    {
+      "asset": "GBPUSD",
+      "tf": "H4",
+      "model": "rf",
+      "n_train_total": 19272,
+      "n_test_trades": 71,
+      "sharpe": -0.9377701434620531,
+      "wr": 29.577464788732392,
+      "max_dd_pct": -33.937068650626024
+    },
+    {
+      "asset": "EURUSD",
+      "tf": "H4",
+      "model": "rf",
+      "n_test_trades": 41,
+      "sharpe": -1.217110393517642,
+      "wr": 24.390243902439025,
+      "max_dd_pct": -34.27784336875246
+    }
+  ],
+  "go": false,
+  "reasons": [
+    "Sharpe -5.42 < 1.0",
+    "DSR=-18.29 (p=1.000) non significatif",
+    "Max DD 31.3% >= 15%",
+    "WR 22.5% <= 30%",
+    "Portfolio Sharpe -5.42 < B&H+0.3 (0.82)",
+    "Portfolio Sharpe -5.42 <= P95 random (-0.98)"
+  ],
+  "n_trials": 44,
+  "n_unique_hypotheses": 12,
+  "n_trials_floor": 29,
+  "date": "2026-05-19T06:25:31.755259+00:00"
+}

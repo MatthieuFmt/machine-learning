@@ -1,0 +1,5 @@
+{
+  "asset": "USDJPY",
+  "error": "data\\raw\\USDJPY\\USDJPY_H1.csv : 2 gaps anormaux détectés",
+  "go": false
+}

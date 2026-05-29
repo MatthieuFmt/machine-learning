@@ -1,0 +1,44 @@
+{
+  "candidate": "SmaCrossover_24_120_ETHUSD_H1_1.5xATR",
+  "asset": "ETHUSD",
+  "tf": "H1",
+  "strat_params": {
+    "fast": 24,
+    "slow": 120
+  },
+  "sl_pips": 2703,
+  "tp_pips": 5406,
+  "atr_train_pips": 1801.838006338899,
+  "swap_long": -80.0,
+  "swap_short": -10.0,
+  "metrics_train": {
+    "sharpe": 0.7512001689353943,
+    "wr": 0.4158415841584158,
+    "n_trades": 303,
+    "mean_pnl": 408.80528052805283,
+    "max_dd_pips": -34000.0,
+    "total_pnl": 123868.0
+  },
+  "metrics_test": {
+    "sharpe": -0.38529230344961257,
+    "wr": 0.3125,
+    "n_trades": 224,
+    "mean_pnl": -194.22321428571428,
+    "max_dd_pips": -86875.0,
+    "total_pnl": -43506.0
+  },
+  "delta_sharpe": -1.136492472385007,
+  "go": false,
+  "go_breakdown": {
+    "sharpe": false,
+    "wr": false,
+    "stability": false,
+    "volume": true
+  },
+  "train_ref": {
+    "sharpe": 0.75,
+    "wr": 0.416,
+    "n": 303,
+    "mean_pnl": 408.8
+  }
+}

@@ -1,0 +1,104 @@
+{
+  "hypothesis": "H5",
+  "prompt": "12",
+  "title": "Mean-reversion RSI(2) extrême sur US30 H1",
+  "timestamp": "2026-05-15T05:45:04.090610+00:00",
+  "n_trials_cumul": 24,
+  "split": {
+    "train": "≤ 2022-12-31 23:00:00+00:00",
+    "val": "2023-01-01 00:00:00+00:00 → 2023-12-31 23:00:00+00:00",
+    "test": "≥ 2024-01-01 00:00:00+00:00"
+  },
+  "config": {
+    "rsi_period": 2,
+    "rsi_oversold": 10,
+    "rsi_overbought": 90,
+    "rsi_exit": 50,
+    "atr_period": 14,
+    "atr_filter_mult": 2.0,
+    "atr_median_days": 20,
+    "sl_atr_mult": 1.5,
+    "cost_points": 8.0,
+    "capital": 10000.0
+  },
+  "data": {
+    "n_barres_total": 69833,
+    "n_barres_train": 50043,
+    "n_barres_val": 5872,
+    "n_barres_test": 13918,
+    "signaux_train": 12726,
+    "signaux_val": 1501,
+    "signaux_test": 3738
+  },
+  "train": {
+    "sharpe": 0.16405358752316196,
+    "wr": 0.5375816993464052,
+    "n_trades": 6120,
+    "total_pnl_points": -44254.67769588741,
+    "max_dd_points": -44358.44961057789,
+    "profit_factor": 0.7675763296257998,
+    "mean_pnl_per_trade": -7.231156486256113,
+    "trades_per_year": 637.2,
+    "exit_types": {
+      "sl": 1730,
+      "rsi_cross": 4390
+    }
+  },
+  "val": {
+    "sharpe": -1.1722319661477334,
+    "wr": 0.5779310344827586,
+    "n_trades": 725,
+    "total_pnl_points": -2475.869541706299,
+    "max_dd_points": -3986.986056691283,
+    "profit_factor": 0.889449250900147,
+    "mean_pnl_per_trade": -3.4149924713190334,
+    "trades_per_year": 735.6,
+    "exit_types": {
+      "rsi_cross": 533,
+      "sl": 192
+    }
+  },
+  "test": {
+    "sharpe": -0.9532576948998823,
+    "wr": 0.5507082152974504,
+    "n_trades": 1765,
+    "total_pnl_points": -7074.437199833308,
+    "max_dd_points": -10391.569040260489,
+    "profit_factor": 0.9066190257617135,
+    "mean_pnl_per_trade": -4.008179716619438,
+    "trades_per_year": 747.9,
+    "exit_types": {
+      "rsi_cross": 1269,
+      "sl": 495,
+      "end_of_data": 1
+    }
+  },
+  "correlation_donchian_60d": null,
+  "edge_report": {
+    "go": false,
+    "reasons": [
+      "Sharpe -0.02 < 1.0",
+      "DSR=-59.21 (p=1.000) non significatif",
+      "Max DD 92.8% >= 15%"
+    ],
+    "metrics": {
+      "sharpe": -0.016437648141691692,
+      "dsr": -59.20913268385171,
+      "p_value": 1.0,
+      "max_dd": 0.9276955117175116,
+      "wr": 0.5507082152974504,
+      "n_trades": 1765.0,
+      "trades_per_year": 747.8726798143852
+    }
+  },
+  "go_nogo": {
+    "sharpe_test": -0.9532576948998823,
+    "sharpe_threshold": 1.0,
+    "sharpe_go": false,
+    "trades_per_year": 747.9,
+    "trades_per_year_threshold": 100,
+    "trades_per_year_go": true,
+    "max_dd_go": false,
+    "go_final": false
+  }
+}

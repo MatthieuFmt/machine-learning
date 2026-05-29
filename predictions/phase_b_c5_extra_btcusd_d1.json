@@ -1,0 +1,63 @@
+{
+  "hypothesis": "C5_EXTRA_BTCUSD_D1",
+  "phase": "Phase B C5 Extra",
+  "asset": "BTCUSD",
+  "tf": "D1",
+  "model": "hgbm",
+  "note": "exclu C4, Sharpe 0.28, defaults sklearn",
+  "hyperparams": {
+    "learning_rate": 0.1,
+    "max_depth": null,
+    "max_leaf_nodes": 31,
+    "min_samples_leaf": 20
+  },
+  "threshold": 0.5,
+  "features": [
+    "atr_14",
+    "atr_pct_14",
+    "sma_50",
+    "cci_20",
+    "dist_ema_12",
+    "skew_returns_20",
+    "macd",
+    "bb_width_20",
+    "williams_r_14",
+    "slope_sma_20",
+    "atr_zscore_60",
+    "upper_shadow_ratio",
+    "rsi_7",
+    "rsi_21",
+    "sma_20"
+  ],
+  "donchian_params": {
+    "N": 20,
+    "M": 20
+  },
+  "train_cutoff": "2022-12-31",
+  "test_start": "2024-01-01",
+  "capital_eur": 10000.0,
+  "risk_per_trade": 0.02,
+  "config": {
+    "spread_pips": 30.0,
+    "slippage_pips": 30.0,
+    "tp_points": 2000,
+    "sl_points": 1000,
+    "window_hours": 120,
+    "pip_size": 1.0,
+    "pip_value_eur": 0.92
+  },
+  "metrics": {
+    "sharpe_backtest": 0.4627577270891359,
+    "sharpe_compute_metrics": 0.4332071506130192,
+    "win_rate_backtest": 0.3735408560311284,
+    "win_rate_compute_metrics": 37.35408560311284,
+    "total_trades": 257,
+    "max_dd_pips": -16083.099999999999,
+    "profit_factor": 1.0773221610219148,
+    "max_dd_pct": -29.879789748872998,
+    "total_return_pct": 26.708299199999974
+  },
+  "n_train_trades_donchian": 180,
+  "n_train_samples": 179,
+  "accuracy_train": 1.0
+}

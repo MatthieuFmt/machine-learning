@@ -1,0 +1,61 @@
+{
+  "hypothesis": "B4_C5_USDCHF_H4",
+  "phase": "Phase B C5 — B4",
+  "asset": "USDCHF",
+  "tf": "H4",
+  "model": "rf",
+  "hyperparams": {
+    "max_depth": 3,
+    "min_samples_leaf": 10,
+    "n_estimators": 100
+  },
+  "threshold": 0.6,
+  "features": [
+    "atr_zscore_60",
+    "upper_shadow_ratio",
+    "range_atr_ratio",
+    "xauusd_return_5",
+    "volume_zscore_20",
+    "kc_width_20",
+    "sma_200",
+    "macd_signal",
+    "rsi_14",
+    "close_zscore_60",
+    "btcusd_return_5",
+    "body_to_range_ratio",
+    "slope_sma_50",
+    "sma_20",
+    "dist_sma_200_abs_atr"
+  ],
+  "donchian_params": {
+    "N": 20,
+    "M": 20
+  },
+  "train_cutoff": "2022-12-31",
+  "test_start": "2024-01-01",
+  "capital_eur": 10000.0,
+  "risk_per_trade": 0.02,
+  "config": {
+    "spread_pips": 1.0,
+    "slippage_pips": 0.2,
+    "tp_points": 20,
+    "sl_points": 10,
+    "window_hours": 120,
+    "pip_size": 0.0001,
+    "pip_value_eur": 10.5
+  },
+  "metrics": {
+    "sharpe_backtest": 0.0,
+    "sharpe_compute_metrics": 0.0,
+    "win_rate_backtest": 0.0,
+    "win_rate_compute_metrics": 0.0,
+    "total_trades": 0,
+    "max_dd_pips": 0.0,
+    "profit_factor": 0.0,
+    "max_dd_pct": 0.0,
+    "total_return_pct": 0.0
+  },
+  "n_train_trades_donchian": 2453,
+  "n_train_samples": 1090,
+  "accuracy_train": 0.6642201834862386
+}

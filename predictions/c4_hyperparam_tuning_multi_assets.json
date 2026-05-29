@@ -1,0 +1,586 @@
+[
+  {
+    "asset": "ETHUSD",
+    "tf": "D1",
+    "status": "ok",
+    "model": "hgbm",
+    "params": {
+      "learning_rate": 0.05,
+      "max_depth": 3,
+      "max_leaf_nodes": 15,
+      "min_samples_leaf": 20
+    },
+    "threshold": 0.5,
+    "expected_sharpe_outer": 1.7001390048285607,
+    "outer_sharpe_std": 0.7557428143362711,
+    "sharpes_outer_per_fold": [
+      1.585587224690544,
+      1.552198858976548,
+      1.1594166629064588,
+      3.1519295463079264,
+      1.0515627312613252
+    ],
+    "expected_wr": 0.6504095904095905,
+    "expected_n_kept": 10.6,
+    "inner_outer_gap": 0.19478539763002306,
+    "pass_c5": true,
+    "n_trades_train": 145,
+    "n_combos_evaluated": 72,
+    "outer_folds": [
+      {
+        "best_params": {
+          "max_depth": 3,
+          "learning_rate": 0.05,
+          "max_leaf_nodes": 15,
+          "min_samples_leaf": 20
+        },
+        "best_threshold": 0.5,
+        "outer_sharpe": 1.585587224690544,
+        "outer_wr": 0.8,
+        "outer_n_kept": 5,
+        "inner_best_score": 1.5554377260222905
+      },
+      {
+        "best_params": {
+          "max_depth": 3,
+          "learning_rate": 0.05,
+          "max_leaf_nodes": 15,
+          "min_samples_leaf": 20
+        },
+        "best_threshold": 0.55,
+        "outer_sharpe": 1.552198858976548,
+        "outer_wr": 0.6923076923076923,
+        "outer_n_kept": 13,
+        "inner_best_score": 2.452112189837424
+      },
+      {
+        "best_params": {
+          "max_depth": 3,
+          "learning_rate": 0.1,
+          "max_leaf_nodes": 15,
+          "min_samples_leaf": 20
+        },
+        "best_threshold": 0.55,
+        "outer_sharpe": 1.1594166629064588,
+        "outer_wr": 0.5454545454545454,
+        "outer_n_kept": 11,
+        "inner_best_score": 2.0351277115072133
+      },
+      {
+        "best_params": {
+          "max_depth": 3,
+          "learning_rate": 0.1,
+          "max_leaf_nodes": 15,
+          "min_samples_leaf": 20
+        },
+        "best_threshold": 0.5,
+        "outer_sharpe": 3.1519295463079264,
+        "outer_wr": 0.7142857142857143,
+        "outer_n_kept": 14,
+        "inner_best_score": 1.3680444651973473
+      },
+      {
+        "best_params": {
+          "max_depth": 3,
+          "learning_rate": 0.05,
+          "max_leaf_nodes": 15,
+          "min_samples_leaf": 20
+        },
+        "best_threshold": 0.6,
+        "outer_sharpe": 1.0515627312613252,
+        "outer_wr": 0.5,
+        "outer_n_kept": 10,
+        "inner_best_score": 2.0638999197286427
+      }
+    ]
+  },
+  {
+    "asset": "ETHUSD",
+    "tf": "H4",
+    "status": "ok",
+    "model": "hgbm",
+    "params": {
+      "learning_rate": 0.05,
+      "max_depth": 3,
+      "max_leaf_nodes": 15,
+      "min_samples_leaf": 50
+    },
+    "threshold": 0.6,
+    "expected_sharpe_outer": 0.3875050021743681,
+    "outer_sharpe_std": 0.7552628921663466,
+    "sharpes_outer_per_fold": [
+      1.6440487365271503,
+      0.15632133005881427,
+      0.2736111111111111,
+      -0.6972769788907457,
+      0.5608208120655109
+    ],
+    "expected_wr": 0.44386911048980016,
+    "expected_n_kept": 29.4,
+    "inner_outer_gap": 1.1321271780627598,
+    "pass_c5": false,
+    "n_trades_train": 467,
+    "n_combos_evaluated": 72,
+    "outer_folds": [
+      {
+        "best_params": {
+          "max_depth": null,
+          "learning_rate": 0.05,
+          "max_leaf_nodes": 15,
+          "min_samples_leaf": 20
+        },
+        "best_threshold": 0.55,
+        "outer_sharpe": 1.6440487365271503,
+        "outer_wr": 0.5945945945945946,
+        "outer_n_kept": 37,
+        "inner_best_score": 0.8728040771223201
+      },
+      {
+        "best_params": {
+          "max_depth": 3,
+          "learning_rate": 0.05,
+          "max_leaf_nodes": 15,
+          "min_samples_leaf": 50
+        },
+        "best_threshold": 0.6,
+        "outer_sharpe": 0.15632133005881427,
+        "outer_wr": 0.6,
+        "outer_n_kept": 20,
+        "inner_best_score": 1.0340591996163722
+      },
+      {
+        "best_params": {
+          "max_depth": 3,
+          "learning_rate": 0.1,
+          "max_leaf_nodes": 15,
+          "min_samples_leaf": 20
+        },
+        "best_threshold": 0.5,
+        "outer_sharpe": 0.2736111111111111,
+        "outer_wr": 0.36,
+        "outer_n_kept": 25,
+        "inner_best_score": 2.1731324637221663
+      },
+      {
+        "best_params": {
+          "max_depth": 3,
+          "learning_rate": 0.05,
+          "max_leaf_nodes": 15,
+          "min_samples_leaf": 50
+        },
+        "best_threshold": 0.5,
+        "outer_sharpe": -0.6972769788907457,
+        "outer_wr": 0.27586206896551724,
+        "outer_n_kept": 29,
+        "inner_best_score": 2.2135086496271668
+      },
+      {
+        "best_params": {
+          "max_depth": 6,
+          "learning_rate": 0.05,
+          "max_leaf_nodes": 15,
+          "min_samples_leaf": 20
+        },
+        "best_threshold": 0.6,
+        "outer_sharpe": 0.5608208120655109,
+        "outer_wr": 0.3888888888888889,
+        "outer_n_kept": 36,
+        "inner_best_score": 1.3046565110976136
+      }
+    ]
+  },
+  {
+    "asset": "ETHUSD",
+    "tf": "H1",
+    "status": "ok",
+    "model": "hgbm",
+    "params": {
+      "learning_rate": 0.05,
+      "max_depth": 6,
+      "max_leaf_nodes": 15,
+      "min_samples_leaf": 50
+    },
+    "threshold": 0.5,
+    "expected_sharpe_outer": 1.8118526330187188,
+    "outer_sharpe_std": 1.0235793008529557,
+    "sharpes_outer_per_fold": [
+      1.6275918511790861,
+      2.827582218107203,
+      1.6651946327290845,
+      2.8688976259710053,
+      0.06999683710721583
+    ],
+    "expected_wr": 0.4738120606533406,
+    "expected_n_kept": 70.4,
+    "inner_outer_gap": 0.016506807264347546,
+    "pass_c5": true,
+    "n_trades_train": 845,
+    "n_combos_evaluated": 72,
+    "outer_folds": [
+      {
+        "best_params": {
+          "max_depth": 6,
+          "learning_rate": 0.05,
+          "max_leaf_nodes": 15,
+          "min_samples_leaf": 50
+        },
+        "best_threshold": 0.5,
+        "outer_sharpe": 1.6275918511790861,
+        "outer_wr": 0.5238095238095238,
+        "outer_n_kept": 84,
+        "inner_best_score": 2.2105344290924367
+      },
+      {
+        "best_params": {
+          "max_depth": 6,
+          "learning_rate": 0.1,
+          "max_leaf_nodes": 31,
+          "min_samples_leaf": 20
+        },
+        "best_threshold": 0.55,
+        "outer_sharpe": 2.827582218107203,
+        "outer_wr": 0.5490196078431373,
+        "outer_n_kept": 51,
+        "inner_best_score": 1.704980327821821
+      },
+      {
+        "best_params": {
+          "max_depth": 3,
+          "learning_rate": 0.1,
+          "max_leaf_nodes": 15,
+          "min_samples_leaf": 20
+        },
+        "best_threshold": 0.55,
+        "outer_sharpe": 1.6651946327290845,
+        "outer_wr": 0.4634146341463415,
+        "outer_n_kept": 41,
+        "inner_best_score": 2.178920416166149
+      },
+      {
+        "best_params": {
+          "max_depth": 6,
+          "learning_rate": 0.05,
+          "max_leaf_nodes": 15,
+          "min_samples_leaf": 50
+        },
+        "best_threshold": 0.5,
+        "outer_sharpe": 2.8688976259710053,
+        "outer_wr": 0.4883720930232558,
+        "outer_n_kept": 86,
+        "inner_best_score": 1.1977940172115022
+      },
+      {
+        "best_params": {
+          "max_depth": 3,
+          "learning_rate": 0.05,
+          "max_leaf_nodes": 15,
+          "min_samples_leaf": 50
+        },
+        "best_threshold": 0.5,
+        "outer_sharpe": 0.06999683710721583,
+        "outer_wr": 0.34444444444444444,
+        "outer_n_kept": 90,
+        "inner_best_score": 1.8495680111234238
+      }
+    ]
+  },
+  {
+    "asset": "EURUSD",
+    "tf": "D1",
+    "status": "stacking_excluded_from_tuning",
+    "model": "stacking",
+    "params": {},
+    "threshold": 0.5,
+    "expected_sharpe_outer": 0.0,
+    "outer_sharpe_std": 0.0,
+    "sharpes_outer_per_fold": [],
+    "expected_wr": 0.0,
+    "expected_n_kept": 0.0,
+    "inner_outer_gap": 0.0,
+    "pass_c5": false,
+    "n_trades_train": 498
+  },
+  {
+    "asset": "GBPUSD",
+    "tf": "D1",
+    "status": "ok",
+    "model": "rf",
+    "params": {
+      "max_depth": 3,
+      "min_samples_leaf": 10,
+      "n_estimators": 200
+    },
+    "threshold": 0.5,
+    "expected_sharpe_outer": 7.81755903584857,
+    "outer_sharpe_std": 1.8538541846330066,
+    "sharpes_outer_per_fold": [
+      6.751390528926177,
+      5.946740806712718,
+      10.916713655539242,
+      6.526249497336542,
+      8.946700690728168
+    ],
+    "expected_wr": 0.7926498217344192,
+    "expected_n_kept": 49.6,
+    "inner_outer_gap": 1.9248710163414486,
+    "pass_c5": false,
+    "n_trades_train": 482,
+    "n_combos_evaluated": 54,
+    "outer_folds": [
+      {
+        "best_params": {
+          "n_estimators": 100,
+          "max_depth": 3,
+          "min_samples_leaf": 5
+        },
+        "best_threshold": 0.6,
+        "outer_sharpe": 6.751390528926177,
+        "outer_wr": 0.8125,
+        "outer_n_kept": 32,
+        "inner_best_score": 10.461628400308264
+      },
+      {
+        "best_params": {
+          "n_estimators": 100,
+          "max_depth": 10,
+          "min_samples_leaf": 10
+        },
+        "best_threshold": 0.6,
+        "outer_sharpe": 5.946740806712718,
+        "outer_wr": 0.78125,
+        "outer_n_kept": 32,
+        "inner_best_score": 9.459727617322407
+      },
+      {
+        "best_params": {
+          "n_estimators": 200,
+          "max_depth": 3,
+          "min_samples_leaf": 10
+        },
+        "best_threshold": 0.5,
+        "outer_sharpe": 10.916713655539242,
+        "outer_wr": 0.8571428571428571,
+        "outer_n_kept": 56,
+        "inner_best_score": 9.253242374945435
+      },
+      {
+        "best_params": {
+          "n_estimators": 200,
+          "max_depth": 3,
+          "min_samples_leaf": 10
+        },
+        "best_threshold": 0.5,
+        "outer_sharpe": 6.526249497336542,
+        "outer_wr": 0.7213114754098361,
+        "outer_n_kept": 61,
+        "inner_best_score": 9.438882397408813
+      },
+      {
+        "best_params": {
+          "n_estimators": 200,
+          "max_depth": 3,
+          "min_samples_leaf": 10
+        },
+        "best_threshold": 0.5,
+        "outer_sharpe": 8.946700690728168,
+        "outer_wr": 0.7910447761194029,
+        "outer_n_kept": 67,
+        "inner_best_score": 10.09866947096517
+      }
+    ]
+  },
+  {
+    "asset": "GBPUSD",
+    "tf": "H4",
+    "status": "ok",
+    "model": "rf",
+    "params": {
+      "max_depth": 10,
+      "min_samples_leaf": 10,
+      "n_estimators": 100
+    },
+    "threshold": 0.5,
+    "expected_sharpe_outer": 3.4505556892418285,
+    "outer_sharpe_std": 0.9898502376876376,
+    "sharpes_outer_per_fold": [
+      1.991722077672572,
+      3.295021053451716,
+      3.0297232032974537,
+      3.9689016405749014,
+      4.9674104712124985
+    ],
+    "expected_wr": 0.53303663003663,
+    "expected_n_kept": 84.8,
+    "inner_outer_gap": 0.4954491332476726,
+    "pass_c5": true,
+    "n_trades_train": 1000,
+    "n_combos_evaluated": 54,
+    "outer_folds": [
+      {
+        "best_params": {
+          "n_estimators": 100,
+          "max_depth": 10,
+          "min_samples_leaf": 10
+        },
+        "best_threshold": 0.5,
+        "outer_sharpe": 1.991722077672572,
+        "outer_wr": 0.45054945054945056,
+        "outer_n_kept": 91,
+        "inner_best_score": 3.9349854445294894
+      },
+      {
+        "best_params": {
+          "n_estimators": 100,
+          "max_depth": 10,
+          "min_samples_leaf": 10
+        },
+        "best_threshold": 0.5,
+        "outer_sharpe": 3.295021053451716,
+        "outer_wr": 0.5428571428571428,
+        "outer_n_kept": 70,
+        "inner_best_score": 3.9174572848622566
+      },
+      {
+        "best_params": {
+          "n_estimators": 200,
+          "max_depth": 3,
+          "min_samples_leaf": 20
+        },
+        "best_threshold": 0.5,
+        "outer_sharpe": 3.0297232032974537,
+        "outer_wr": 0.5119047619047619,
+        "outer_n_kept": 84,
+        "inner_best_score": 3.9814520135242923
+      },
+      {
+        "best_params": {
+          "n_estimators": 100,
+          "max_depth": 10,
+          "min_samples_leaf": 20
+        },
+        "best_threshold": 0.5,
+        "outer_sharpe": 3.9689016405749014,
+        "outer_wr": 0.5733333333333334,
+        "outer_n_kept": 75,
+        "inner_best_score": 4.352720401406473
+      },
+      {
+        "best_params": {
+          "n_estimators": 200,
+          "max_depth": 6,
+          "min_samples_leaf": 20
+        },
+        "best_threshold": 0.5,
+        "outer_sharpe": 4.9674104712124985,
+        "outer_wr": 0.5865384615384616,
+        "outer_n_kept": 104,
+        "inner_best_score": 3.543408968124993
+      }
+    ]
+  },
+  {
+    "asset": "USDCHF",
+    "tf": "D1",
+    "status": "stacking_excluded_from_tuning",
+    "model": "stacking",
+    "params": {},
+    "threshold": 0.5,
+    "expected_sharpe_outer": 0.0,
+    "outer_sharpe_std": 0.0,
+    "sharpes_outer_per_fold": [],
+    "expected_wr": 0.0,
+    "expected_n_kept": 0.0,
+    "inner_outer_gap": 0.0,
+    "pass_c5": false,
+    "n_trades_train": 210
+  },
+  {
+    "asset": "USDCHF",
+    "tf": "H4",
+    "status": "ok",
+    "model": "rf",
+    "params": {
+      "max_depth": 3,
+      "min_samples_leaf": 10,
+      "n_estimators": 100
+    },
+    "threshold": 0.6,
+    "expected_sharpe_outer": 1.1663129642828287,
+    "outer_sharpe_std": 1.271341926830176,
+    "sharpes_outer_per_fold": [
+      0.0,
+      0.0,
+      2.4272337195687954,
+      0.4378905664068915,
+      2.966440535438457
+    ],
+    "expected_wr": 0.2979013739883305,
+    "expected_n_kept": 25.4,
+    "inner_outer_gap": 0.3192963588424906,
+    "pass_c5": true,
+    "n_trades_train": 905,
+    "n_combos_evaluated": 54,
+    "outer_folds": [
+      {
+        "best_params": {
+          "n_estimators": 100,
+          "max_depth": 6,
+          "min_samples_leaf": 10
+        },
+        "best_threshold": 0.6,
+        "outer_sharpe": 0.0,
+        "outer_wr": 0.0,
+        "outer_n_kept": 3,
+        "inner_best_score": 1.5569400463502152
+      },
+      {
+        "best_params": {
+          "n_estimators": 100,
+          "max_depth": 3,
+          "min_samples_leaf": 10
+        },
+        "best_threshold": 0.6,
+        "outer_sharpe": 0.0,
+        "outer_wr": 0.0,
+        "outer_n_kept": 4,
+        "inner_best_score": 2.221882662767094
+      },
+      {
+        "best_params": {
+          "n_estimators": 200,
+          "max_depth": 3,
+          "min_samples_leaf": 20
+        },
+        "best_threshold": 0.5,
+        "outer_sharpe": 2.4272337195687954,
+        "outer_wr": 0.4927536231884058,
+        "outer_n_kept": 69,
+        "inner_best_score": 1.4881195647740444
+      },
+      {
+        "best_params": {
+          "n_estimators": 100,
+          "max_depth": 3,
+          "min_samples_leaf": 10
+        },
+        "best_threshold": 0.5,
+        "outer_sharpe": 0.4378905664068915,
+        "outer_wr": 0.42857142857142855,
+        "outer_n_kept": 7,
+        "inner_best_score": 1.5012995358189618
+      },
+      {
+        "best_params": {
+          "n_estimators": 200,
+          "max_depth": 10,
+          "min_samples_leaf": 10
+        },
+        "best_threshold": 0.55,
+        "outer_sharpe": 2.966440535438457,
+        "outer_wr": 0.5681818181818182,
+        "outer_n_kept": 44,
+        "inner_best_score": 0.659804805916281
+      }
+    ]
+  }
+]

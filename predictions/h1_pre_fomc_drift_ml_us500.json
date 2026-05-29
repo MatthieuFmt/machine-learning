@@ -1,0 +1,92 @@
+{
+  "strategy": "pre_fomc_drift_ml",
+  "asset": "US500",
+  "tf": "H1",
+  "best_threshold": 0.45,
+  "threshold_stats": {
+    "0.4": 1.2463258669908055,
+    "0.45": 1.576741427411613,
+    "0.5": 1.4646319113296153,
+    "0.55": 1.5389789856637937,
+    "0.6": 1.5389789856637937,
+    "0.65": 1.4097893608126995
+  },
+  "n_features": 10,
+  "feature_names": [
+    "vix_level",
+    "vix_zscore_60",
+    "dxy_zscore_60",
+    "yield_slope_10y_3m",
+    "us500_return_5d",
+    "us500_return_20d",
+    "us500_atr_pct_14",
+    "us500_dist_sma_200",
+    "us500_rsi_14",
+    "days_since_last_fomc"
+  ],
+  "class_balance_train": 0.41975308641975306,
+  "n_train_clean": 81,
+  "n_test": 16,
+  "metrics_train_baseline": {
+    "label": "Train baseline",
+    "n_trades": 88,
+    "sharpe": 0.4828319566522945,
+    "mean_pnl": 46.104659090909124,
+    "wr": 0.42045454545454547,
+    "total_pnl": 4057.2100000000028,
+    "max_dd_pips": -967.3200000000106,
+    "p_value_bootstrap": 0.0334
+  },
+  "metrics_test_baseline": {
+    "label": "Test  baseline",
+    "n_trades": 16,
+    "sharpe": 0.9390667218768008,
+    "mean_pnl": 122.9037499999994,
+    "wr": 0.6875,
+    "total_pnl": 1966.4599999999905,
+    "max_dd_pips": -582.95,
+    "p_value_bootstrap": 0.094
+  },
+  "metrics_train_ml": {
+    "label": "Train ML",
+    "n_trades": 34,
+    "sharpe": 0.9747493047381004,
+    "mean_pnl": 221.58323529411766,
+    "wr": 1.0,
+    "total_pnl": 7533.83,
+    "max_dd_pips": 0.0,
+    "p_value_bootstrap": 0.0
+  },
+  "metrics_test_ml": {
+    "label": "Test  ML",
+    "n_trades": 2,
+    "sharpe": 1.0467340511863763,
+    "mean_pnl": -231.41000000000005,
+    "wr": 0.5,
+    "total_pnl": -462.8200000000001,
+    "max_dd_pips": 0.0,
+    "p_value_bootstrap": 1.0
+  },
+  "delta_sharpe": 0.10766732930957545,
+  "delta_mean_pnl": -354.31374999999946,
+  "filter_ratio": 0.125,
+  "go": false,
+  "probas_test": [
+    0.0,
+    0.11929125075248485,
+    0.8322153173161554,
+    0.0359819591445669,
+    0.41157080322219347,
+    0.12527379839168218,
+    0.34012017825169066,
+    0.8008604039533777,
+    0.0,
+    0.0,
+    0.2277472478597735,
+    0.0,
+    0.0,
+    0.060228730533365825,
+    0.41079890678816977,
+    0.13674124660558917
+  ]
+}

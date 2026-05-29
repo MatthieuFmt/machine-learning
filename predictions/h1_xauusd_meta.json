@@ -1,0 +1,162 @@
+{
+  "hypothesis": "H1",
+  "prompt": "11",
+  "title": "Méta-labeling RF sur XAUUSD D1 (Donchian Breakout)",
+  "timestamp": "2026-05-14T21:33:02.497196+00:00",
+  "n_trials_cumul": 23,
+  "split": {
+    "train": "≤ 2022-12-31",
+    "val": "2023-01-01 → 2023-12-31",
+    "test": "≥ 2024-01-01"
+  },
+  "config": {
+    "donchian_N": 100,
+    "donchian_M": 20,
+    "direction": "LONG uniquement",
+    "tp_points": 600,
+    "sl_points": 300,
+    "window_hours": 120,
+    "spread_pips": 25.0,
+    "slippage_pips": 10.0,
+    "total_cost_pips": 35.0,
+    "rf_params": {
+      "n_estimators": 200,
+      "max_depth": 4,
+      "class_weight": "balanced",
+      "random_state": 42
+    },
+    "meta_thresholds_swept": [
+      0.5,
+      0.52,
+      0.54,
+      0.56,
+      0.58,
+      0.6
+    ],
+    "best_threshold_train": 0.5
+  },
+  "features": [
+    "dist_breakout_pct",
+    "force_breakout_pct",
+    "atr_ratio",
+    "rsi_14",
+    "retracement_pct",
+    "days_since_signal",
+    "vol_ratio",
+    "day_of_week"
+  ],
+  "feature_importance": {
+    "dist_breakout_pct": 0.316697,
+    "atr_ratio": 0.220012,
+    "rsi_14": 0.128643,
+    "day_of_week": 0.102212,
+    "force_breakout_pct": 0.089922,
+    "retracement_pct": 0.059296,
+    "vol_ratio": 0.05135,
+    "days_since_signal": 0.031866
+  },
+  "train": {
+    "n_barres": 4171,
+    "n_signaux_long": 126,
+    "n_meta_labels": 68,
+    "n_wins": 1,
+    "sweep_results": {
+      "0.5": {
+        "sharpe": 0.0,
+        "n_trades": 1,
+        "wr": 1.0,
+        "total_pnl_pips": 0.47700000000008913
+      },
+      "0.52": {
+        "sharpe": 0.0,
+        "n_trades": 1,
+        "wr": 1.0,
+        "total_pnl_pips": 0.47700000000008913
+      },
+      "0.54": {
+        "sharpe": 0.0,
+        "n_trades": 1,
+        "wr": 1.0,
+        "total_pnl_pips": 0.47700000000008913
+      },
+      "0.56": {
+        "sharpe": 0.0,
+        "n_trades": 1,
+        "wr": 1.0,
+        "total_pnl_pips": 0.47700000000008913
+      },
+      "0.58": {
+        "sharpe": 0.0,
+        "n_trades": 1,
+        "wr": 1.0,
+        "total_pnl_pips": 0.47700000000008913
+      },
+      "0.6": {
+        "sharpe": 0.0,
+        "n_trades": 1,
+        "wr": 1.0,
+        "total_pnl_pips": 0.47700000000008913
+      }
+    },
+    "best_threshold": 0.5
+  },
+  "val": {
+    "n_barres": 309,
+    "n_signaux_long": 7,
+    "n_signaux_after_meta": 0,
+    "baseline": {
+      "sharpe": 0.0,
+      "wr": 0.0,
+      "n_trades": 4
+    },
+    "meta": {
+      "sharpe": 0.0,
+      "wr": 0.0,
+      "n_trades": 0,
+      "total_pnl_pips": 0.0
+    }
+  },
+  "test": {
+    "n_barres": 733,
+    "n_signaux_long": 62,
+    "n_signaux_after_meta": 0,
+    "baseline": {
+      "sharpe": 2.0564025056178283,
+      "wr": 0.25806451612903225,
+      "n_trades": 31
+    },
+    "meta": {
+      "sharpe": 0.0,
+      "wr": 0.0,
+      "n_trades": 0,
+      "total_pnl_pips": 0.0,
+      "max_dd_pips": 0.0,
+      "trades_per_year": 0.0
+    }
+  },
+  "edge_report": {
+    "go": false,
+    "reasons": [
+      "Aucun trade sur test"
+    ],
+    "metrics": {
+      "sharpe": 0.0,
+      "wr": 0.0,
+      "n_trades": 0.0,
+      "trades_per_year": 0.0
+    }
+  },
+  "go_nogo": {
+    "sharpe_test": 0.0,
+    "sharpe_threshold": 1.0,
+    "sharpe_go": false,
+    "wr_test": 0.0,
+    "wr_threshold": 0.3,
+    "wr_go": false,
+    "trades_per_year": 0.0,
+    "trades_per_year_threshold": 30,
+    "trades_per_year_go": false,
+    "dsr_go": false,
+    "go_final": false
+  }
+}

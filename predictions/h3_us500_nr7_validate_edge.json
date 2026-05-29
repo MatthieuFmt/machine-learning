@@ -1,0 +1,51 @@
+{
+  "asset": "US500",
+  "tf": "D1",
+  "lookback": 7,
+  "tp_mult": 2.0,
+  "sl_mult": 1.0,
+  "n_trials_cumul": 61,
+  "capital_eur": 10000.0,
+  "scopes": {
+    "oos_only": {
+      "n_trades": 65,
+      "equity_start_date": "2024-01-01 00:00:00+00:00",
+      "equity_end_date": "2026-05-14 00:00:00+00:00",
+      "equity_start_eur": 10000.0,
+      "equity_end_eur": 10930.122760000004,
+      "go": false,
+      "reasons": [
+        "Trades/an 27.5 < 30"
+      ],
+      "metrics": {
+        "sharpe": 1.914308562589467,
+        "dsr": 2.0591325450045446,
+        "p_value": 0.019740771453439665,
+        "max_dd": 0.004342920357214086,
+        "wr": 0.6615384615384615,
+        "n_trades": 65.0,
+        "trades_per_year": 27.47829861111111
+      }
+    },
+    "full_sample": {
+      "n_trades": 397,
+      "equity_start_date": "2013-05-23 00:00:00+00:00",
+      "equity_end_date": "2026-05-14 00:00:00+00:00",
+      "equity_start_eur": 10000.0,
+      "equity_end_eur": 13168.260120000006,
+      "go": false,
+      "reasons": [
+        "DSR=-0.08 (p=0.533) non significatif"
+      ],
+      "metrics": {
+        "sharpe": 1.5247213029289455,
+        "dsr": -0.08224349972324996,
+        "p_value": 0.5327734585946247,
+        "max_dd": 0.010824642787107448,
+        "wr": 0.6322418136020151,
+        "n_trades": 397.0,
+        "trades_per_year": 30.598069212914115
+      }
+    }
+  }
+}

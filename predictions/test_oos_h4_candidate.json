@@ -1,0 +1,95 @@
+[
+  {
+    "candidate": "TsMomentum_60_ETHUSD_H4_1.5xATR",
+    "tier": "primary",
+    "asset": "ETHUSD",
+    "tf": "H4",
+    "sl_pips": 5606,
+    "tp_pips": 11212,
+    "atr_train_pips": 3737.0432776658226,
+    "metrics_train": {
+      "sharpe": 0.5935747041185209,
+      "wr": 0.3676691729323308,
+      "n_trades": 1330,
+      "mean_pnl": 341.2872180451128,
+      "max_dd_pips": -117942.0,
+      "total_pnl": 453912.0
+    },
+    "metrics_test": {
+      "sharpe": 0.21803789046050284,
+      "wr": 0.34210526315789475,
+      "n_trades": 1064,
+      "mean_pnl": 88.49624060150381,
+      "max_dd_pips": -225713.99999999997,
+      "total_pnl": 94160.00000000006
+    },
+    "delta_sharpe": -0.37553681365801805,
+    "go": false,
+    "go_sharpe": false,
+    "go_wr": false,
+    "go_stability": true,
+    "go_volume": true
+  },
+  {
+    "candidate": "SmaCrossover_10_50_GBPUSD_H4_1.0xATR",
+    "tier": "bonus",
+    "asset": "GBPUSD",
+    "tf": "H4",
+    "sl_pips": 43,
+    "tp_pips": 86,
+    "atr_train_pips": 43.24999333656616,
+    "metrics_train": {
+      "sharpe": 0.38300784022755247,
+      "wr": 0.3783231083844581,
+      "n_trades": 489,
+      "mean_pnl": 4.789570552147241,
+      "max_dd_pips": -824.3999999999924,
+      "total_pnl": 2342.100000000001
+    },
+    "metrics_test": {
+      "sharpe": -0.13861921839498267,
+      "wr": 0.3300970873786408,
+      "n_trades": 103,
+      "mean_pnl": -1.9339805825242742,
+      "max_dd_pips": -637.2000000000002,
+      "total_pnl": -199.20000000000024
+    },
+    "delta_sharpe": -0.5216270586225351,
+    "go": false,
+    "go_sharpe": false,
+    "go_wr": false,
+    "go_stability": false,
+    "go_volume": true
+  },
+  {
+    "candidate": "SmaCrossover_10_50_EURUSD_H4_1.0xATR",
+    "tier": "bonus",
+    "asset": "EURUSD",
+    "tf": "H4",
+    "sl_pips": 36,
+    "tp_pips": 72,
+    "atr_train_pips": 35.56246622246338,
+    "metrics_train": {
+      "sharpe": 0.37616428226799326,
+      "wr": 0.38235294117647056,
+      "n_trades": 510,
+      "mean_pnl": 3.6247058823529463,
+      "max_dd_pips": -558.8999999999996,
+      "total_pnl": 1848.6000000000026
+    },
+    "metrics_test": {
+      "sharpe": 0.7513393963568215,
+      "wr": 0.43010752688172044,
+      "n_trades": 93,
+      "mean_pnl": 8.205376344086012,
+      "max_dd_pips": -282.29999999999984,
+      "total_pnl": 763.0999999999991
+    },
+    "delta_sharpe": 0.3751751140888282,
+    "go": true,
+    "go_sharpe": true,
+    "go_wr": true,
+    "go_stability": true,
+    "go_volume": true
+  }
+]

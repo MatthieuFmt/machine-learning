@@ -1,0 +1,272 @@
+[
+  {
+    "feature": "plus_di",
+    "mutual_info": 0.16694189317393793,
+    "abs_corr": 0.25885663556205657,
+    "permutation_importance": 0.1056147249410085,
+    "mutual_info_rank": 6.0,
+    "abs_corr_rank": 1.0,
+    "permutation_importance_rank": 2.0,
+    "composite_rank": 3.0
+  },
+  {
+    "feature": "sma_50",
+    "mutual_info": 0.17871939238726942,
+    "abs_corr": 0.17248871762745044,
+    "permutation_importance": 0.09981240785355935,
+    "mutual_info_rank": 1.0,
+    "abs_corr_rank": 12.0,
+    "permutation_importance_rank": 3.0,
+    "composite_rank": 5.333333333333333
+  },
+  {
+    "feature": "ema_20",
+    "mutual_info": 0.09141004660915719,
+    "abs_corr": 0.22252559185556764,
+    "permutation_importance": 0.17685936479479086,
+    "mutual_info_rank": 10.0,
+    "abs_corr_rank": 6.0,
+    "permutation_importance_rank": 1.0,
+    "composite_rank": 5.666666666666667
+  },
+  {
+    "feature": "ema_50",
+    "mutual_info": 0.16866674413613447,
+    "abs_corr": 0.1871793980772295,
+    "permutation_importance": 0.08446843538170165,
+    "mutual_info_rank": 4.0,
+    "abs_corr_rank": 11.0,
+    "permutation_importance_rank": 4.0,
+    "composite_rank": 6.333333333333333
+  },
+  {
+    "feature": "rsi_14",
+    "mutual_info": 0.17838101227650816,
+    "abs_corr": 0.2316327046213003,
+    "permutation_importance": 0.01315745009070921,
+    "mutual_info_rank": 2.0,
+    "abs_corr_rank": 3.0,
+    "permutation_importance_rank": 18.0,
+    "composite_rank": 7.666666666666667
+  },
+  {
+    "feature": "sma_20",
+    "mutual_info": 0.10228941147733606,
+    "abs_corr": 0.2038466724441128,
+    "permutation_importance": 0.051586506235006324,
+    "mutual_info_rank": 9.0,
+    "abs_corr_rank": 8.0,
+    "permutation_importance_rank": 7.0,
+    "composite_rank": 8.0
+  },
+  {
+    "feature": "slope_sma_50",
+    "mutual_info": 0.15052225331518532,
+    "abs_corr": 0.1717577590088312,
+    "permutation_importance": 0.07726548468950854,
+    "mutual_info_rank": 7.0,
+    "abs_corr_rank": 13.0,
+    "permutation_importance_rank": 5.0,
+    "composite_rank": 8.333333333333334
+  },
+  {
+    "feature": "obv",
+    "mutual_info": 0.16780916525769562,
+    "abs_corr": 0.19090183630332658,
+    "permutation_importance": 0.017746951935170174,
+    "mutual_info_rank": 5.0,
+    "abs_corr_rank": 10.0,
+    "permutation_importance_rank": 15.0,
+    "composite_rank": 10.0
+  },
+  {
+    "feature": "dist_sma_50",
+    "mutual_info": 0.12114333816739586,
+    "abs_corr": 0.22994578223867718,
+    "permutation_importance": 0.01217043658836573,
+    "mutual_info_rank": 8.0,
+    "abs_corr_rank": 5.0,
+    "permutation_importance_rank": 19.0,
+    "composite_rank": 10.666666666666666
+  },
+  {
+    "feature": "dist_sma_20",
+    "mutual_info": 0.03351910254829882,
+    "abs_corr": 0.23938607194278022,
+    "permutation_importance": 0.02679059495413356,
+    "mutual_info_rank": 21.0,
+    "abs_corr_rank": 2.0,
+    "permutation_importance_rank": 10.0,
+    "composite_rank": 11.0
+  },
+  {
+    "feature": "cci_20",
+    "mutual_info": 0.043726660423407004,
+    "abs_corr": 0.2180354751166174,
+    "permutation_importance": 0.021457468822343763,
+    "mutual_info_rank": 20.0,
+    "abs_corr_rank": 7.0,
+    "permutation_importance_rank": 12.0,
+    "composite_rank": 13.0
+  },
+  {
+    "feature": "macd_histogram",
+    "mutual_info": 0.07084675270462792,
+    "abs_corr": 0.16993146424049177,
+    "permutation_importance": 0.0467893405670596,
+    "mutual_info_rank": 18.0,
+    "abs_corr_rank": 14.0,
+    "permutation_importance_rank": 8.0,
+    "composite_rank": 13.333333333333334
+  },
+  {
+    "feature": "macd_line",
+    "mutual_info": 0.028676737002097052,
+    "abs_corr": 0.19648509364314662,
+    "permutation_importance": 0.0299847690342231,
+    "mutual_info_rank": 22.0,
+    "abs_corr_rank": 9.0,
+    "permutation_importance_rank": 9.0,
+    "composite_rank": 13.333333333333334
+  },
+  {
+    "feature": "macd_signal",
+    "mutual_info": 0.088016681936117,
+    "abs_corr": 0.14386602072429006,
+    "permutation_importance": 0.024987770537992872,
+    "mutual_info_rank": 12.0,
+    "abs_corr_rank": 19.0,
+    "permutation_importance_rank": 11.0,
+    "composite_rank": 14.0
+  },
+  {
+    "feature": "stoch_d",
+    "mutual_info": 0.07523764533918564,
+    "abs_corr": 0.1698368279872495,
+    "permutation_importance": 0.02093096770593835,
+    "mutual_info_rank": 16.0,
+    "abs_corr_rank": 15.0,
+    "permutation_importance_rank": 13.0,
+    "composite_rank": 14.666666666666666
+  },
+  {
+    "feature": "minus_di",
+    "mutual_info": 0.0,
+    "abs_corr": 0.23080377645948982,
+    "permutation_importance": 0.014147739922138247,
+    "mutual_info_rank": 25.5,
+    "abs_corr_rank": 4.0,
+    "permutation_importance_rank": 16.0,
+    "composite_rank": 15.166666666666666
+  },
+  {
+    "feature": "realized_vol_20",
+    "mutual_info": 0.07285140570153459,
+    "abs_corr": 0.03682163425568616,
+    "permutation_importance": 0.06398058012110766,
+    "mutual_info_rank": 17.0,
+    "abs_corr_rank": 25.0,
+    "permutation_importance_rank": 6.0,
+    "composite_rank": 16.0
+  },
+  {
+    "feature": "adx_line",
+    "mutual_info": 0.16902336918080252,
+    "abs_corr": 0.061677310376593186,
+    "permutation_importance": 0.0092283620861913,
+    "mutual_info_rank": 3.0,
+    "abs_corr_rank": 24.0,
+    "permutation_importance_rank": 22.0,
+    "composite_rank": 16.333333333333332
+  },
+  {
+    "feature": "bbands_width_20",
+    "mutual_info": 0.06617410450106664,
+    "abs_corr": 0.09260092800673961,
+    "permutation_importance": 0.013619690561321396,
+    "mutual_info_rank": 19.0,
+    "abs_corr_rank": 22.0,
+    "permutation_importance_rank": 17.0,
+    "composite_rank": 19.333333333333332
+  },
+  {
+    "feature": "mfi_14",
+    "mutual_info": 0.027089739351742192,
+    "abs_corr": 0.10948341250302676,
+    "permutation_importance": 0.019959807298248367,
+    "mutual_info_rank": 23.0,
+    "abs_corr_rank": 21.0,
+    "permutation_importance_rank": 14.0,
+    "composite_rank": 19.333333333333332
+  },
+  {
+    "feature": "efficiency_ratio_20",
+    "mutual_info": 0.077269498427877,
+    "abs_corr": 0.11658604622111735,
+    "permutation_importance": 0.007218521912629105,
+    "mutual_info_rank": 15.0,
+    "abs_corr_rank": 20.0,
+    "permutation_importance_rank": 24.0,
+    "composite_rank": 19.666666666666668
+  },
+  {
+    "feature": "keltner_width_20",
+    "mutual_info": 0.08823078786193905,
+    "abs_corr": 0.06753800568130715,
+    "permutation_importance": 0.006253777516089654,
+    "mutual_info_rank": 11.0,
+    "abs_corr_rank": 23.0,
+    "permutation_importance_rank": 25.0,
+    "composite_rank": 19.666666666666668
+  },
+  {
+    "feature": "atr_pct",
+    "mutual_info": 0.08137227189213014,
+    "abs_corr": 0.03439768123564607,
+    "permutation_importance": 0.011374122479042337,
+    "mutual_info_rank": 14.0,
+    "abs_corr_rank": 26.0,
+    "permutation_importance_rank": 20.0,
+    "composite_rank": 20.0
+  },
+  {
+    "feature": "atr_14",
+    "mutual_info": 0.08281986659074114,
+    "abs_corr": 0.03317814501856431,
+    "permutation_importance": 0.00954360832560137,
+    "mutual_info_rank": 13.0,
+    "abs_corr_rank": 27.0,
+    "permutation_importance_rank": 21.0,
+    "composite_rank": 20.333333333333332
+  },
+  {
+    "feature": "slope_sma_20",
+    "mutual_info": 0.0,
+    "abs_corr": 0.1620394730001754,
+    "permutation_importance": 0.008958500434045058,
+    "mutual_info_rank": 25.5,
+    "abs_corr_rank": 18.0,
+    "permutation_importance_rank": 23.0,
+    "composite_rank": 22.166666666666668
+  },
+  {
+    "feature": "williams_r_14",
+    "mutual_info": 0.0,
+    "abs_corr": 0.16966031232153903,
+    "permutation_importance": 0.004920455042242855,
+    "mutual_info_rank": 25.5,
+    "abs_corr_rank": 16.5,
+    "permutation_importance_rank": 26.0,
+    "composite_rank": 22.666666666666668
+  },
+  {
+    "feature": "stoch_k",
+    "mutual_info": 0.0,
+    "abs_corr": 0.16966031232153903,
+    "permutation_importance": 0.003948821584214302,
+    "mutual_info_rank": 25.5,
+    "abs_corr_rank": 16.5,
+    "permutation_importance_rank": 27.0,
+    "composite_rank": 23.0
+  }
+]

@@ -1,0 +1,166 @@
+{
+  "US30_D1": {
+    "asset": "US30",
+    "tf": "D1",
+    "model": "rf",
+    "best_params": {
+      "max_depth": 3,
+      "min_samples_leaf": 10,
+      "n_estimators": 100
+    },
+    "best_threshold": 0.55,
+    "expected_sharpe_outer": 1.9125006944208294,
+    "expected_wr": 0.5745169082125604,
+    "expected_n_kept": 21.6,
+    "sharpe_outer_std": 2.005201208519889,
+    "n_combos_evaluated": 81,
+    "outer_folds": [
+      {
+        "best_params": {
+          "n_estimators": 100,
+          "max_depth": 3,
+          "min_samples_leaf": 10
+        },
+        "best_threshold": 0.6,
+        "outer_sharpe": -1.3230320521559884,
+        "outer_wr": 0.2916666666666667,
+        "outer_n_kept": 24,
+        "inner_best_score": 4.707105228782647
+      },
+      {
+        "best_params": {
+          "n_estimators": 400,
+          "max_depth": 6,
+          "min_samples_leaf": 10
+        },
+        "best_threshold": 0.55,
+        "outer_sharpe": 1.0650160840378229,
+        "outer_wr": 0.6,
+        "outer_n_kept": 5,
+        "inner_best_score": 3.0615400930333987
+      },
+      {
+        "best_params": {
+          "n_estimators": 100,
+          "max_depth": 3,
+          "min_samples_leaf": 10
+        },
+        "best_threshold": 0.55,
+        "outer_sharpe": 2.6565743086514746,
+        "outer_wr": 0.65,
+        "outer_n_kept": 20,
+        "inner_best_score": 2.5597864988320844
+      },
+      {
+        "best_params": {
+          "n_estimators": 400,
+          "max_depth": 6,
+          "min_samples_leaf": 5
+        },
+        "best_threshold": 0.5,
+        "outer_sharpe": 2.4010113233452337,
+        "outer_wr": 0.6086956521739131,
+        "outer_n_kept": 23,
+        "inner_best_score": 1.2041711644649549
+      },
+      {
+        "best_params": {
+          "n_estimators": 100,
+          "max_depth": 6,
+          "min_samples_leaf": 5
+        },
+        "best_threshold": 0.5,
+        "outer_sharpe": 4.762933808225604,
+        "outer_wr": 0.7222222222222222,
+        "outer_n_kept": 36,
+        "inner_best_score": 0.9422732521954007
+      }
+    ]
+  },
+  "EURUSD_H4": {
+    "asset": "EURUSD",
+    "tf": "H4",
+    "model": "rf",
+    "best_params": {
+      "max_depth": 6,
+      "min_samples_leaf": 10,
+      "n_estimators": 100
+    },
+    "best_threshold": 0.55,
+    "expected_sharpe_outer": 0.5921029129086651,
+    "expected_wr": 0.5147073242474752,
+    "expected_n_kept": 26.8,
+    "sharpe_outer_std": 0.7130137458941105,
+    "n_combos_evaluated": 81,
+    "outer_folds": [
+      {
+        "best_params": {
+          "n_estimators": 100,
+          "max_depth": 3,
+          "min_samples_leaf": 10
+        },
+        "best_threshold": 0.5,
+        "outer_sharpe": 1.6318537376040427,
+        "outer_wr": 0.6,
+        "outer_n_kept": 15,
+        "inner_best_score": 0.6097747239313792
+      },
+      {
+        "best_params": {
+          "n_estimators": 400,
+          "max_depth": 4,
+          "min_samples_leaf": 20
+        },
+        "best_threshold": 0.55,
+        "outer_sharpe": 0.8219505913239687,
+        "outer_wr": 0.4838709677419355,
+        "outer_n_kept": 31,
+        "inner_best_score": 0.4290728389126035
+      },
+      {
+        "best_params": {
+          "n_estimators": 100,
+          "max_depth": 3,
+          "min_samples_leaf": 20
+        },
+        "best_threshold": 0.55,
+        "outer_sharpe": -0.2770191747658021,
+        "outer_wr": 0.5428571428571428,
+        "outer_n_kept": 35,
+        "inner_best_score": 1.6829651764668772
+      },
+      {
+        "best_params": {
+          "n_estimators": 100,
+          "max_depth": 6,
+          "min_samples_leaf": 10
+        },
+        "best_threshold": 0.55,
+        "outer_sharpe": -0.14314342255059564,
+        "outer_wr": 0.44680851063829785,
+        "outer_n_kept": 47,
+        "inner_best_score": 1.4148899210186368
+      },
+      {
+        "best_params": {
+          "n_estimators": 100,
+          "max_depth": 6,
+          "min_samples_leaf": 10
+        },
+        "best_threshold": 0.55,
+        "outer_sharpe": 0.9268728329317117,
+        "outer_wr": 0.5,
+        "outer_n_kept": 6,
+        "inner_best_score": 0.7525120099346246
+      }
+    ]
+  },
+  "XAUUSD_D1": {
+    "asset": "XAUUSD",
+    "tf": "D1",
+    "model": "stacking",
+    "best_params": {},
+    "best_threshold": 0.5,
+    "note": "Stacking pas tuné (trop lent). Defaults A7 conservés."
+  }
+}

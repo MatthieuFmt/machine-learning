@@ -1,0 +1,16 @@
+{
+  "mode": "single_sleeve_fallback",
+  "rationale": "Only 1 sleeve GO (EURUSD H4). Portfolio = unique sleeve.",
+  "n_sleeves_go": 1,
+  "n_trials_cumul": 28,
+  "best_sleeve": "h_new3_eurusd_h4",
+  "sharpe": 1.7332591664367052,
+  "sharpe_method": "per_trade",
+  "max_dd_pct": -8.077664147028308,
+  "trades": 54,
+  "trades_per_year": 23.0,
+  "win_rate_pct": 53.70370370370371,
+  "final_equity_eur": 15628.0,
+  "total_return_pct": 56.279999999999994,
+  "verdict": "NO-GO portfolio (single-sleeve). Production = EURUSD H4 seule."
+}

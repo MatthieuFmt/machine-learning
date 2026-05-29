@@ -1,0 +1,62 @@
+{
+  "hypothesis": "C5_EXTRA_ETHUSD_H4",
+  "phase": "Phase B C5 Extra",
+  "asset": "ETHUSD",
+  "tf": "H4",
+  "model": "hgbm",
+  "hyperparams": {
+    "learning_rate": 0.05,
+    "max_depth": 3,
+    "max_leaf_nodes": 15,
+    "min_samples_leaf": 50
+  },
+  "threshold": 0.6,
+  "features": [
+    "body_to_range_ratio",
+    "kc_width_20",
+    "atr_pct_14",
+    "lower_shadow_ratio",
+    "bb_width_20",
+    "atr_14",
+    "rsi_21",
+    "btcusd_return_5",
+    "range_atr_ratio",
+    "stoch_k_14",
+    "volume_zscore_20",
+    "upper_shadow_ratio",
+    "autocorr_returns_lag1_20",
+    "skew_returns_20",
+    "macd_hist"
+  ],
+  "donchian_params": {
+    "N": 20,
+    "M": 20
+  },
+  "train_cutoff": "2022-12-31",
+  "test_start": "2024-01-01",
+  "capital_eur": 10000.0,
+  "risk_per_trade": 0.02,
+  "config": {
+    "spread_pips": 3.0,
+    "slippage_pips": 3.0,
+    "tp_points": 10000,
+    "sl_points": 5000,
+    "window_hours": 120,
+    "pip_size": 0.01,
+    "pip_value_eur": 0.92
+  },
+  "metrics": {
+    "sharpe_backtest": 1.1417166365437548,
+    "sharpe_compute_metrics": 0.7825391756028742,
+    "win_rate_backtest": 0.38164251207729466,
+    "win_rate_compute_metrics": 38.164251207729464,
+    "total_trades": 207,
+    "max_dd_pips": -70192.0,
+    "profit_factor": 1.2071460905867264,
+    "max_dd_pct": -17.265657702317107,
+    "total_return_pct": 48.49798399999992
+  },
+  "n_train_trades_donchian": 569,
+  "n_train_samples": 558,
+  "accuracy_train": 0.8064516129032258
+}

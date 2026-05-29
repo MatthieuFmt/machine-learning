@@ -1,0 +1,215 @@
+[
+  {
+    "asset": "BTCUSD",
+    "tf": "D1",
+    "available": true,
+    "first_date": "2017-05-23 00:00:00+00:00",
+    "last_date": "2026-05-13 00:00:00+00:00",
+    "n_bars_total": 3102,
+    "n_bars_train": 1873,
+    "n_features_superset": 73,
+    "status": "new_phase_c"
+  },
+  {
+    "asset": "BTCUSD",
+    "tf": "H4",
+    "available": false,
+    "status": "load_error",
+    "error": "data\\raw\\BTCUSD\\BTCUSD_H4.csv : 1 gaps anormaux détectés",
+    "error_type": "DataValidationError",
+    "error_traceback": "Traceback (most recent call last):\n  File \"D:\\Documents\\learning-machine-learning\\scripts\\run_c1_inventory.py\", line 51, in main\n    df = load_asset(asset, tf)\n  File \"D:\\Documents\\learning-machine-learning\\app\\core\\retry.py\", line 27, in wrapper\n    return fn(*args, **kwargs)\n  File \"D:\\Documents\\learning-machine-learning\\app\\data\\loader.py\", line 203, in load_asset\n    raise DataValidationError(f\"{path} : {n_abnormal} gaps anormaux détectés\")\napp.core.exceptions.DataValidationError: data\\raw\\BTCUSD\\BTCUSD_H4.csv : 1 gaps anormaux détectés\n"
+  },
+  {
+    "asset": "BTCUSD",
+    "tf": "H1",
+    "available": false,
+    "status": "load_error",
+    "error": "data\\raw\\BTCUSD\\BTCUSD_H1.csv : 1 gaps anormaux détectés",
+    "error_type": "DataValidationError",
+    "error_traceback": "Traceback (most recent call last):\n  File \"D:\\Documents\\learning-machine-learning\\scripts\\run_c1_inventory.py\", line 51, in main\n    df = load_asset(asset, tf)\n  File \"D:\\Documents\\learning-machine-learning\\app\\core\\retry.py\", line 27, in wrapper\n    return fn(*args, **kwargs)\n  File \"D:\\Documents\\learning-machine-learning\\app\\data\\loader.py\", line 203, in load_asset\n    raise DataValidationError(f\"{path} : {n_abnormal} gaps anormaux détectés\")\napp.core.exceptions.DataValidationError: data\\raw\\BTCUSD\\BTCUSD_H1.csv : 1 gaps anormaux détectés\n"
+  },
+  {
+    "asset": "ETHUSD",
+    "tf": "D1",
+    "available": true,
+    "first_date": "2017-12-11 00:00:00+00:00",
+    "last_date": "2026-05-13 00:00:00+00:00",
+    "n_bars_total": 2928,
+    "n_bars_train": 1699,
+    "n_features_superset": 74,
+    "status": "new_phase_c"
+  },
+  {
+    "asset": "ETHUSD",
+    "tf": "H4",
+    "available": true,
+    "first_date": "2017-12-11 20:00:00+00:00",
+    "last_date": "2026-05-13 08:00:00+00:00",
+    "n_bars_total": 16766,
+    "n_bars_train": 9431,
+    "n_features_superset": 74,
+    "status": "new_phase_c"
+  },
+  {
+    "asset": "ETHUSD",
+    "tf": "H1",
+    "available": true,
+    "first_date": "2017-12-11 23:00:00+00:00",
+    "last_date": "2026-05-13 08:00:00+00:00",
+    "n_bars_total": 66314,
+    "n_bars_train": 37004,
+    "n_features_superset": 74,
+    "status": "new_phase_c"
+  },
+  {
+    "asset": "EURUSD",
+    "tf": "D1",
+    "available": true,
+    "first_date": "2010-04-27 00:00:00+00:00",
+    "last_date": "2026-05-08 00:00:00+00:00",
+    "n_bars_total": 5016,
+    "n_bars_train": 3967,
+    "n_features_superset": 74,
+    "status": "new_phase_c"
+  },
+  {
+    "asset": "EURUSD",
+    "tf": "H4",
+    "available": true,
+    "first_date": "2010-04-27 00:00:00+00:00",
+    "last_date": "2026-05-08 20:00:00+00:00",
+    "n_bars_total": 25850,
+    "n_bars_train": 20450,
+    "n_features_superset": 74,
+    "status": "existing_pipeline"
+  },
+  {
+    "asset": "EURUSD",
+    "tf": "H1",
+    "available": false,
+    "status": "load_error",
+    "error": "'<' not supported between instances of 'str' and 'int'",
+    "error_type": "TypeError",
+    "error_traceback": "Traceback (most recent call last):\n  File \"D:\\Documents\\learning-machine-learning\\scripts\\run_c1_inventory.py\", line 51, in main\n    df = load_asset(asset, tf)\n  File \"D:\\Documents\\learning-machine-learning\\app\\core\\retry.py\", line 27, in wrapper\n    return fn(*args, **kwargs)\n  File \"D:\\Documents\\learning-machine-learning\\app\\data\\loader.py\", line 160, in load_asset\n    if (df[\"Volume\"] < 0).any():\n        ^^^^^^^^^^^^^^^^\n  File \"D:\\Documents\\learning-machine-learning\\.venv\\Lib\\site-packages\\pandas\\core\\ops\\common.py\", line 85, in new_method\n    return method(self, other)\n  File \"D:\\Documents\\learning-machine-learning\\.venv\\Lib\\site-packages\\pandas\\core\\arraylike.py\", line 50, in __lt__\n    return self._cmp_method(other, operator.lt)\n           ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\Documents\\learning-machine-learning\\.venv\\Lib\\site-packages\\pandas\\core\\series.py\", line 6735, in _cmp_method\n    res_values = ops.comparison_op(lvalues, rvalues, op)\n  File \"D:\\Documents\\learning-machine-learning\\.venv\\Lib\\site-packages\\pandas\\core\\ops\\array_ops.py\", line 341, in comparison_op\n    res_values = op(lvalues, rvalues)\n  File \"D:\\Documents\\learning-machine-learning\\.venv\\Lib\\site-packages\\pandas\\core\\ops\\common.py\", line 85, in new_method\n    return method(self, other)\n  File \"D:\\Documents\\learning-machine-learning\\.venv\\Lib\\site-packages\\pandas\\core\\arraylike.py\", line 50, in __lt__\n    return self._cmp_method(other, operator.lt)\n           ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\Documents\\learning-machine-learning\\.venv\\Lib\\site-packages\\pandas\\core\\arrays\\string_.py\", line 1224, in _cmp_method\n    result[valid] = op(self._ndarray[valid], other)\n                    ~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: '<' not supported between instances of 'str' and 'int'\n"
+  },
+  {
+    "asset": "GBPUSD",
+    "tf": "D1",
+    "available": true,
+    "first_date": "2010-04-26 00:00:00+00:00",
+    "last_date": "2026-05-08 00:00:00+00:00",
+    "n_bars_total": 5015,
+    "n_bars_train": 3967,
+    "n_features_superset": 74,
+    "status": "new_phase_c"
+  },
+  {
+    "asset": "GBPUSD",
+    "tf": "H4",
+    "available": true,
+    "first_date": "2010-04-26 04:00:00+00:00",
+    "last_date": "2026-05-08 20:00:00+00:00",
+    "n_bars_total": 25851,
+    "n_bars_train": 20453,
+    "n_features_superset": 74,
+    "status": "new_phase_c"
+  },
+  {
+    "asset": "GBPUSD",
+    "tf": "H1",
+    "available": false,
+    "status": "load_error",
+    "error": "data\\raw\\GBPUSD\\GBPUSD_H1.csv : 2 gaps anormaux détectés",
+    "error_type": "DataValidationError",
+    "error_traceback": "Traceback (most recent call last):\n  File \"D:\\Documents\\learning-machine-learning\\scripts\\run_c1_inventory.py\", line 51, in main\n    df = load_asset(asset, tf)\n  File \"D:\\Documents\\learning-machine-learning\\app\\core\\retry.py\", line 27, in wrapper\n    return fn(*args, **kwargs)\n  File \"D:\\Documents\\learning-machine-learning\\app\\data\\loader.py\", line 203, in load_asset\n    raise DataValidationError(f\"{path} : {n_abnormal} gaps anormaux détectés\")\napp.core.exceptions.DataValidationError: data\\raw\\GBPUSD\\GBPUSD_H1.csv : 2 gaps anormaux détectés\n"
+  },
+  {
+    "asset": "US30",
+    "tf": "D1",
+    "available": true,
+    "first_date": "2013-05-23 00:00:00+00:00",
+    "last_date": "2026-05-13 00:00:00+00:00",
+    "n_bars_total": 3838,
+    "n_bars_train": 2790,
+    "n_features_superset": 74,
+    "status": "existing_pipeline"
+  },
+  {
+    "asset": "US30",
+    "tf": "H4",
+    "available": false,
+    "status": "load_error",
+    "error": "data\\raw\\US30\\USA30IDXUSD_H4.csv : 12 gaps anormaux détectés",
+    "error_type": "DataValidationError",
+    "error_traceback": "Traceback (most recent call last):\n  File \"D:\\Documents\\learning-machine-learning\\scripts\\run_c1_inventory.py\", line 51, in main\n    df = load_asset(asset, tf)\n  File \"D:\\Documents\\learning-machine-learning\\app\\core\\retry.py\", line 27, in wrapper\n    return fn(*args, **kwargs)\n  File \"D:\\Documents\\learning-machine-learning\\app\\data\\loader.py\", line 203, in load_asset\n    raise DataValidationError(f\"{path} : {n_abnormal} gaps anormaux détectés\")\napp.core.exceptions.DataValidationError: data\\raw\\US30\\USA30IDXUSD_H4.csv : 12 gaps anormaux détectés\n"
+  },
+  {
+    "asset": "US30",
+    "tf": "H1",
+    "available": false,
+    "status": "load_error",
+    "error": "data\\raw\\US30\\USA30IDXUSD_H1.csv : 21 gaps anormaux détectés",
+    "error_type": "DataValidationError",
+    "error_traceback": "Traceback (most recent call last):\n  File \"D:\\Documents\\learning-machine-learning\\scripts\\run_c1_inventory.py\", line 51, in main\n    df = load_asset(asset, tf)\n  File \"D:\\Documents\\learning-machine-learning\\app\\core\\retry.py\", line 27, in wrapper\n    return fn(*args, **kwargs)\n  File \"D:\\Documents\\learning-machine-learning\\app\\data\\loader.py\", line 203, in load_asset\n    raise DataValidationError(f\"{path} : {n_abnormal} gaps anormaux détectés\")\napp.core.exceptions.DataValidationError: data\\raw\\US30\\USA30IDXUSD_H1.csv : 21 gaps anormaux détectés\n"
+  },
+  {
+    "asset": "USDCHF",
+    "tf": "D1",
+    "available": true,
+    "first_date": "2010-04-26 00:00:00+00:00",
+    "last_date": "2026-05-08 00:00:00+00:00",
+    "n_bars_total": 5016,
+    "n_bars_train": 3967,
+    "n_features_superset": 73,
+    "status": "new_phase_c"
+  },
+  {
+    "asset": "USDCHF",
+    "tf": "H4",
+    "available": true,
+    "first_date": "2010-04-26 08:00:00+00:00",
+    "last_date": "2026-05-08 20:00:00+00:00",
+    "n_bars_total": 25852,
+    "n_bars_train": 20453,
+    "n_features_superset": 73,
+    "status": "new_phase_c"
+  },
+  {
+    "asset": "USDCHF",
+    "tf": "H1",
+    "available": false,
+    "status": "load_error",
+    "error": "data\\raw\\USDCHF\\USDCHF_H1.csv : 2 gaps anormaux détectés",
+    "error_type": "DataValidationError",
+    "error_traceback": "Traceback (most recent call last):\n  File \"D:\\Documents\\learning-machine-learning\\scripts\\run_c1_inventory.py\", line 51, in main\n    df = load_asset(asset, tf)\n  File \"D:\\Documents\\learning-machine-learning\\app\\core\\retry.py\", line 27, in wrapper\n    return fn(*args, **kwargs)\n  File \"D:\\Documents\\learning-machine-learning\\app\\data\\loader.py\", line 203, in load_asset\n    raise DataValidationError(f\"{path} : {n_abnormal} gaps anormaux détectés\")\napp.core.exceptions.DataValidationError: data\\raw\\USDCHF\\USDCHF_H1.csv : 2 gaps anormaux détectés\n"
+  },
+  {
+    "asset": "XAUUSD",
+    "tf": "D1",
+    "available": true,
+    "first_date": "2009-08-06 00:00:00+00:00",
+    "last_date": "2026-05-08 00:00:00+00:00",
+    "n_bars_total": 5213,
+    "n_bars_train": 4171,
+    "n_features_superset": 73,
+    "status": "existing_pipeline"
+  },
+  {
+    "asset": "XAUUSD",
+    "tf": "H4",
+    "available": false,
+    "status": "load_error",
+    "error": "data\\raw\\XAUUSD\\XAUUSD_H4.csv : 2 gaps anormaux détectés",
+    "error_type": "DataValidationError",
+    "error_traceback": "Traceback (most recent call last):\n  File \"D:\\Documents\\learning-machine-learning\\scripts\\run_c1_inventory.py\", line 51, in main\n    df = load_asset(asset, tf)\n  File \"D:\\Documents\\learning-machine-learning\\app\\core\\retry.py\", line 27, in wrapper\n    return fn(*args, **kwargs)\n  File \"D:\\Documents\\learning-machine-learning\\app\\data\\loader.py\", line 203, in load_asset\n    raise DataValidationError(f\"{path} : {n_abnormal} gaps anormaux détectés\")\napp.core.exceptions.DataValidationError: data\\raw\\XAUUSD\\XAUUSD_H4.csv : 2 gaps anormaux détectés\n"
+  },
+  {
+    "asset": "XAUUSD",
+    "tf": "H1",
+    "available": false,
+    "status": "load_error",
+    "error": "data\\raw\\XAUUSD\\XAUUSD_H1.csv : 20 gaps anormaux détectés",
+    "error_type": "DataValidationError",
+    "error_traceback": "Traceback (most recent call last):\n  File \"D:\\Documents\\learning-machine-learning\\scripts\\run_c1_inventory.py\", line 51, in main\n    df = load_asset(asset, tf)\n  File \"D:\\Documents\\learning-machine-learning\\app\\core\\retry.py\", line 27, in wrapper\n    return fn(*args, **kwargs)\n  File \"D:\\Documents\\learning-machine-learning\\app\\data\\loader.py\", line 203, in load_asset\n    raise DataValidationError(f\"{path} : {n_abnormal} gaps anormaux détectés\")\napp.core.exceptions.DataValidationError: data\\raw\\XAUUSD\\XAUUSD_H1.csv : 20 gaps anormaux détectés\n"
+  }
+]
