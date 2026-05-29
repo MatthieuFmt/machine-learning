@@ -33,20 +33,41 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from app.config.instruments import ASSET_CONFIGS  # noqa: E402
 from app.data.loader import load_asset  # noqa: E402
 from app.data.registry import discover_assets  # noqa: E402
+from app.features.regime import detect_regime  # noqa: E402
 from app.research.edge_harness import EdgeResult, screen_candidates  # noqa: E402
+from app.strategies.bollinger import BollingerBands  # noqa: E402
+from app.strategies.chandelier import ChandelierExit  # noqa: E402
 from app.strategies.donchian import DonchianBreakout  # noqa: E402
 from app.strategies.dual_ma import DualMovingAverage  # noqa: E402
+from app.strategies.keltner import KeltnerChannel  # noqa: E402
+from app.strategies.mean_reversion import MeanReversionRSIBB  # noqa: E402
+from app.strategies.rsi_contrarian import RsiContrarian  # noqa: E402
 from app.strategies.sma_crossover import SmaCrossover  # noqa: E402
 from app.strategies.ts_momentum import TsMomentum  # noqa: E402
 
 
-def build_candidates(df: pd.DataFrame) -> dict[str, pd.Series]:
-    """Jeu de stratégies trend/momentum simples (peu de paramètres = robustes).
+# Familles "range" (retour-à-la-moyenne) : tout le reste est "tendance".
+_MR_FAMILIES = ("Bollinger", "RSI", "MeanRev")
 
-    Direction guidée par les preuves du projet : le trend-following marche mieux
-    sur actifs tendanciels (crypto, or) ; on garde des périodes standard.
+
+def build_candidates(df: pd.DataFrame, regime_filter: bool = False) -> dict[str, pd.Series]:
+    """Jeu de stratégies simples (peu de paramètres = robustes), DEUX familles.
+
+    1. TREND/MOMENTUM (marche mieux sur actifs tendanciels : crypto, or) :
+       Donchian, DualMA, TsMom, SmaX, Keltner, Chandelier.
+    2. MEAN-REVERSION / RANGE (jamais screené ; cible les marchés de range —
+       forex, indices) : Bollinger, RSI contrarian, combo RSI+Bollinger.
+
+    Les périodes restent standard pour limiter le sur-ajustement.
+
+    Si ``regime_filter=True`` : on ne garde le signal d'une stratégie de tendance
+    QUE lorsque ``detect_regime`` classe la barre en "trend", et une stratégie de
+    retour-à-la-moyenne QUE lorsqu'elle est en "range". Le régime à la barre t
+    n'utilise que l'info ≤ close[t] (exécution à open[t+1]) → pas de look-ahead.
+    Les labels filtrés reçoivent le suffixe " +R" (hypothèses distinctes).
     """
     specs: dict[str, pd.Series] = {}
+    # ── Trend / momentum ────────────────────────────────────────────────────
     for n in (20, 40, 55):
         specs[f"Donchian{n}"] = DonchianBreakout(N=n, M=n // 2).generate_signals(df)
     for fast, slow in ((10, 50), (20, 100), (50, 200)):
@@ -55,7 +76,27 @@ def build_candidates(df: pd.DataFrame) -> dict[str, pd.Series]:
         specs[f"TsMom{t}"] = TsMomentum(T=t).generate_signals(df)
     for fast, slow in ((5, 20), (10, 50)):
         specs[f"SmaX{fast}-{slow}"] = SmaCrossover(fast=fast, slow=slow).generate_signals(df)
-    return specs
+    for period in (20, 50):
+        specs[f"Keltner{period}"] = KeltnerChannel(period=period, mult=2.0).generate_signals(df)
+    for period in (22, 50):
+        specs[f"Chandelier{period}"] = ChandelierExit(period=period, k_atr=3.0).generate_signals(df)
+    # ── Mean-reversion / range ──────────────────────────────────────────────
+    for n, k in ((20, 2.0), (20, 2.5)):
+        specs[f"Bollinger{n}-{k:g}"] = BollingerBands(N=n, K=k).generate_signals(df)
+    for n, oversold in ((14, 30), (14, 20)):
+        specs[f"RSI{n}-{oversold}"] = RsiContrarian(N=n, oversold=oversold).generate_signals(df)
+    specs["MeanRevRSIBB"] = MeanReversionRSIBB().generate_signals(df)
+
+    if not regime_filter:
+        return specs
+
+    regime = detect_regime(df)
+    filtered: dict[str, pd.Series] = {}
+    for label, sig in specs.items():
+        want = "range" if label.startswith(_MR_FAMILIES) else "trend"
+        masked = sig.where(regime == want, 0).astype(int)
+        filtered[f"{label} +R"] = masked
+    return filtered
 
 
 def vol_tp_sl_grid(df: pd.DataFrame, cfg, oos_start: pd.Timestamp) -> list[tuple[float, float]]:
@@ -84,6 +125,11 @@ def main() -> int:
     parser.add_argument("--timeframes", default="D1,H4")
     parser.add_argument("--capital", default=10_000.0, type=float)
     parser.add_argument("--out", default="predictions/edge_screen_results.csv", type=Path)
+    parser.add_argument(
+        "--regime-filter", action="store_true",
+        help="N'autorise la tendance qu'en régime 'trend' et le retour-à-la-moyenne "
+             "qu'en régime 'range' (detect_regime). Crée des hypothèses distinctes (+R).",
+    )
     args = parser.parse_args()
 
     oos_start = pd.Timestamp(args.oos_start, tz="UTC")
@@ -116,7 +162,7 @@ def main() -> int:
                 print(f"⏭️  {asset}/{tf} : trop peu de barres ({len(df)}) — ignoré.")
                 continue
             try:
-                candidates = build_candidates(df)
+                candidates = build_candidates(df, regime_filter=args.regime_filter)
                 grid = vol_tp_sl_grid(df, cfg, oos_start)
                 res = screen_candidates(
                     df, candidates, cfg,

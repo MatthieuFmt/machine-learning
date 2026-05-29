@@ -212,9 +212,11 @@ def deflated_sharpe(
     Corrige le Sharpe observé pour le nombre de stratégies testées (data-snooping).
 
     Args:
-        sr: Sharpe ratio observé (annualisé).
+        sr: Sharpe ratio observé PAR-PÉRIODE (NON annualisé = mean/std des retours).
+            Le facteur √(n_obs−1) fait l'échelle ; passer un Sharpe ×√252 ici le
+            double-annualise et fausse (voire inverse) le résultat.
         n_trials: Nombre total de stratégies/configurations testées (n_trials_cumul).
-        n_obs: Nombre d'observations (retours quotidiens, pas trades).
+        n_obs: Nombre d'observations (retours), ≥ 30 requis.
         skew: Skewness des retours (scipy.stats.skew, bias=False).
         kurtosis: Kurtosis RAW (scipy.stats.kurtosis, bias=False, fisher=True) + 3.
 
@@ -469,6 +471,7 @@ def validate_edge(
     equity: pd.Series,
     trades: pd.DataFrame,
     n_trials: int | None = None,
+    annualized_sharpe: float | None = None,
 ) -> EdgeReport:
     """Validation complète selon les 5 critères de la constitution.
 
@@ -479,7 +482,15 @@ def validate_edge(
         4. Win rate > 30 %
         5. Trades par an ≥ 30
 
-    Le Sharpe est calculé sur equity.pct_change().dropna() — Règle 10.
+    ⚠️ DEUX Sharpe distincts, à ne pas confondre :
+      - Critère 1 (« ≥ 1.0 ») = Sharpe ANNUALISÉ. À passer via ``annualized_sharpe``
+        (calculé par l'appelant avec l'annualisation routée par fréquence, cf.
+        ``sharpe_daily_from_trades`` — Règle 5). À défaut, repli sur
+        ``equity.pct_change()`` × √252 (legacy).
+      - DSR (critère 2) = la formule de Bailey & López de Prado attend le Sharpe
+        PAR-PÉRIODE (NON annualisé) : le terme √(n_obs−1) fait déjà l'échelle.
+        Lui passer un Sharpe ×√252 le double-annualise et peut INVERSER son signe
+        (bug historique). On calcule donc ici ``sr_per_periode = mean/std`` brut.
 
     Args:
         equity: Courbe d'equity, pd.Series indexée par datetime.
@@ -490,6 +501,9 @@ def validate_edge(
             (``snooping_guard.n_trials_from_history()``) au lieu d'une constante
             en dur — chaque ``read_oos()` enregistré compte comme un essai.
             Passer un entier explicite reste possible (override).
+        annualized_sharpe: Sharpe annualisé honnête pour le critère 1. Si None,
+            repli legacy (``equity.pct_change()`` × √252, possiblement biaisé en
+            basse fréquence).
 
     Returns:
         EdgeReport avec go=True si et seulement si TOUS les critères passent.
@@ -504,22 +518,32 @@ def validate_edge(
     reasons: list[str] = []
     metrics: dict[str, float] = {}
 
-    # ── 1. Sharpe ratio sur retours quotidiens ─────────────────────────────
-    daily_returns = equity.pct_change().dropna()
-    sr = sharpe_ratio(daily_returns)
-    metrics["sharpe"] = sr
+    # ── 1. Sharpe ANNUALISÉ (critère ≥ 1.0) ────────────────────────────────
+    period_returns = equity.pct_change().dropna()
+    # Sharpe annualisé honnête fourni par l'appelant (fréquence-aware) ; sinon
+    # repli legacy ×√252 sur les retours par-trade.
+    sr_annual = (
+        annualized_sharpe
+        if annualized_sharpe is not None
+        else sharpe_ratio(period_returns)
+    )
+    metrics["sharpe"] = sr_annual
 
-    if sr < 1.0:
-        reasons.append(f"Sharpe {sr:.2f} < 1.0")
+    if sr_annual < 1.0:
+        reasons.append(f"Sharpe {sr_annual:.2f} < 1.0")
 
-    # ── 2. DSR ────────────────────────────────────────────────────────────
-    n_obs = len(daily_returns)
-    skew = float(daily_returns.skew())
+    # ── 2. DSR ──────────────────────────────────────────────────────────────
+    # La formule de López de Prado attend le Sharpe PAR-PÉRIODE (non annualisé) :
+    # le facteur √(n_obs−1) fait déjà l'échelle. Passer un Sharpe ×√252 ici le
+    # double-annualise et peut inverser son signe.
+    sr_per_period = sharpe_ratio(period_returns, freq=1)
+    n_obs = len(period_returns)
+    skew = float(period_returns.skew())
     # scipy kurtosis donne l'excess kurtosis (fisher=True), on ajoute 3
-    kurt_raw = float(daily_returns.kurtosis()) + 3.0
+    kurt_raw = float(period_returns.kurtosis()) + 3.0
 
     dsr, p_dsr = deflated_sharpe(
-        sr=sr,
+        sr=sr_per_period,
         n_trials=n_trials,
         n_obs=n_obs,
         skew=skew,

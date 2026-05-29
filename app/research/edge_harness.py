@@ -179,7 +179,11 @@ def evaluate_oos(
     else:
         resolved_n_trials = n_trials
 
-    report = validate_edge(equity, trades_df, n_trials=resolved_n_trials)
+    # On passe le Sharpe annualisé HONNÊTE (routé par fréquence) pour le critère
+    # « ≥ 1.0 » ; le DSR, lui, recalcule en interne un Sharpe par-période.
+    report = validate_edge(
+        equity, trades_df, n_trials=resolved_n_trials, annualized_sharpe=oos_sharpe
+    )
 
     return EdgeResult(
         asset=asset, timeframe=timeframe, label=label,

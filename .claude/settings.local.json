@@ -1,4 +1,5 @@
 {
+  "enabledMcpjsonServers": ["context7", "tavily"],
   "permissions": {
     "allow": [
       "Bash(Get-ChildItem -Path \"d:\\\\Documents\\\\learning-machine-learning\\\\\" -File | Select-Object Name | Sort-Object Name)",
