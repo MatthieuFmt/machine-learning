@@ -212,9 +212,10 @@ def deflated_sharpe(
     Corrige le Sharpe observé pour le nombre de stratégies testées (data-snooping).
 
     Args:
-        sr: Sharpe ratio observé PAR-PÉRIODE (NON annualisé = mean/std des retours).
-            Le facteur √(n_obs−1) fait l'échelle ; passer un Sharpe ×√252 ici le
-            double-annualise et fausse (voire inverse) le résultat.
+        sr: Sharpe ratio observé ANNUALISÉ et HONNÊTE (annualisation routée par
+            fréquence). ⚠️ Ne PAS passer un Sharpe annualisé ×√252 calculé sur une
+            série par-trade basse fréquence : il serait gonflé et le DSR deviendrait
+            faussement positif (bug historique USDJPY/H4).
         n_trials: Nombre total de stratégies/configurations testées (n_trials_cumul).
         n_obs: Nombre d'observations (retours), ≥ 30 requis.
         skew: Skewness des retours (scipy.stats.skew, bias=False).
@@ -533,17 +534,18 @@ def validate_edge(
         reasons.append(f"Sharpe {sr_annual:.2f} < 1.0")
 
     # ── 2. DSR ──────────────────────────────────────────────────────────────
-    # La formule de López de Prado attend le Sharpe PAR-PÉRIODE (non annualisé) :
-    # le facteur √(n_obs−1) fait déjà l'échelle. Passer un Sharpe ×√252 ici le
-    # double-annualise et peut inverser son signe.
-    sr_per_period = sharpe_ratio(period_returns, freq=1)
+    # `deflated_sharpe` est calibrée pour un Sharpe ANNUALISÉ (cf. SR0 avec V≈1 ;
+    # cf. tests). Le bug historique n'était PAS l'annualisation en soi, mais le
+    # fait d'annualiser ×√252 une série PAR-TRADE (~17 trades/an) → Sharpe gonflé
+    # à 2.4 au lieu de 0.52 → DSR faussement positif. On lui passe donc le MÊME
+    # Sharpe annualisé HONNÊTE (routé par fréquence) que le critère 1.
     n_obs = len(period_returns)
     skew = float(period_returns.skew())
     # scipy kurtosis donne l'excess kurtosis (fisher=True), on ajoute 3
     kurt_raw = float(period_returns.kurtosis()) + 3.0
 
     dsr, p_dsr = deflated_sharpe(
-        sr=sr_per_period,
+        sr=sr_annual,
         n_trials=n_trials,
         n_obs=n_obs,
         skew=skew,

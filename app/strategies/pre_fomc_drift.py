@@ -32,16 +32,18 @@ def load_fomc_announcement_times(
     calendar_root: Path | str = "data/raw/economic_calendar",
     start_year: int = 2010,
     end_year: int = 2026,
+    event_name: str = "FOMC Statement",
 ) -> pd.DatetimeIndex:
-    """Charge les timestamps UTC de tous les FOMC Statement scheduled.
+    """Charge les timestamps UTC d'un événement de calendrier programmé.
 
-    Filtre sur event == "FOMC Statement" (décision de taux). Les Forex
-    Factory CSVs donnent les heures en ET ; on convertit en UTC via
-    pandas tz handling pour gérer DST automatiquement.
+    Filtre sur event == ``event_name`` (défaut "FOMC Statement" = décision de
+    taux). Les Forex Factory CSVs donnent les heures en ET ; on convertit en UTC
+    via pandas tz handling pour gérer DST automatiquement.
 
     Args:
         calendar_root: Racine du calendrier scrapé.
         start_year, end_year: Bornes (inclusives) de filtrage.
+        event_name: Nom exact de l'événement (ex. "Non-Farm Employment Change").
 
     Returns:
         DatetimeIndex UTC trié, sans doublons.
@@ -56,7 +58,7 @@ def load_fomc_announcement_times(
         if not csv_path.exists():
             continue
         df = pd.read_csv(csv_path)
-        fomc = df[df["event"] == "FOMC Statement"].copy()
+        fomc = df[df["event"] == event_name].copy()
         if len(fomc) == 0:
             continue
         fomc["year"] = year
@@ -64,7 +66,7 @@ def load_fomc_announcement_times(
 
     if not all_events:
         raise DataValidationError(
-            f"Aucun FOMC Statement trouvé entre {start_year} et {end_year}"
+            f"Aucun événement '{event_name}' trouvé entre {start_year} et {end_year}"
         )
 
     df = pd.concat(all_events, ignore_index=True)
