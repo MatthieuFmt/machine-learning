@@ -903,3 +903,37 @@ trouver un VRAI edge avant tout déploiement** ; ouvert à des stratégies NON-M
 - 646 passés, 22 skipped. Échecs = 18 `test_regime` (pandas_ta absent) + 21
   erreurs de collection (sklearn/numba/statsmodels absents) — TOUS environnementaux,
   zéro régression liée aux modifications.
+
+## 2026-05-29 (suite) — Harnais de recherche d'edge (Phase 1) + CLI + guide
+
+### Contexte
+Réseau du conteneur bloqué pour Yahoo ET Dukascopy (testé) → recherche empirique
+impossible ici. Construction de l'outillage honnête, à lancer en local par le mainteneur.
+Le mainteneur (débutant) est ouvert aux stratégies NON-ML.
+
+### Réalisé
+- **app/research/edge_harness.py** : point d'entrée unique honnête.
+  - `run_honest_backtest` : entrée open[i+1], coûts round-trip = total_cost_pips, swap.
+  - `evaluate_oos` : split IS/OOS, Sharpe freq-aware, verdict `validate_edge`,
+    une lecture OOS journalisée, n_trials = hypothèses UNIQUES (rerun-safe).
+  - `screen_candidates` : sélection sur IS, UN seul regard OOS sur le gagnant.
+- **scripts/screen_edge.py** : CLI multi-actifs (stratégies trend/momentum simples :
+  Donchian, DualMA, TsMomentum, SmaCrossover ; TP/SL calés sur la volatilité IS),
+  classe par GO puis DSR, écrit predictions/edge_screen_results.csv.
+- **docs/HOWTO_recherche_edge.md** : guide pas-à-pas débutant (install, données, run, lecture).
+- **.gitignore** : TEST_SET_LOCK.json (registre local).
+
+### Tests
+- ✅ `test_edge_harness.py` (5) : backtest honnête, split IS/OOS, 1 lecture OOS,
+  sélection IS, NO-GO sans trades. Total touché : 44/44 verts.
+- ✅ End-to-end CLI validé sur données synthétiques (loader rejette bien un CSV à
+  prix non positifs ; XAUUSD synthétique évalué → NO-GO honnête).
+
+### Prochaine étape (mainteneur, en LOCAL)
+1. `pip install -r requirements.txt`
+2. Télécharger les données (Dukascopy) → data/raw/<ACTIF>/<*>_<TF>.csv
+3. `python scripts/screen_edge.py --assets BTCUSD,ETHUSD,XAUUSD --timeframes D1`
+4. Si rien ne passe (attendu) : ajouter de nouvelles familles de stratégies (carry JPY,
+   ORB, pairs trading, pre-FOMC) dans app/strategies/ et re-screener.
+
+### n_trials cumul : inchangé (aucune lecture OOS sur données réelles enregistrée)

@@ -16,7 +16,9 @@ Construire un bot qui :
 3. **Envoie une alerte Telegram** (entrée / SL / TP / taille) quand un bon trade potentiel apparaît.
 4. Tourne en continu sur une pipeline (VPS / Docker / GitHub Actions).
 
-**Ordre de priorité décidé par le mainteneur (2026-05-29) : trouver un VRAI edge AVANT tout déploiement.** Pas de bot d'alerte tant qu'une stratégie n'a pas survécu à une validation propre.
+**Ordre de priorité décidé par le mainteneur (2026-05-29) : trouver un VRAI edge AVANT tout déploiement.** Pas de bot d'alerte tant qu'une stratégie n'a pas survécu à une validation propre. Le mainteneur est ouvert à des stratégies **non-ML** (le ML n'a jamais aidé ici) : priorité aux stratégies simples, robustes, peu paramétrées.
+
+➡️ **Pour lancer la recherche d'edge : voir `docs/HOWTO_recherche_edge.md`** (guide débutant) + `scripts/screen_edge.py` (CLI) qui s'appuie sur `app/research/edge_harness.py`.
 
 ---
 
@@ -60,6 +62,8 @@ app/
 │                   # volatility_breakout, parabolic, asian_range, nr7_meta,
 │                   # pairs_trading, pre_fomc_drift, pre_fomc_meta
 ├── analysis/       # edge_validation.py (DSR, PSR, bootstrap, walk-forward, purged k-fold)
+├── research/       # ⭐ edge_harness.py — POINT D'ENTRÉE Phase 1 (backtest honnête +
+│                   #    split IS/OOS gelé + DSR n_trials auto). CLI: scripts/screen_edge.py
 ├── portfolio/      # constructor.py
 ├── pipelines/      # base, us30, xauusd, walk_forward, walk_forward_rolling
 └── testing/        # look_ahead_validator, snooping_guard  (⚠️ actuellement no-op, voir §6)

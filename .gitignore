@@ -7,6 +7,9 @@
 # Artefacts générés (prédictions, importances, trades détaillés)
 results/
 
+# Registre anti-snooping (local, propre à chaque environnement d'exécution)
+TEST_SET_LOCK.json
+
 # Python
 .venv/
 venv/
