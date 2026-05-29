@@ -139,6 +139,7 @@ Priorité décroissante. Chacun fausse les résultats ou casse le pipeline.
 - **Tests** — < 100 ms/test unitaire, fixtures synthétiques, pas d'I/O.
 - **RTK** — préfixer `rtk ` toute commande à sortie longue (>20 lignes) : `rtk pytest …`, `rtk python run_*.py`.
 - **Langue** — code en anglais, docs en français.
+- **Style de réponse au mainteneur** — réponses COURTES et compréhensibles pour un débutant complet en trading (éviter le jargon non expliqué).
 - **Pas de commit/push ni d'exécution `python run_*`/`pytest` sans accord explicite** (constitution Règles 2 & 3).
 - **Dépendances** : numpy, scipy, pandas>=3, pandas-ta, scikit-learn>=1.8, statsmodels, numba, matplotlib, tqdm, colorama, dukascopy-python, yfinance. Pas de LightGBM/XGBoost/PyTorch.
 
