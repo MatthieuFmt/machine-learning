@@ -884,3 +884,22 @@ trouver un VRAI edge avant tout déploiement** ; ouvert à des stratégies NON-M
 - Chemin ML (`simulator.py`/`base.py`) : entrée open[i+1] + `asset_cfg` passé.
 - Stop-slippage / gaps sur fills SL/TP ; coûts XTB round-trip réalistes.
 - **À re-valider sur données réelles (Phase 1) avant de basculer `entry_on_next_open` en défaut.**
+
+## 2026-05-29 (suite) — Tâche B'3 : câblage anti-snooping du DSR
+
+### Réalisé
+- **C4 — n_trials automatique** : `validate_edge(equity, trades, n_trials=None)`
+  lit désormais `n_trials` depuis `snooping_guard.n_trials_from_history()` quand
+  il vaut None (défaut), au lieu d'une constante en dur. Chaque `read_oos()`
+  enregistré compte comme un essai → le DSR pénalise réellement le data-snooping.
+  Override par entier explicite toujours possible (rétrocompat).
+
+### Tests
+- ✅ `test_validate_edge_n_trials_auto.py` (2) : auto == explicite ; DSR plus
+  sévère quand l'historique grossit.
+- ✅ Non-régression : `test_edge_validation` (43), `test_dsr_sanity` inclus.
+
+### Bilan suite (deps lourdes absentes du conteneur)
+- 646 passés, 22 skipped. Échecs = 18 `test_regime` (pandas_ta absent) + 21
+  erreurs de collection (sklearn/numba/statsmodels absents) — TOUS environnementaux,
+  zéro régression liée aux modifications.

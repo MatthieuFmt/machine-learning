@@ -468,7 +468,7 @@ class EdgeReport:
 def validate_edge(
     equity: pd.Series,
     trades: pd.DataFrame,
-    n_trials: int,
+    n_trials: int | None = None,
 ) -> EdgeReport:
     """Validation complète selon les 5 critères de la constitution.
 
@@ -484,11 +484,23 @@ def validate_edge(
     Args:
         equity: Courbe d'equity, pd.Series indexée par datetime.
         trades: DataFrame avec colonne obligatoire 'pnl' (PnL par trade).
-        n_trials: Compteur n_trials_cumul (depuis JOURNAL.md).
+        n_trials: Nombre total de configurations testées (pénalité de
+            data-snooping du DSR). Fix C4 : si ``None`` (défaut), il est lu
+            AUTOMATIQUEMENT depuis le registre anti-snooping
+            (``snooping_guard.n_trials_from_history()``) au lieu d'une constante
+            en dur — chaque ``read_oos()` enregistré compte comme un essai.
+            Passer un entier explicite reste possible (override).
 
     Returns:
         EdgeReport avec go=True si et seulement si TOUS les critères passent.
     """
+    if n_trials is None:
+        # Fix C4 — n_trials ne doit JAMAIS être une constante en dur : on le
+        # dérive du nombre de lectures OOS effectivement enregistrées.
+        from app.testing.snooping_guard import n_trials_from_history
+
+        n_trials = n_trials_from_history()
+
     reasons: list[str] = []
     metrics: dict[str, float] = {}
 
