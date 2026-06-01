@@ -10,6 +10,7 @@ from app.strategies.pairs_trading import (
     compute_rolling_beta,
     compute_spread,
     compute_zscore,
+    simulate_pairs_honest,
     simulate_pairs_trades,
 )
 
@@ -231,4 +232,113 @@ class TestSimulatePairsTrades:
             time_stop_trades = [t for t in trades if t["exit_reason"] == "time_stop"]
             assert len(time_stop_trades) >= 1
             for t in time_stop_trades:
+                assert t["bars_held"] <= 20
+
+
+# ─────────────────────────────────────────────────────────────────────
+# simulate_pairs_honest (variante Phase 1 — fill honnête + dollar-neutral)
+# ─────────────────────────────────────────────────────────────────────
+
+
+def _df_distinct_open(close: pd.Series, open_offset: float = 0.997) -> pd.DataFrame:
+    """OHLCV où Open ≠ Close, pour distinguer un fill Open d'un fill Close."""
+    return pd.DataFrame({
+        "Open": close * open_offset,
+        "High": close * 1.001,
+        "Low": close * 0.996,
+        "Close": close,
+        "Volume": 100.0,
+    }, index=close.index)
+
+
+def _diverging_pair() -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Paire avec divergence injectée puis retour → produit des trades."""
+    a, b = _cointegrated_pair(n=400, seed=2)
+    a_vals = a.values.copy()
+    a_vals[150:200] += 0.05
+    a = pd.Series(a_vals, index=a.index)
+    return _df_distinct_open(a), _df_distinct_open(b)
+
+
+class TestSimulatePairsHonest:
+    def test_rejects_naive_index(self) -> None:
+        idx = pd.date_range("2024-01-01", periods=100, freq="4h")  # naive
+        df_a = pd.DataFrame({"Open": np.ones(100), "High": np.ones(100),
+                             "Low": np.ones(100), "Close": np.ones(100)}, index=idx)
+        df_b = df_a.copy()
+        with pytest.raises(ValueError, match="tz-aware"):
+            simulate_pairs_honest(df_a, df_b, _eurusd_config(), _gbpusd_config())
+
+    def test_no_trade_if_z_never_exceeds_entry(self) -> None:
+        cfg_a, cfg_b = _eurusd_config(), _gbpusd_config()
+        a, b = _cointegrated_pair(n=200, seed=1)
+        trades = simulate_pairs_honest(
+            _df_distinct_open(a), _df_distinct_open(b), cfg_a, cfg_b,
+            z_entry=5.0, z_exit=0.5,
+        )
+        assert len(trades) == 0
+
+    def test_entry_and_exit_fill_at_open(self) -> None:
+        """Fill honnête : prix d'entrée/sortie = Open de la barre exécutée."""
+        cfg_a, cfg_b = _eurusd_config(), _gbpusd_config()
+        df_a, df_b = _diverging_pair()
+        trades = simulate_pairs_honest(
+            df_a, df_b, cfg_a, cfg_b, z_entry=1.5, z_exit=0.3,
+        )
+        assert len(trades) >= 1
+        for t in trades:
+            entry_ts = pd.Timestamp(t["entry_time"])
+            exit_ts = pd.Timestamp(t["exit_time"])
+            # Le prix exécuté est l'Open (≠ Close) → confirme l'absence de
+            # fill au Close du signal.
+            assert t["entry_price_a"] == pytest.approx(df_a["Open"].loc[entry_ts])
+            assert t["exit_price_a"] == pytest.approx(df_a["Open"].loc[exit_ts])
+            assert exit_ts > entry_ts
+
+    def test_pips_net_aliases_net_eur(self) -> None:
+        cfg_a, cfg_b = _eurusd_config(), _gbpusd_config()
+        df_a, df_b = _diverging_pair()
+        trades = simulate_pairs_honest(df_a, df_b, cfg_a, cfg_b, z_entry=1.5, z_exit=0.3)
+        assert trades
+        for t in trades:
+            assert t["pips_net"] == t["pnl_eur_net"]
+
+    def test_internal_pnl_consistency(self) -> None:
+        """net = signal·(ret_a−ret_b)·N − coûts + swap, recalculé depuis les champs."""
+        cfg_a, cfg_b = _eurusd_config(), _gbpusd_config()
+        df_a, df_b = _diverging_pair()
+        n_eur = 10_000.0
+        trades = simulate_pairs_honest(
+            df_a, df_b, cfg_a, cfg_b, z_entry=1.5, z_exit=0.3,
+            notional_per_leg_eur=n_eur,
+        )
+        assert trades
+        for t in trades:
+            gross = t["signal"] * (t["ret_a"] - t["ret_b"]) * n_eur
+            assert t["pnl_eur_brut"] == pytest.approx(gross, rel=1e-9, abs=1e-6)
+            cost = (
+                cfg_a.total_cost_pips * cfg_a.pip_size / t["entry_price_a"]
+                + cfg_b.total_cost_pips * cfg_b.pip_size / t["entry_price_b"]
+            ) * n_eur
+            net = gross - cost + t["swap_eur"]
+            assert t["pnl_eur_net"] == pytest.approx(net, rel=1e-9, abs=1e-6)
+            assert t["cost_eur"] == pytest.approx(cost, rel=1e-9, abs=1e-6)
+
+    def test_time_stop_closes_long_running_trade(self) -> None:
+        cfg_a, cfg_b = _eurusd_config(), _gbpusd_config()
+        rng = np.random.default_rng(4)
+        n = 400
+        idx = pd.date_range("2024-01-01", periods=n, freq="4h", tz="UTC")
+        b = pd.Series(np.cumsum(rng.normal(0, 0.01, n)) + 1.3, index=idx)
+        a_vals = (0.85 * b).values.copy()
+        a_vals[150:] += np.linspace(0, 0.1, n - 150)  # divergence persistante
+        a = pd.Series(a_vals, index=idx)
+        trades = simulate_pairs_honest(
+            _df_distinct_open(a), _df_distinct_open(b), cfg_a, cfg_b,
+            z_entry=1.5, z_exit=0.3, time_stop_bars=20,
+        )
+        if trades:
+            ts_trades = [t for t in trades if t["exit_reason"] == "time_stop"]
+            assert len(ts_trades) >= 1
+            for t in ts_trades:
                 assert t["bars_held"] <= 20

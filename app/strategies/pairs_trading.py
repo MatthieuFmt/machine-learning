@@ -258,3 +258,180 @@ def simulate_pairs_trades(
         }},
     )
     return trades
+
+
+def simulate_pairs_honest(
+    df_a: pd.DataFrame,
+    df_b: pd.DataFrame,
+    asset_config_a: AssetConfig,
+    asset_config_b: AssetConfig,
+    *,
+    z_entry: float = 2.0,
+    z_exit: float = 0.5,
+    time_stop_bars: int = 30,
+    beta_lookback: int = 60,
+    zscore_lookback: int = 60,
+    notional_per_leg_eur: float = 10_000.0,
+    swap_scale: float = 1.0,
+) -> list[dict]:
+    """Pairs trading mean-reversion — variante HONNÊTE (Phase 1 recherche d'edge).
+
+    Corrige les deux optimismes de ``simulate_pairs_trades`` :
+
+    1. **Fill honnête** — le signal (z-score) est calculé sur ``Close[i]`` mais
+       l'exécution se fait à l'``Open[i+1]`` (on ne peut pas trader au prix de
+       clôture qui a généré le signal). Pas de look-ahead.
+    2. **Sizing équilibré (dollar-neutral)** — chaque jambe reçoit le MÊME
+       notionnel ``notional_per_leg_eur``. Le PnL est calculé en *rendement de
+       prix* (``Δprice/entry_price``), donc indépendant des conventions
+       pip_size/pip_value_eur : on évite la jambe argent qui écrase l'or ×10.
+
+    Convention spread = a − β·b, signal identique au module legacy :
+        - z > z_entry  → SHORT spread : short A, long  B (signal = −1)
+        - z < −z_entry → LONG  spread : long  A, short B (signal = +1)
+        - Exit : |z| < z_exit (mean_reversion) OU bars_held ≥ time_stop_bars.
+
+    β/z servent UNIQUEMENT de déclencheur ; le sizing reste dollar-neutral
+    (plus robuste qu'un sizing β qui dépendrait du β rolling bruité).
+
+    Coûts (par jambe, en fraction de prix) :
+        ``total_cost_pips × pip_size / entry_price`` (aller-retour) ; le swap
+        signé s'applique par nuit civile UTC sur les DEUX jambes (sur CFD on
+        paie le financement des deux côtés).
+
+    Args:
+        df_a, df_b: OHLCV indexés tz-aware UTC (colonne ``Open`` requise).
+        asset_config_a, asset_config_b: Configs broker des deux jambes.
+        z_entry, z_exit: Seuils d'entrée/sortie en σ.
+        time_stop_bars: Time-stop (nombre de bars depuis l'exécution d'entrée).
+        beta_lookback, zscore_lookback: Fenêtres rolling.
+        notional_per_leg_eur: Notionnel € par jambe (gross = 2× ; net ≈ 0).
+        swap_scale: Multiplicateur appliqué au swap (1.0 = swap réel ; 0.0 =
+            aucun swap, pour tester la sensibilité du verdict au coût de nuit).
+
+    Returns:
+        Liste de dicts trades. Chaque trade porte ``pnl_eur_net`` ET un alias
+        ``pips_net`` (= pnl_eur_net) pour ``sharpe_daily_from_trades``.
+        Une position encore ouverte en fin de données n'est PAS enregistrée.
+    """
+    if not isinstance(df_a.index, pd.DatetimeIndex):
+        raise TypeError("df_a.index doit être DatetimeIndex")
+    if df_a.index.tz is None or df_b.index.tz is None:
+        raise ValueError("df_a.index et df_b.index doivent être tz-aware (UTC)")
+    if "Open" not in df_a.columns or "Open" not in df_b.columns:
+        raise KeyError("df_a et df_b doivent contenir une colonne 'Open'")
+
+    common_idx = df_a.index.intersection(df_b.index)
+    if len(common_idx) < 2:
+        return []
+    df_a = df_a.loc[common_idx]
+    df_b = df_b.loc[common_idx]
+
+    close_a = df_a["Close"]
+    close_b = df_b["Close"]
+    beta = compute_rolling_beta(close_a, close_b, lookback=beta_lookback)
+    spread = compute_spread(close_a, close_b, beta)
+    z = compute_zscore(spread, lookback=zscore_lookback)
+
+    # Arrays pour un accès rapide (décision sur Close[i], exécution sur Open[i+1]).
+    open_a = df_a["Open"].to_numpy(dtype=float)
+    open_b = df_b["Open"].to_numpy(dtype=float)
+    z_arr = z.to_numpy(dtype=float)
+    beta_arr = beta.to_numpy(dtype=float)
+    ps_a, ps_b = asset_config_a.pip_size, asset_config_b.pip_size
+    cost_pips_a = asset_config_a.total_cost_pips
+    cost_pips_b = asset_config_b.total_cost_pips
+    n = len(common_idx)
+
+    trades: list[dict] = []
+    position = 0
+    entry_exec_bar = -1
+    entry_ts: pd.Timestamp | None = None
+    entry_a = entry_b = entry_z = entry_beta = 0.0
+
+    for i in range(n - 1):  # i = barre de DÉCISION ; exécution à i+1
+        zi = z_arr[i]
+
+        # ── Sortie (si position ouverte) ─────────────────────────────
+        if position != 0:
+            bars_held = i - entry_exec_bar
+            do_exit, reason = False, ""
+            if np.isfinite(zi) and abs(zi) <= z_exit:
+                do_exit, reason = True, "mean_reversion"
+            elif bars_held >= time_stop_bars:
+                do_exit, reason = True, "time_stop"
+
+            if do_exit:
+                exit_ts = common_idx[i + 1]
+                exit_a = open_a[i + 1]
+                exit_b = open_b[i + 1]
+                ret_a = (exit_a - entry_a) / entry_a
+                ret_b = (exit_b - entry_b) / entry_b
+                gross_eur = position * (ret_a - ret_b) * notional_per_leg_eur
+
+                cost_eur = (
+                    cost_pips_a * ps_a / entry_a + cost_pips_b * ps_b / entry_b
+                ) * notional_per_leg_eur
+
+                nights = max(0, (exit_ts.normalize() - entry_ts.normalize()).days)
+                if position == 1:  # long A, short B
+                    swap_pips_a = asset_config_a.swap_long_pips_per_night
+                    swap_pips_b = asset_config_b.swap_short_pips_per_night
+                else:              # short A, long B
+                    swap_pips_a = asset_config_a.swap_short_pips_per_night
+                    swap_pips_b = asset_config_b.swap_long_pips_per_night
+                swap_eur = nights * (
+                    swap_pips_a * ps_a / entry_a + swap_pips_b * ps_b / entry_b
+                ) * notional_per_leg_eur * swap_scale
+
+                net_eur = gross_eur - cost_eur + swap_eur
+                trades.append({
+                    "entry_time": entry_ts.isoformat(),
+                    "exit_time": exit_ts.isoformat(),
+                    "signal": position,
+                    "entry_zscore": float(entry_z),
+                    "exit_zscore": float(zi) if np.isfinite(zi) else float("nan"),
+                    "entry_beta": float(entry_beta),
+                    "entry_price_a": float(entry_a),
+                    "exit_price_a": float(exit_a),
+                    "entry_price_b": float(entry_b),
+                    "exit_price_b": float(exit_b),
+                    "ret_a": float(ret_a),
+                    "ret_b": float(ret_b),
+                    "pnl_eur_brut": float(gross_eur),
+                    "pnl_eur_net": float(net_eur),
+                    "pips_net": float(net_eur),  # alias pour sharpe_daily_from_trades
+                    "cost_eur": float(cost_eur),
+                    "swap_eur": float(swap_eur),
+                    "nights_held": int(nights),
+                    "bars_held": int(bars_held),
+                    "exit_reason": reason,
+                })
+                position = 0
+
+        # ── Entrée (si flat) ─────────────────────────────────────────
+        if position == 0:
+            bi = beta_arr[i]
+            if np.isfinite(zi) and np.isfinite(bi):
+                if zi > z_entry:
+                    position = -1
+                elif zi < -z_entry:
+                    position = 1
+                if position != 0:
+                    entry_exec_bar = i + 1
+                    entry_ts = common_idx[i + 1]
+                    entry_a = open_a[i + 1]
+                    entry_b = open_b[i + 1]
+                    entry_z = zi
+                    entry_beta = bi
+
+    logger.info(
+        "pairs_simulated_honest",
+        extra={"context": {
+            "n_trades": len(trades),
+            "n_bars": n,
+            "z_entry": z_entry, "z_exit": z_exit,
+            "time_stop_bars": time_stop_bars,
+        }},
+    )
+    return trades

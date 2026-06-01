@@ -367,11 +367,17 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
     ),
     # ── XAGUSD (Argent spot) ─────────────────────────────────────────────
     # v3: spread=30.0 + slippage=15.0 = 45.0  ← surestimation × 1285
-    # v4: spread XTB ≈ 0.025 USD, slippage mineure 0.5× ≈ 0.01
+    # v4: spread XTB ≈ 0.025 USD, slippage mineure 0.5× ≈ 0.0125 USD
     # ⚠️ pip_size = 0.001 (1 "pip" SILVER = 1 millième de USD)
+    # FIX (2026-05-30) — spread/slippage doivent être EN PIPS (×pip_size pour
+    # obtenir des USD), comme le swap. Les anciennes valeurs (0.025 / 0.01)
+    # étaient en USD → coût en prix = 0.025×0.001 ≈ 0.000025 USD, soit ~1000×
+    # trop faible (silver « gratuit »). Pour 0.025 USD de spread avec
+    # pip_size=0.001 il faut spread_pips=25 ; slippage 0.5× → 12.5.
+    # ⚠️ Toujours des estimations XTB — à confirmer en démo.
     "XAGUSD": AssetConfig(
-        spread_pips=0.025,
-        slippage_pips=0.01,
+        spread_pips=25.0,      # = 25 × 0.001 = 0.025 USD aller-retour
+        slippage_pips=12.5,    # = 0.0125 USD (mineure : 0.5 × spread)
         commission_pips=0.0,
         pip_size=0.001,        # 1 pip XTB SILVER = 0.001 USD (pipette)
         pip_value_eur=0.92,
@@ -480,9 +486,14 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
     ),
     # ── ETHUSD (Ethereum spot) — NOUVEAU C1, PROVISOIRE ──────────────────
     # ⚠️ PROVISOIRE — à valider en démo
+    # FIX (2026-06-01) — spread/slippage doivent être EN PIPS (×pip_size pour
+    # obtenir des USD), comme le swap (cf. même bug corrigé sur XAGUSD). Les
+    # anciennes valeurs (3.0 / 3.0) étaient en USD → coût en prix = 3×0.01 =
+    # 0.03 USD, ~100× trop faible. Pour 3 USD de spread avec pip_size=0.01 il
+    # faut spread_pips=300 ; slippage crypto 1.0× → 300. ⚠️ Estimations XTB.
     "ETHUSD": AssetConfig(
-        spread_pips=3.0,       # ≈ 3 USD spread typique
-        slippage_pips=3.0,     # crypto : 1.0× spread
+        spread_pips=300.0,     # = 300 × 0.01 = 3 USD spread typique
+        slippage_pips=300.0,   # = 3 USD (crypto : 1.0× spread)
         commission_pips=0.0,
         pip_size=0.01,         # 1 pip ETH = 0.01 USD (cotation au centime)
         pip_value_eur=0.92,

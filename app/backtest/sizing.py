@@ -7,6 +7,7 @@ Zéro dépendance circulaire.
 from __future__ import annotations
 
 import numpy as np
+import pandas as pd
 
 from app.config.instruments import AssetConfig
 
@@ -75,3 +76,40 @@ def expected_pnl_eur(
 def weight_centered(x: np.ndarray) -> np.ndarray:
     """Poids égal pour chaque trade (fallback quand aucun sizing spécifique n'est défini)."""
     return np.ones_like(x)
+
+
+def volatility_target_weights(
+    returns: pd.Series,
+    target_vol_annual: float = 0.10,
+    lookback: int = 60,
+    max_leverage: float = 3.0,
+    periods_per_year: int = 252,
+) -> pd.Series:
+    """Poids de *volatility targeting*, SANS look-ahead.
+
+    Mise à l'échelle de la position pour viser une volatilité constante : on
+    augmente l'exposition quand le marché est calme, on la réduit (voire ~0)
+    quand il est agité. Pour la date `t`, le poids appliqué au rendement de `t`
+    est calculé à partir de la volatilité réalisée sur les `lookback` rendements
+    JUSQU'À `t-1` (``.shift(1)``) — donc connu en début de période, pas de triche.
+
+    Formule : ``weight_t = clip(target_vol_annual / vol_réalisée_annualisée_t,
+    0, max_leverage)``.
+
+    Args:
+        returns: rendements périodiques (quotidiens recommandés), index temporel.
+        target_vol_annual: volatilité annualisée cible (0.10 = 10 %/an).
+        lookback: fenêtre (en périodes) de la volatilité réalisée.
+        max_leverage: plafond du poids (évite un levier absurde en très basse vol).
+        periods_per_year: facteur d'annualisation (252 pour daily).
+
+    Returns:
+        pd.Series de poids alignée sur `returns`. Les `lookback` premières valeurs
+        sont NaN (warmup) ; l'appelant les traite (drop ou 0).
+    """
+    if lookback < 2:
+        raise ValueError(f"lookback doit être >= 2, reçu {lookback}")
+    realized = returns.rolling(window=lookback, min_periods=lookback).std().shift(1)
+    realized_ann = (realized * np.sqrt(periods_per_year)).replace(0.0, np.nan)
+    weights = target_vol_annual / realized_ann
+    return weights.clip(lower=0.0, upper=max_leverage)

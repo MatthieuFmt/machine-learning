@@ -1,16 +1,4 @@
 {
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh"
-          }
-        ]
-      }
-    ]
-  },
   "permissions": {
     "allow": [
       "Bash(python -m pytest:*)",
@@ -31,7 +19,20 @@
       "Bash(find:*)",
       "Bash(head:*)",
       "Bash(tail:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "PowerShell($env:PYTHONUTF8='1'; .venv\\\\Scripts\\\\python.exe -m pytest tests/unit/test_opening_range.py tests/unit/test_pairs_trading.py -q)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh"
+          }
+        ]
+      }
     ]
   }
 }
