@@ -1,0 +1,57 @@
+//@version=6
+// ============================================================================
+//  INDICATEUR 1/2 — « Boussole de Tendance »  (à lire en DAILY)
+//  Rôle : donner la DIRECTION et un FEU vert / rouge / gris.
+//    - Vert  = tendance haussière + marché en mouvement -> cherche un ACHAT
+//    - Rouge = tendance baissière + marché en mouvement -> cherche une VENTE
+//    - Gris  = marché plat (range) -> NE PAS TRADER cette paire
+//  Stratégie : suivi de tendance, forex swing. À coupler avec l'indicateur 2.
+// ============================================================================
+indicator("Boussole de Tendance — Forex Swing", overlay = true)
+
+// ----------------------------- Entrées --------------------------------------
+emaFastLen = input.int(20,  "EMA rapide",  minval = 1, group = "Moyennes mobiles")
+emaMidLen  = input.int(50,  "EMA moyenne", minval = 1, group = "Moyennes mobiles")
+emaSlowLen = input.int(200, "EMA lente",   minval = 1, group = "Moyennes mobiles")
+adxLen     = input.int(14,  "Longueur ADX",            minval = 1, group = "Filtre de régime")
+adxThr     = input.float(25, "Seuil ADX (= tendance)", minval = 1, group = "Filtre de régime")
+showBg     = input.bool(true, "Colorer le fond",                   group = "Affichage")
+
+// ----------------------------- Calculs --------------------------------------
+emaFast = ta.ema(close, emaFastLen)
+emaMid  = ta.ema(close, emaMidLen)
+emaSlow = ta.ema(close, emaSlowLen)
+
+[diPlus, diMinus, adx] = ta.dmi(adxLen, adxLen)
+
+bull     = close > emaSlow and emaFast > emaMid      // tendance haussière
+bear     = close < emaSlow and emaFast < emaMid      // tendance baissière
+trending = adx > adxThr                              // marché en mouvement
+
+// ----------------------------- Tracés ---------------------------------------
+plot(emaFast, "EMA 20",  color = color.new(color.aqua,   0), linewidth = 1)
+plot(emaMid,  "EMA 50",  color = color.new(color.orange, 0), linewidth = 2)
+plot(emaSlow, "EMA 200", color = color.new(color.gray,   0), linewidth = 3)
+
+bgCol = bull and trending ? color.new(color.green, 88) :
+        bear and trending ? color.new(color.red,   88) : na
+bgcolor(showBg ? bgCol : na, title = "Fond régime")
+
+// ----------------------------- Tableau --------------------------------------
+var table t = table.new(position.top_right, 2, 3, border_width = 1)
+
+tendTxt = bull ? "HAUSSIÈRE" : bear ? "BAISSIÈRE" : "NEUTRE"
+tendCol = bull ? color.green : bear ? color.red   : color.gray
+regTxt  = trending ? "TREND" : "RANGE"
+regCol  = trending ? color.green : color.gray
+actTxt  = bull and trending ? "✅ Cherche un ACHAT" :
+          bear and trending ? "✅ Cherche une VENTE" : "⛔ Ne pas trader"
+actCol  = (bull or bear) and trending ? color.green : color.red
+
+if barstate.islast
+    table.cell(t, 0, 0, "Tendance", text_color = color.white, bgcolor = color.new(color.black, 0))
+    table.cell(t, 1, 0, tendTxt,    text_color = color.white, bgcolor = color.new(tendCol, 30))
+    table.cell(t, 0, 1, "ADX",      text_color = color.white, bgcolor = color.new(color.black, 0))
+    table.cell(t, 1, 1, str.tostring(adx, "#.0") + "  " + regTxt, text_color = color.white, bgcolor = color.new(regCol, 30))
+    table.cell(t, 0, 2, "Action",   text_color = color.white, bgcolor = color.new(color.black, 0))
+    table.cell(t, 1, 2, actTxt,     text_color = color.white, bgcolor = color.new(actCol, 20))

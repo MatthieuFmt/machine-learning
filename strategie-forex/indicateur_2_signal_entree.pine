@@ -1,0 +1,95 @@
+//@version=6
+// ============================================================================
+//  INDICATEUR 2/2 — « Signal d'Entrée + Risque »  (à lire en H4)
+//  Rôle : dire QUAND entrer et OÙ placer le Stop Loss / Take Profit.
+//    - Flèche verte (ACHAT)  = tendance haussière + repli + RSI repasse > 50
+//    - Flèche rouge (VENTE)  = tendance baissière + repli + RSI repasse < 50
+//    - Lignes + tableau : Entrée, SL (1.5 x ATR), TP (2 x le risque).
+//  À utiliser SEULEMENT dans le sens donné par l'indicateur 1 (Daily).
+// ============================================================================
+indicator("Signal d'Entrée + Risque — Forex Swing", overlay = true)
+
+// ----------------------------- Entrées --------------------------------------
+emaFastLen       = input.int(20, "EMA rapide (zone repli)",  minval = 1, group = "Tendance / repli")
+emaMidLen        = input.int(50, "EMA moyenne (zone repli)", minval = 1, group = "Tendance / repli")
+pullbackLookback = input.int(5,  "Fenêtre de repli (barres)", minval = 1, group = "Tendance / repli")
+rsiLen           = input.int(14,   "Longueur RSI",  minval = 1, group = "Déclencheur")
+rsiMid           = input.float(50, "Seuil RSI",                 group = "Déclencheur")
+atrLen           = input.int(14,    "Longueur ATR",        minval = 1,   group = "Risque")
+atrMult          = input.float(1.5, "Multiplicateur SL (x ATR)", minval = 0.1, group = "Risque")
+rr               = input.float(2.0, "Ratio R:R (pour le TP)",    minval = 0.1, group = "Risque")
+pipSize          = input.float(0.0001, "Taille d'un pip (EURUSD=0.0001, JPY=0.01, XAU=0.1)", group = "Risque")
+
+// ----------------------------- Calculs --------------------------------------
+emaFast = ta.ema(close, emaFastLen)
+emaMid  = ta.ema(close, emaMidLen)
+rsi     = ta.rsi(close, rsiLen)
+atr     = ta.atr(atrLen)
+
+bull = emaFast > emaMid
+bear = emaFast < emaMid
+
+// Repli : le prix est revenu DANS la zone EMA20-EMA50 récemment
+hiZone      = math.max(emaFast, emaMid)
+loZone      = math.min(emaFast, emaMid)
+touchedZone = low <= hiZone and high >= loZone
+pulledBack  = ta.barssince(touchedZone) <= pullbackLookback
+
+// Déclencheurs
+rsiCrossUp   = ta.crossover(rsi, rsiMid)
+rsiCrossDown = ta.crossunder(rsi, rsiMid)
+bullCandle   = close > open
+bearCandle   = close < open
+
+longSignal  = bull and pulledBack and rsiCrossUp   and bullCandle
+shortSignal = bear and pulledBack and rsiCrossDown and bearCandle
+
+// ----------------------------- Flèches --------------------------------------
+plotshape(longSignal,  title = "Achat", style = shape.triangleup,
+          location = location.belowbar, color = color.new(color.green, 0),
+          size = size.small, text = "ACHAT", textcolor = color.new(color.green, 0))
+plotshape(shortSignal, title = "Vente", style = shape.triangledown,
+          location = location.abovebar, color = color.new(color.red, 0),
+          size = size.small, text = "VENTE", textcolor = color.new(color.red, 0))
+
+// ----------------------------- SL / TP --------------------------------------
+var float entry = na
+var float sl    = na
+var float tp    = na
+var int   dir   = 0
+
+if longSignal
+    entry := close
+    sl    := close - atrMult * atr
+    tp    := close + atrMult * atr * rr
+    dir   := 1
+if shortSignal
+    entry := close
+    sl    := close + atrMult * atr
+    tp    := close - atrMult * atr * rr
+    dir   := -1
+
+plot(dir != 0 ? entry : na, "Entrée", color = color.new(color.blue,  0), style = plot.style_linebr, linewidth = 1)
+plot(dir != 0 ? sl    : na, "SL",     color = color.new(color.red,   0), style = plot.style_linebr, linewidth = 1)
+plot(dir != 0 ? tp    : na, "TP",     color = color.new(color.green, 0), style = plot.style_linebr, linewidth = 1)
+
+// ----------------------------- Tableau --------------------------------------
+var table t = table.new(position.bottom_right, 2, 6, border_width = 1)
+
+riskPips = na(entry) or na(sl) ? na : math.abs(entry - sl) / pipSize
+
+if barstate.islast and dir != 0
+    dirTxt = dir == 1 ? "ACHAT" : "VENTE"
+    dirCol = dir == 1 ? color.green : color.red
+    table.cell(t, 0, 0, "Dernier signal", text_color = color.white, bgcolor = color.new(dirCol, 20))
+    table.cell(t, 1, 0, dirTxt,           text_color = color.white, bgcolor = color.new(dirCol, 20))
+    table.cell(t, 0, 1, "Entrée", text_color = color.white, bgcolor = color.new(color.black, 0))
+    table.cell(t, 1, 1, str.tostring(entry, format.mintick), text_color = color.white, bgcolor = color.new(color.black, 0))
+    table.cell(t, 0, 2, "Stop Loss", text_color = color.white, bgcolor = color.new(color.black, 0))
+    table.cell(t, 1, 2, str.tostring(sl, format.mintick), text_color = color.white, bgcolor = color.new(color.red, 40))
+    table.cell(t, 0, 3, "Take Profit", text_color = color.white, bgcolor = color.new(color.black, 0))
+    table.cell(t, 1, 3, str.tostring(tp, format.mintick), text_color = color.white, bgcolor = color.new(color.green, 40))
+    table.cell(t, 0, 4, "Risque (pips)", text_color = color.white, bgcolor = color.new(color.black, 0))
+    table.cell(t, 1, 4, str.tostring(riskPips, "#.0"), text_color = color.white, bgcolor = color.new(color.black, 0))
+    table.cell(t, 0, 5, "Ratio R:R", text_color = color.white, bgcolor = color.new(color.black, 0))
+    table.cell(t, 1, 5, "1 : " + str.tostring(rr, "#.#"), text_color = color.white, bgcolor = color.new(color.black, 0))

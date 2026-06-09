@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stratégie Forex — Checklist Swing</title>
+<style>
+  :root{
+    --bg:#0e1117; --card:#161b22; --line:#30363d; --txt:#e6edf3; --muted:#8b949e;
+    --green:#2ea043; --green-d:#1a7f37; --red:#f85149; --blue:#388bfd; --gold:#d29922;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.45;padding:24px 16px 60px}
+  .wrap{max-width:780px;margin:0 auto}
+  header{text-align:center;margin-bottom:18px}
+  header h1{margin:0;font-size:24px}
+  header p{margin:4px 0 0;color:var(--muted);font-size:13px}
+
+  .chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:14px 0}
+  .chip{background:var(--card);border:1px solid var(--line);border-radius:20px;
+    padding:5px 12px;font-size:13px;font-weight:600}
+  .chip.star{border-color:var(--green);color:#7ee787}
+
+  .bar{display:flex;align-items:center;gap:12px;background:var(--card);
+    border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin:14px 0}
+  .bar .track{flex:1;height:8px;background:#0e1117;border-radius:6px;overflow:hidden}
+  .bar .fill{height:100%;width:0;background:var(--green);transition:width .2s}
+  .bar .count{font-size:13px;color:var(--muted);min-width:44px;text-align:right}
+  button{cursor:pointer;border:1px solid var(--line);background:#21262d;color:var(--txt);
+    border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600}
+  button:hover{border-color:var(--green)}
+
+  .step{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    margin:12px 0;overflow:hidden}
+  .step h2{margin:0;padding:12px 16px;font-size:15px;display:flex;align-items:center;gap:10px;
+    border-left:4px solid var(--blue);background:#1b222b}
+  .step .num{background:var(--blue);color:#fff;border-radius:50%;width:24px;height:24px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:13px;flex:0 0 auto}
+  .step .tf{margin-left:auto;font-size:11px;color:var(--muted);font-weight:500}
+  ul.checks{list-style:none;margin:0;padding:8px 16px 14px}
+  ul.checks li{display:flex;gap:10px;align-items:flex-start;padding:6px 0}
+  ul.checks input{width:18px;height:18px;margin-top:1px;accent-color:var(--green);flex:0 0 auto;cursor:pointer}
+  ul.checks label{cursor:pointer;font-size:14px}
+  ul.checks small{color:var(--muted)}
+  .hint{font-size:12px;color:var(--muted);padding:0 16px 12px}
+
+  .rules{background:#231a0c;border:1px solid var(--gold);border-radius:12px;padding:14px 18px;margin:18px 0}
+  .rules h2{margin:0 0 6px;font-size:15px;color:#e3b341}
+  .rules ul{margin:0;padding-left:18px}
+  .rules li{font-size:14px;padding:3px 0}
+
+  .calc{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:18px 0}
+  .calc h2{margin:0 0 10px;font-size:15px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .grid label{font-size:12px;color:var(--muted);display:block}
+  .grid input{width:100%;margin-top:3px;background:#0e1117;border:1px solid var(--line);
+    color:var(--txt);border-radius:8px;padding:8px;font-size:14px}
+  .out{margin-top:14px;display:flex;gap:12px;flex-wrap:wrap}
+  .out .box{flex:1;min-width:140px;background:#0e1117;border:1px solid var(--line);
+    border-radius:8px;padding:10px 12px}
+  .out .box .k{font-size:11px;color:var(--muted)}
+  .out .box .v{font-size:20px;font-weight:700;color:#7ee787}
+  .calc .note{font-size:11px;color:var(--muted);margin-top:10px}
+
+  details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:0 16px;margin:18px 0}
+  details summary{cursor:pointer;padding:14px 0;font-weight:600;font-size:14px}
+  details ol{margin:0 0 14px;padding-left:20px;font-size:14px;color:var(--muted)}
+  details code{background:#0e1117;padding:1px 5px;border-radius:4px;color:#7ee787}
+
+  .fund{background:#0d1b2a;border:1px solid var(--blue);border-radius:12px;padding:14px 18px;margin:12px 0}
+  .fund h2{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .fund h2 .opt{font-size:11px;color:var(--muted);font-weight:500}
+  .fund-note{font-size:12px;color:var(--muted);margin:0 0 12px}
+  .fund-controls{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+  .fund-controls label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
+  .fund-controls select{background:#0e1117;border:1px solid var(--line);color:var(--txt);
+    border-radius:8px;padding:8px 10px;font-size:14px;min-width:120px}
+  .fund-controls button{margin-left:auto}
+  .fund-controls button.copied{border-color:var(--green);color:#7ee787}
+  .fund ul.checks{padding:10px 0 0}
+
+  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:30px}
+  @media print{body{background:#fff;color:#000}.bar button,details{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>🎯 Stratégie Forex — Swing</h1>
+    <p>Tendance + repli · Analyse Daily → Entrée H4 · ~5–10 min/jour</p>
+  </header>
+
+  <div class="chips">
+    <span class="chip star">★ EUR/USD</span>
+    <span class="chip">GBP/USD</span>
+    <span class="chip">USD/JPY</span>
+    <span class="chip">XAU/USD (or)</span>
+  </div>
+
+  <div class="bar">
+    <div class="track"><div class="fill" id="fill"></div></div>
+    <span class="count" id="count">0 / 0</span>
+    <button id="reset">↺ Nouvelle analyse</button>
+  </div>
+
+  <!-- ÉTAPE 0 -->
+  <div class="step">
+    <h2><span class="num">0</span> Préparation</h2>
+    <ul class="checks">
+      <li><input type="checkbox" id="c0a"><label for="c0a">Paire choisie dans ma watchlist</label></li>
+      <li><input type="checkbox" id="c0b"><label for="c0b">Aucune grosse news dans l'heure <small>(NFP, FOMC, CPI — vérifié sur le calendrier économique)</small></label></li>
+    </ul>
+  </div>
+
+  <!-- ÉTAPE 1 -->
+  <div class="step">
+    <h2><span class="num">1</span> Tendance <span class="tf">graphique DAILY · indicateur 1</span></h2>
+    <ul class="checks">
+      <li><input type="checkbox" id="c1a"><label for="c1a">Je suis bien en <b>Daily (D1)</b></label></li>
+      <li><input type="checkbox" id="c1b"><label for="c1b">Le fond est <b style="color:#2ea043">VERT</b> (achat) ou <b style="color:#f85149">ROUGE</b> (vente) <small>— si gris, je passe à une autre paire</small></label></li>
+      <li><input type="checkbox" id="c1c"><label for="c1c">Le tableau affiche <b>ADX &gt; 25 → TREND</b> <small>— sinon, marché plat, je passe</small></label></li>
+      <li><input type="checkbox" id="c1d"><label for="c1d">Je note le sens autorisé : <b>ACHAT</b> ou <b>VENTE</b> uniquement</label></li>
+    </ul>
+  </div>
+
+  <!-- ÉTAPE 2 -->
+  <div class="step">
+    <h2><span class="num">2</span> Repli <span class="tf">graphique H4</span></h2>
+    <ul class="checks">
+      <li><input type="checkbox" id="c2a"><label for="c2a">Je passe en <b>H4</b></label></li>
+      <li><input type="checkbox" id="c2b"><label for="c2b">Le prix <b>recule</b> et revient toucher la zone <b>EMA 20–50</b> <small>(la zone entre les 2 moyennes mobiles)</small></label></li>
+    </ul>
+    <div class="hint">💡 On n'achète jamais au sommet : on attend que le prix « respire » et revienne vers la moyenne.</div>
+  </div>
+
+  <!-- ÉTAPE 3 -->
+  <div class="step">
+    <h2><span class="num">3</span> Déclencheur <span class="tf">graphique H4 · indicateur 2</span></h2>
+    <ul class="checks">
+      <li><input type="checkbox" id="c3a"><label for="c3a">Une <b>flèche</b> apparaît <small>(verte = achat / rouge = vente)</small></label></li>
+      <li><input type="checkbox" id="c3b"><label for="c3b">La flèche va dans le <b>même sens</b> que la tendance Daily de l'étape 1</label></li>
+    </ul>
+  </div>
+
+  <!-- FILTRE FONDAMENTAL -->
+  <div class="fund">
+    <h2>🧠 Filtre fondamental <span class="opt">optionnel · IA connectée au web</span></h2>
+    <p class="fund-note">L'IA sert <b>uniquement à repérer une grosse news</b>, jamais à décider du sens. La date du jour est ajoutée automatiquement au copier.</p>
+    <div class="fund-controls">
+      <div>
+        <label>Paire</label>
+        <select id="fundPair">
+          <option>EUR/USD</option>
+          <option>GBP/USD</option>
+          <option>USD/JPY</option>
+          <option>XAU/USD</option>
+        </select>
+      </div>
+      <div>
+        <label>Sens du trade</label>
+        <select id="fundDir">
+          <option>ACHAT</option>
+          <option>VENTE</option>
+        </select>
+      </div>
+      <button id="copyPrompt">📋 Copier le prompt</button>
+    </div>
+    <ul class="checks">
+      <li><input type="checkbox" id="cfund"><label for="cfund">Verdict IA = <b>CONTEXTE-OK</b> <small>(si « ATTENDRE » → je ne trade pas)</small></label></li>
+    </ul>
+  </div>
+
+  <!-- ÉTAPE 4 -->
+  <div class="step">
+    <h2><span class="num">4</span> Risque &amp; ordre <span class="tf">avant de cliquer</span></h2>
+    <ul class="checks">
+      <li><input type="checkbox" id="c4a"><label for="c4a"><b>SL</b> = ligne rouge de l'indicateur <small>(ou sous le dernier creux / au-dessus du dernier sommet)</small></label></li>
+      <li><input type="checkbox" id="c4b"><label for="c4b"><b>TP</b> = ligne verte de l'indicateur <small>(2× le risque, ratio 1:2)</small></label></li>
+      <li><input type="checkbox" id="c4c"><label for="c4c">Taille de lot calculée pour <b>risquer ≤ 1%</b> <small>(calculateur ci-dessous)</small></label></li>
+      <li><input type="checkbox" id="c4d"><label for="c4d">Ordre placé : <b>Entrée + SL + TP</b> ensemble</label></li>
+    </ul>
+  </div>
+
+  <!-- ÉTAPE 5 -->
+  <div class="step">
+    <h2><span class="num">5</span> Gestion <span class="tf">une fois en trade</span></h2>
+    <ul class="checks">
+      <li><input type="checkbox" id="c5a"><label for="c5a">Je <b>ne touche plus</b> au trade</label></li>
+      <li><input type="checkbox" id="c5b"><label for="c5b">(Optionnel) SL déplacé à mon prix d'entrée une fois <b>+1R</b> atteint <small>= trade « sans risque »</small></label></li>
+      <li><input type="checkbox" id="c5c"><label for="c5c">Pas de sortie de panique</label></li>
+    </ul>
+  </div>
+
+  <!-- ÉTAPE 6 -->
+  <div class="step">
+    <h2><span class="num">6</span> Journal <span class="tf">après le trade</span></h2>
+    <ul class="checks">
+      <li><input type="checkbox" id="c6a"><label for="c6a">Noté : paire, sens, entrée/SL/TP, raison, résultat, capture d'écran</label></li>
+    </ul>
+  </div>
+
+  <!-- RÈGLES D'OR -->
+  <div class="rules">
+    <h2>⚖️ Règles d'or (non négociables)</h2>
+    <ul>
+      <li>≤ <b>1%</b> de risque par trade. Jamais plus.</li>
+      <li>Max <b>2–3 trades</b> ouverts en même temps.</li>
+      <li><b>Pas de revenge trading</b> (ne pas reprendre un trade après une perte par énervement).</li>
+      <li>Pas de setup clair = <b>pas de trade</b>. Attendre est une position.</li>
+      <li><b>Jamais</b> pendant une grosse news (NFP, FOMC, CPI).</li>
+    </ul>
+  </div>
+
+  <!-- CALCULATEUR -->
+  <div class="calc">
+    <h2>🧮 Calculateur de taille de position</h2>
+    <div class="grid">
+      <div><label>Capital (€)</label><input type="number" id="cap" value="1000" min="0" step="100"></div>
+      <div><label>Risque (%)</label><input type="number" id="risk" value="1" min="0" step="0.5"></div>
+      <div><label>Stop Loss (pips)</label><input type="number" id="sl" value="30" min="1" step="1"></div>
+      <div><label>Valeur du pip / lot (€)</label><input type="number" id="pip" value="10" min="0.01" step="0.1"></div>
+    </div>
+    <div class="out">
+      <div class="box"><div class="k">Montant risqué</div><div class="v" id="outRisk">—</div></div>
+      <div class="box"><div class="k">Taille de position</div><div class="v" id="outLot">—</div></div>
+    </div>
+    <p class="note">Valeur du pip ≈ 10 € pour 1 lot standard (EUR/USD). Pour 0,10 lot ≈ 1 €/pip, etc. Ajuste si besoin (paires JPY, or…).</p>
+  </div>
+
+  <!-- INSTALLATION -->
+  <details>
+    <summary>⚙️ Comment installer les 2 indicateurs sur TradingView</summary>
+    <ol>
+      <li>Ouvre TradingView → en bas, onglet <code>Pine Editor</code>.</li>
+      <li>Copie tout le contenu de <code>indicateur_1_boussole_tendance.pine</code> → colle → clique <code>Add to chart</code>.</li>
+      <li>Recommence avec <code>indicateur_2_signal_entree.pine</code>.</li>
+      <li>Indicateur 1 → à lire en <b>Daily</b> · Indicateur 2 → à lire en <b>H4</b>.</li>
+    </ol>
+  </details>
+
+  <footer>Discipline &gt; prédiction. Suis la checklist, à chaque trade. 📈</footer>
+
+</div>
+
+<script>
+  const KEY = "forex_checklist_v1";
+  const boxes = Array.from(document.querySelectorAll('ul.checks input[type=checkbox]'));
+  const fill = document.getElementById('fill');
+  const count = document.getElementById('count');
+
+  function load(){
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch(e){}
+    boxes.forEach(b => b.checked = !!saved[b.id]);
+    update();
+  }
+  function save(){
+    const obj = {};
+    boxes.forEach(b => obj[b.id] = b.checked);
+    localStorage.setItem(KEY, JSON.stringify(obj));
+  }
+  function update(){
+    const done = boxes.filter(b => b.checked).length;
+    fill.style.width = (boxes.length ? (done/boxes.length*100) : 0) + '%';
+    count.textContent = done + ' / ' + boxes.length;
+  }
+  boxes.forEach(b => b.addEventListener('change', () => { save(); update(); }));
+  document.getElementById('reset').addEventListener('click', () => {
+    boxes.forEach(b => b.checked = false);
+    localStorage.removeItem(KEY);
+    update();
+  });
+
+  // Calculateur
+  const ids = ['cap','risk','sl','pip'].map(i => document.getElementById(i));
+  function calc(){
+    const [cap, risk, sl, pip] = ids.map(el => parseFloat(el.value));
+    const riskAmount = cap * risk / 100;
+    const lots = (sl > 0 && pip > 0) ? riskAmount / (sl * pip) : 0;
+    document.getElementById('outRisk').textContent =
+      isFinite(riskAmount) ? riskAmount.toFixed(2) + ' €' : '—';
+    document.getElementById('outLot').textContent =
+      isFinite(lots) && lots > 0 ? lots.toFixed(2) + ' lot' : '—';
+  }
+  ids.forEach(el => el.addEventListener('input', calc));
+
+  // Filtre fondamental — prompt à copier (date du jour auto)
+  const COPY_LABEL = '📋 Copier le prompt';
+  const copyBtn = document.getElementById('copyPrompt');
+  function buildPrompt(){
+    const date = new Date().toLocaleDateString('fr-FR',
+      {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+    const pair = document.getElementById('fundPair').value;
+    const dir  = document.getElementById('fundDir').value;
+    return `Tu es analyste macro forex. Nous sommes le ${date}.
+Utilise des données récentes (fais une recherche web).
+Paire : ${pair}. Trade envisagé : ${dir}. Horizon : quelques jours (swing).
+
+Réponds court et factuel :
+1. Événements à fort impact dans les 72h pour les 2 devises
+   (banques centrales, taux, NFP, CPI, FOMC) — avec dates/heures.
+2. Biais actuel de chaque banque centrale (hausse/pause/baisse des taux) — 1 ligne.
+3. Mon trade va-t-il CONTRE un gros catalyseur connu ? (oui/non + pourquoi)
+4. Verdict en 1 mot : ATTENDRE (gros événement imminent) ou CONTEXTE-OK.
+
+Ne me donne PAS de conseil d'achat/vente. Si tu n'as pas de données
+fiables et récentes, dis-le au lieu d'inventer.`;
+  }
+  function showCopied(){
+    copyBtn.textContent = '✓ Copié !';
+    copyBtn.classList.add('copied');
+    setTimeout(() => { copyBtn.textContent = COPY_LABEL; copyBtn.classList.remove('copied'); }, 1600);
+  }
+  function fallbackCopy(text){
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); showCopied(); } catch(e){ window.prompt('Copie ce texte :', text); }
+    document.body.removeChild(ta);
+  }
+  copyBtn.addEventListener('click', () => {
+    const text = buildPrompt();
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(showCopied, () => fallbackCopy(text));
+    } else {
+      fallbackCopy(text);
+    }
+  });
+
+  load();
+  calc();
+</script>
+</body>
+</html>
