@@ -421,27 +421,28 @@ class TestValidateEdgeDegenerate:
 
 
 class TestValidateEdgeDSRUsesHonestAnnualizedSharpe:
-    """Régression du bug DSR (USDJPY/H4).
+    """Régression du bug DSR (USDJPY/H4 puis ORB M5, fix 2026-06-09).
 
-    `deflated_sharpe` est calibrée pour un Sharpe ANNUALISÉ. Le bug n'était pas
-    l'annualisation, mais le fait d'annualiser ×√252 une equity PAR-TRADE basse
-    fréquence (~17 trades/an) → Sharpe gonflé à ~2.3 au lieu du vrai ~0.5 → DSR
-    faussement positif (+12.5). Le correctif : `validate_edge` part du Sharpe
-    annualisé HONNÊTE (`annualized_sharpe`, routé par fréquence) pour le critère
-    ET pour le DSR. On vérifie aussi l'absence de faux NÉGATIF (un bon Sharpe
-    doit donner DSR > 0).
+    Historique en deux temps : (1) annualiser ×√252 une equity PAR-TRADE basse
+    fréquence gonflait le Sharpe (~2.3 au lieu de ~0.5) → DSR faussement
+    positif ; (2) le « correctif » passait le Sharpe ANNUALISÉ au DSR avec
+    n_obs = nb de trades → z gonflé jusqu'à ×√252 (artefact « ORB +11.29 »).
+    Fix canonique : le DSR reçoit le Sharpe PAR PÉRIODE (mean/std brut), avec
+    SR₀ mis à l'échelle σ_SR — un bon Sharpe reste détectable (pas de faux
+    négatif, cf. test_good_sharpe_gives_positive_dsr). Le critère 1 (≥ 1.0)
+    reste sur le Sharpe annualisé honnête.
     """
 
     @staticmethod
     def _per_trade_equity() -> pd.Series:
-        """Equity par-trade : Sharpe par-trade ≈ 0.14 → ×√252 ≈ 2.3 (valeur buggée)."""
+        """Equity par-trade : Sharpe par-trade ≈ 0.14 (42 trades, ~18/an)."""
         r = np.array([0.012, -0.009] * 21)  # 42 retours par-trade alternés
         equity = 100.0 * np.cumprod(np.concatenate([[1.0], 1.0 + r]))
         return pd.Series(
             equity, index=pd.date_range("2024-01-01", periods=len(equity), freq="20D")
         )
 
-    def test_dsr_from_honest_sharpe_not_inflated(self) -> None:
+    def test_dsr_from_per_period_sharpe_not_inflated(self) -> None:
         equity = self._per_trade_equity()
         trades = pd.DataFrame({"pnl": equity.diff().dropna().to_numpy()})
         honest_ann = 0.52  # Sharpe annualisé honnête (médiocre)
@@ -449,23 +450,47 @@ class TestValidateEdgeDSRUsesHonestAnnualizedSharpe:
 
         pr = equity.pct_change().dropna()
         skew, kurt = float(pr.skew()), float(pr.kurtosis()) + 3.0
-        expected, _ = deflated_sharpe(honest_ann, 39, len(pr), skew, kurt)
-        inflated = sharpe_ratio(pr, freq=252)  # ~2.3 : la valeur du bug
-        buggy, _ = deflated_sharpe(inflated, 39, len(pr), skew, kurt)
+        sr_pp = float(pr.mean() / pr.std(ddof=1))  # ≈ 0.14 par trade
+        expected, _ = deflated_sharpe(sr_pp, 39, len(pr), skew, kurt)
 
-        # Le critère ET le DSR partent du Sharpe annualisé honnête.
+        # Le critère 1 part du Sharpe annualisé honnête…
         assert report.metrics["sharpe"] == pytest.approx(honest_ann)
+        # …le DSR part du Sharpe PAR PÉRIODE (canonique).
+        assert report.metrics["sharpe_per_period"] == pytest.approx(sr_pp)
         assert report.metrics["dsr"] == pytest.approx(expected, abs=1e-9)
-        # Un Sharpe honnête médiocre → DSR non significatif (≤ 0)…
+        # 42 trades à SR/trade 0.14 après 39 essais → non significatif.
         assert report.metrics["dsr"] < 0.0
-        # …alors que le bug aurait donné un DSR POSITIF (faux edge).
-        assert buggy > 0.0
+
+        # L'ancien chemin (Sharpe annualisé avec n_obs = nb de trades) donnait
+        # un z plus haut : c'est l'inflation qu'on ne reproduit plus.
+        buggy_ann, _ = deflated_sharpe(honest_ann, 39, len(pr), skew, kurt)
+        assert buggy_ann > report.metrics["dsr"]
+
+    def test_primary_evidence_metrics_present(self) -> None:
+        """t-test par période + bootstrap : présents et cohérents."""
+        equity = self._per_trade_equity()
+        trades = pd.DataFrame({"pnl": equity.diff().dropna().to_numpy()})
+        report = validate_edge(
+            equity, trades, n_trials=1, annualized_sharpe=0.52, bootstrap_iter=200
+        )
+        pr = equity.pct_change().dropna()
+        sr_pp = float(pr.mean() / pr.std(ddof=1))
+        expected_t = sr_pp * np.sqrt(len(pr))
+        assert report.metrics["t_stat"] == pytest.approx(expected_t, rel=1e-9)
+        assert 0.0 <= report.metrics["p_t"] <= 1.0
+        assert 0.0 <= report.metrics["p_bootstrap"] <= 1.0
+
+        # bootstrap désactivable
+        no_boot = validate_edge(
+            equity, trades, n_trials=1, annualized_sharpe=0.52, bootstrap_iter=0
+        )
+        assert np.isnan(no_boot.metrics["p_bootstrap"])
 
     def test_good_sharpe_gives_positive_dsr(self) -> None:
-        """Garde-fou anti-faux-négatif : un Sharpe annualisé élevé → DSR > 0.
+        """Garde-fou anti-faux-négatif : un vrai bon historique → DSR > 0.
 
-        (L'ancien correctif « par-période » cassait ça en rejetant même les
-        bonnes stratégies.)
+        (Un précédent correctif « par-période » sans mise à l'échelle de SR₀
+        rejetait même les bonnes stratégies ; le SR₀ canonique ne le fait pas.)
         """
         equity = _random_walk_equity(n=600, drift=0.001, vol=0.01, seed=1)
         trades = _synthetic_trades(n=200, wr=0.55, seed=1)

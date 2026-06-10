@@ -7,9 +7,9 @@ même fenêtre (long de annonce−24h à annonce−1h) marche pour d'autres év�
 programmés : emploi US (NFP) et inflation (CPI), avec FOMC en témoin.
 
 Hypothèses PRÉ-ENREGISTRÉES (événements documentés), même discipline :
-coûts XTB + swap, Sharpe annualisé routé par fréquence, DSR (Sharpe annualisé
-honnête), test « bat-on une fenêtre 23h au hasard ? » (sépare l'effet du beta),
-n_trials = nb de couples (événement × actif) testés dans ce batch.
+coûts XTB + swap, Sharpe annualisé routé par fréquence, DSR canonique
+par-période (fix 2026-06-09), test « bat-on une fenêtre 23h au hasard ? »
+(sépare l'effet du beta), n_trials = cumul du registre anti-snooping.
 
 USAGE :
     python scripts/screen_event_drift.py
@@ -29,6 +29,7 @@ from app.analysis.edge_validation import validate_edge  # noqa: E402
 from app.backtest.metrics import sharpe_daily_from_trades  # noqa: E402
 from app.config.instruments import ASSET_CONFIGS  # noqa: E402
 from app.data.loader import load_asset  # noqa: E402
+from app.research.edge_harness import record_and_resolve_n_trials  # noqa: E402
 from app.strategies.pre_fomc_drift import (  # noqa: E402
     load_fomc_announcement_times,
     simulate_pre_fomc_trades,
@@ -71,8 +72,6 @@ def main() -> int:
     args = parser.parse_args()
 
     assets = [a.strip() for a in args.assets.split(",") if a.strip()]
-    # Nb total de couples testés (pour la pénalité DSR de data-snooping).
-    n_trials = len(assets) * len(EVENTS)
 
     # Pré-charge les données (une fois par actif).
     data = {a: load_asset(a, args.tf, data_root=args.data_root)
@@ -99,16 +98,22 @@ def main() -> int:
                 continue
             equity, tdf = _equity_and_df(trades, cfg.pip_value_eur, args.capital)
             ann = sharpe_daily_from_trades(trades)
+            n_trials = record_and_resolve_n_trials(
+                prompt="screen_event_drift",
+                hypothesis=f"{asset}/{args.tf}:pre_{event_name}",
+                sharpe=ann,
+                n_trades=len(trades),
+            )
             rep = validate_edge(equity, tdf, n_trials=n_trials, annualized_sharpe=ann)
             gross = np.array([t["pips_brut"] for t in trades])
             mu_all, t_stat, pct = _beats_random(df, gross, cfg.pip_size)
             print(f"  {asset}: Sharpe {ann:.2f}  DSR {rep.metrics['dsr']:.2f} "
                   f"(p={rep.metrics['p_value']:.2f})  WR {float((np.array([t['pips_net'] for t in trades])>0).mean()):.0%}  "
                   f"net€ {tdf['pnl'].sum():.0f}  | vs hasard +{gross.mean()-mu_all:.0f} pips "
-                  f"(t={t_stat:.2f}, pct={pct:.0f}%)  | GO={rep.go}")
+                  f"(t={t_stat:.2f}, pct={pct:.0f}%)  | GO={rep.go} [n_trials={n_trials}]")
         print()
 
-    print(f"(n_trials={n_trials} = {len(assets)} actifs × {len(EVENTS)} événements)")
+    print("(n_trials lu du registre anti-snooping — 1 essai par couple événement×actif)")
     return 0
 
 

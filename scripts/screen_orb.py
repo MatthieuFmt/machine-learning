@@ -13,7 +13,8 @@ Discipline (cf. CLAUDE.md §5) :
     honnête). Stop = côté opposé de l'OR. Sortie EOD (pas de TP fixe).
   - Coûts XTB réels par trade ; swap ≈ 0 (intraday).
   - Sharpe annualisé routé par fréquence → ``validate_edge(annualized_sharpe=)``.
-  - Paramètres FIGÉS (aucun tuning). ``n_trials`` = nombre d'indices testés.
+  - Paramètres FIGÉS (aucun tuning). ``n_trials`` = cumul du registre
+    anti-snooping (chaque indice testé y est journalisé).
 
 ⚠️ Données H1 = range d'ouverture grossier (la littérature utilise du 5 min).
    Négatif ≠ enterre l'ORB fin ; positif = à reconfirmer en données fines.
@@ -40,6 +41,7 @@ from app.analysis.edge_validation import validate_edge  # noqa: E402
 from app.backtest.metrics import sharpe_daily_from_trades  # noqa: E402
 from app.config.instruments import ASSET_CONFIGS  # noqa: E402
 from app.data.loader import load_asset  # noqa: E402
+from app.research.edge_harness import record_and_resolve_n_trials  # noqa: E402
 from app.strategies.opening_range import simulate_orb_trades  # noqa: E402
 
 # Séances (figées) : (fuseau de la place, heure locale du range, dernière heure locale).
@@ -75,12 +77,11 @@ def main() -> int:
     args = parser.parse_args()
 
     assets = [a.strip() for a in args.assets.split(",") if a.strip()]
-    n_trials = len(assets)
 
     print("=" * 72)
     print(f"OPENING RANGE BREAKOUT (honnête) — {args.tf}, intraday flat la nuit")
-    print(f"OR = 1ʳᵉ heure de séance (locale), stop = côté opposé, sortie EOD")
-    print(f"Indices : {', '.join(assets)}   n_trials={n_trials}")
+    print("OR = 1ʳᵉ heure de séance (locale), stop = côté opposé, sortie EOD")
+    print(f"Indices : {', '.join(assets)}   n_trials : registre anti-snooping")
     print("=" * 72)
 
     any_go = False
@@ -110,6 +111,12 @@ def main() -> int:
         tpy = len(trades) / years
         ann_sharpe = sharpe_daily_from_trades(trades)
         equity, tdf = _equity_and_df(trades, cfg.pip_value_eur, args.capital)
+        n_trials = record_and_resolve_n_trials(
+            prompt="screen_orb",
+            hypothesis=f"{asset}/{args.tf}:orb_h1_session",
+            sharpe=ann_sharpe,
+            n_trades=len(trades),
+        )
         report = validate_edge(
             equity, tdf, n_trials=n_trials, annualized_sharpe=ann_sharpe
         )
@@ -123,7 +130,11 @@ def main() -> int:
         print(f"\n══ {asset}/{args.tf} ══ ({len(trades)} trades, {tpy:.0f}/an, tz {tz}, "
               f"{df.index.min().date()}→{df.index.max().date()})")
         print(f"  Sharpe annualisé : {ann_sharpe:.2f}   "
-              f"DSR : {report.metrics['dsr']:.2f} (p={report.metrics['p_value']:.3f})")
+              f"DSR : {report.metrics['dsr']:.2f} (p={report.metrics['p_value']:.3f})   "
+              f"[n_trials={n_trials}]")
+        print(f"  Preuves primaires : t/trade = {report.metrics['t_stat']:.2f} "
+              f"(p={report.metrics['p_t']:.3f})   p_bootstrap = "
+              f"{report.metrics['p_bootstrap']:.3f}")
         print(f"  MaxDD : {report.metrics['max_dd']:.1%}   WR : {report.metrics['wr']:.0%}   "
               f"trades/an : {report.metrics['trades_per_year']:.1f}")
         print(f"  PnL net : {tdf['pnl'].sum():+.0f} €   "

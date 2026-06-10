@@ -42,6 +42,7 @@ from app.analysis.edge_validation import validate_edge  # noqa: E402
 from app.backtest.metrics import sharpe_daily_from_trades  # noqa: E402
 from app.config.instruments import ASSET_CONFIGS  # noqa: E402
 from app.data.loader import load_asset  # noqa: E402
+from app.research.edge_harness import record_and_resolve_n_trials  # noqa: E402
 from app.strategies.pairs_trading import simulate_pairs_honest  # noqa: E402
 
 # Paramètres FIGÉS (pré-enregistrés) — ne PAS tuner.
@@ -83,8 +84,8 @@ def main() -> int:
     parser.add_argument("--data-root", default="data/raw", type=Path)
     parser.add_argument("--capital", default=10_000.0, type=float,
                         help="Notionnel € par jambe ET capital de référence.")
-    parser.add_argument("--n-trials", default=1, type=int,
-                        help="Essais DSR. 1 = hypothèse pré-enregistrée, paire unique.")
+    parser.add_argument("--n-trials", default=None, type=int,
+                        help="Essais DSR (défaut : cumul du registre anti-snooping).")
     parser.add_argument("--swap-scale", default=1.0, type=float,
                         help="Multiplicateur swap (1=réel, 0=sans swap pour test sensibilité).")
     parser.add_argument("--split-year", default=2020, type=int,
@@ -135,12 +136,17 @@ def main() -> int:
     tpy = len(trades) / years
     ann_sharpe = sharpe_daily_from_trades(trades)
     equity, tdf = _equity_and_df(trades, args.capital)
+    n_trials = args.n_trials if args.n_trials is not None else record_and_resolve_n_trials(
+        prompt="screen_pairs",
+        hypothesis=f"{a}-{b}/{args.tf}:z{Z_ENTRY}_{Z_EXIT}_swap{args.swap_scale:g}",
+        sharpe=ann_sharpe,
+        n_trades=len(trades),
+    )
     report = validate_edge(
-        equity, tdf, n_trials=args.n_trials, annualized_sharpe=ann_sharpe
+        equity, tdf, n_trials=n_trials, annualized_sharpe=ann_sharpe
     )
 
     net = float(tdf["pnl"].sum())
-    wins = float((tdf["pnl"] > 0).mean())
     n_mr = sum(1 for t in trades if t["exit_reason"] == "mean_reversion")
     n_ts = sum(1 for t in trades if t["exit_reason"] == "time_stop")
     mean_nights = float(np.mean([t["nights_held"] for t in trades]))
@@ -157,7 +163,10 @@ def main() -> int:
     print(f"\n── RÉSULTAT (tout l'historique, {len(trades)} trades, {tpy:.0f}/an) ──")
     print(f"  Sharpe annualisé : {ann_sharpe:.2f}   "
           f"DSR : {report.metrics['dsr']:.2f} (p={report.metrics['p_value']:.3f})   "
-          f"n_trials={args.n_trials}")
+          f"n_trials={n_trials}")
+    print(f"  Preuves primaires : t/trade = {report.metrics['t_stat']:.2f} "
+          f"(p={report.metrics['p_t']:.3f})   p_bootstrap = "
+          f"{report.metrics['p_bootstrap']:.3f}")
     print(f"  MaxDD : {report.metrics['max_dd']:.1%}   WR : {report.metrics['wr']:.0%}   "
           f"trades/an : {report.metrics['trades_per_year']:.1f}")
     print(f"  PnL net : {net:+.0f} €   (coûts cumulés {cost_total:.0f} € ; "

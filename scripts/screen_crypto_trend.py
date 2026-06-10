@@ -10,9 +10,9 @@ Discipline :
   - Coûts XTB réels (ETH corrigé) + swap signé/nuit + coût a/r à chaque
     retournement.
   - Vol-scaling sans look-ahead (vol jusqu'à t-1).
-  - DSR avec Sharpe annualisé honnête (retours quotidiens → √252).
+  - DSR canonique par-période (fix 2026-06-09, via screen_carry._metrics).
   - Paramètres FIGÉS : momentum 100 j, vol cible 20 %/an, fenêtre vol 60 j,
-    levier max 3×. n_trials = nb d'actifs.
+    levier max 3×. n_trials = cumul du registre anti-snooping.
 
 GO ssi : Sharpe ≥ 1 · DSR > 0 (p<0.05) · MaxDD < 15 %.
 
@@ -33,8 +33,20 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from app.backtest.sizing import volatility_target_weights  # noqa: E402
 from app.config.instruments import ASSET_CONFIGS  # noqa: E402
 from app.data.loader import load_asset  # noqa: E402
+from app.research.edge_harness import record_and_resolve_n_trials  # noqa: E402
 from app.strategies.crypto_trend import tsmom_daily_returns  # noqa: E402
 from scripts.screen_carry import _metrics  # noqa: E402
+
+
+def _resolve_n_trials(hypothesis: str, ret: pd.Series) -> int:
+    std = float(ret.std(ddof=1))
+    sr_ann = float(ret.mean()) / std * (252.0 ** 0.5) if std > 0 else 0.0
+    return record_and_resolve_n_trials(
+        prompt="screen_crypto_trend",
+        hypothesis=hypothesis,
+        sharpe=sr_ann,
+        n_trades=len(ret),
+    )
 
 
 def _equity(ret: pd.Series, capital: float) -> pd.Series:
@@ -44,6 +56,7 @@ def _equity(ret: pd.Series, capital: float) -> pd.Series:
 def _print_block(label: str, m: dict) -> bool:
     go = bool(m["sharpe"] >= 1.0 and m["dsr"] > 0 and m["p"] < 0.05 and m["maxdd"] < 0.15)
     print(f"  {label:<22} Sharpe {m['sharpe']:+.2f}   DSR {m['dsr']:+.2f} (p={m['p']:.3f})   "
+          f"t-jour {m['t']:+.2f} (p={m['p_t']:.3f})   "
           f"MaxDD {m['maxdd']:.0%}   Rendt/an {m['ann_return_pct']:+.1f}%   "
           f"{'✅ GO' if go else '❌'}")
     return go
@@ -62,12 +75,11 @@ def main() -> int:
     args = parser.parse_args()
 
     assets = [a.strip() for a in args.assets.split(",") if a.strip()]
-    n_trials = len(assets)
 
     print("=" * 78)
     print(f"TENDANCE CRYPTO (TSMOM {args.lookback} j) + VOL-TARGET — {args.tf}")
     print(f"vol cible {args.target_vol:.0%}/an · fenêtre vol {args.vol_lookback} j · "
-          f"levier max {args.max_leverage:g}× · n_trials={n_trials}")
+          f"levier max {args.max_leverage:g}× · n_trials : registre anti-snooping")
     print("=" * 78)
 
     nets: list[pd.Series] = []
@@ -88,13 +100,19 @@ def main() -> int:
         net = net.dropna()
         nets.append(net.rename(asset))
 
-        m_base = _metrics(net, _equity(net, args.capital), n_trials)
+        m_base = _metrics(
+            net, _equity(net, args.capital),
+            _resolve_n_trials(f"{asset}/{args.tf}:tsmom{args.lookback}", net),
+        )
         w = volatility_target_weights(
             net, target_vol_annual=args.target_vol,
             lookback=args.vol_lookback, max_leverage=args.max_leverage,
         )
         scaled = (w * net).dropna()
-        m_vt = _metrics(scaled, _equity(scaled, args.capital), n_trials)
+        m_vt = _metrics(
+            scaled, _equity(scaled, args.capital),
+            _resolve_n_trials(f"{asset}/{args.tf}:tsmom{args.lookback}_vt", scaled),
+        )
 
         pct_long = float((position > 0).mean())
         print(f"\n══ {asset}/{args.tf} ══ ({len(net)} jours, "
@@ -112,7 +130,12 @@ def main() -> int:
             lookback=args.vol_lookback, max_leverage=args.max_leverage,
         )
         scaled = (w * basket).dropna()
-        m_b = _metrics(scaled, _equity(scaled, args.capital), n_trials)
+        m_b = _metrics(
+            scaled, _equity(scaled, args.capital),
+            _resolve_n_trials(
+                f"basket[{','.join(assets)}]/{args.tf}:tsmom{args.lookback}_vt", scaled
+            ),
+        )
         print(f"\n══ PANIER {'+'.join(assets)} (vol-targeté) ══ ({len(basket)} jours)")
         any_go |= _print_block("Panier VOL-TARGET", m_b)
 

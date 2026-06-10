@@ -9,7 +9,10 @@ le différentiel de taux (encaissé via le swap), au prix d'un risque de krach
 Évaluation adaptée à une position CONTINUE (pas des trades discrets) :
   - rendement quotidien = variation spot du jour + swap × nuits détenues ;
   - Sharpe annualisé sur retours quotidiens (×√252, correct car retours daily) ;
-  - DSR avec Sharpe PAR-PÉRIODE (fix 2026-05-29), n_obs = nb de jours ;
+  - DSR canonique : Sharpe PAR-PÉRIODE quotidien NON annualisé (fix 2026-06-09 —
+    l'ancienne version passait le Sharpe ×√252 → z gonflé ×16), n_obs = nb de jours ;
+  - preuve primaire : t-test unilatéral sur les retours quotidiens ;
+  - n_trials = cumul du registre anti-snooping ;
   - décomposition spot-seul vs swap-seul vs total (le swap aide-t-il vraiment ?) ;
   - MaxDD (le talon d'Achille du carry) + stabilité pré/post.
 
@@ -26,14 +29,16 @@ import argparse
 import sys
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from scipy import stats as scipy_stats  # noqa: E402
+
 from app.analysis.edge_validation import deflated_sharpe, max_drawdown, sharpe_ratio  # noqa: E402
 from app.config.instruments import ASSET_CONFIGS  # noqa: E402
 from app.data.loader import load_asset  # noqa: E402
+from app.research.edge_harness import record_and_resolve_n_trials  # noqa: E402
 
 
 def _daily_carry_returns(df: pd.DataFrame, cfg, capital: float):
@@ -61,11 +66,21 @@ def _daily_carry_returns(df: pd.DataFrame, cfg, capital: float):
 def _metrics(ret: pd.Series, equity: pd.Series, n_trials: int) -> dict:
     r = ret.dropna()
     sr_ann = sharpe_ratio(r, freq=252)
-    # DSR : Sharpe ANNUALISÉ honnête (retours déjà quotidiens → √252 correct).
-    dsr, p = deflated_sharpe(sr_ann, n_trials=n_trials, n_obs=len(r),
+    # DSR canonique : Sharpe PAR PÉRIODE (quotidien NON annualisé) — fix
+    # 2026-06-09. L'ancienne version passait sr_ann (×√252) avec n_obs = nb de
+    # jours → z gonflé d'un facteur ~16.
+    std = float(r.std(ddof=1)) if len(r) >= 2 else 0.0
+    sr_daily = float(r.mean()) / std if std > 0.0 else 0.0
+    dsr, p = deflated_sharpe(sr_daily, n_trials=n_trials, n_obs=len(r),
                              skew=float(r.skew()), kurtosis=float(r.kurtosis()) + 3.0)
+    # Preuve primaire : t-test unilatéral H₁ E[retour quotidien] > 0.
+    if len(r) >= 2 and std > 0.0:
+        t_res = scipy_stats.ttest_1samp(r.values, 0.0, alternative="greater")
+        t_stat, p_t = float(t_res.statistic), float(t_res.pvalue)
+    else:
+        t_stat, p_t = float("nan"), float("nan")
     return {
-        "sharpe": sr_ann, "dsr": dsr, "p": p,
+        "sharpe": sr_ann, "dsr": dsr, "p": p, "t": t_stat, "p_t": p_t,
         "maxdd": max_drawdown(equity),
         "wr_days": float((r > 0).mean()),
         "ann_return_pct": float(r.mean() * 252 * 100),
@@ -82,7 +97,6 @@ def main() -> int:
     args = parser.parse_args()
 
     assets = [a.strip() for a in args.assets.split(",") if a.strip()]
-    n_trials = len(assets)
     basket_rets: list[pd.Series] = []
 
     for asset in assets:
@@ -98,6 +112,12 @@ def main() -> int:
 
         ret, ret_spot, ret_swap, equity = _daily_carry_returns(df, cfg, args.capital)
         basket_rets.append(ret.rename(asset))
+        n_trials = record_and_resolve_n_trials(
+            prompt="screen_carry",
+            hypothesis=f"{asset}/{args.tf}:carry_long_1x",
+            sharpe=sharpe_ratio(ret.dropna(), freq=252),
+            n_trades=len(ret.dropna()),
+        )
         m = _metrics(ret, equity, n_trials)
 
         # Sharpe spot-seul vs total (le swap aide-t-il ?)
@@ -112,7 +132,8 @@ def main() -> int:
         print(f"══ {asset}/{args.tf} ══ ({len(ret.dropna())} jours, "
               f"{df.index.min().date()}→{df.index.max().date()})")
         print(f"  Sharpe TOTAL : {m['sharpe']:.2f}   (spot seul : {sr_spot:.2f})   "
-              f"DSR : {m['dsr']:.2f} (p={m['p']:.3f})")
+              f"DSR : {m['dsr']:.2f} (p={m['p']:.3f})   "
+              f"t-jour : {m['t']:.2f} (p={m['p_t']:.3f})   [n_trials={n_trials}]")
         print(f"  Rendt/an : {m['ann_return_pct']:.1f}%   dont carry (swap) : {carry_pct:+.1f}%/an   "
               f"MaxDD : {m['maxdd']:.0%}")
         print(f"  Jours gagnants : {m['wr_days']:.0%}   "
@@ -126,10 +147,18 @@ def main() -> int:
         mat = pd.concat(basket_rets, axis=1, sort=True).dropna()
         bret = mat.mean(axis=1)
         beq = args.capital + (bret * args.capital).cumsum()
+        n_trials = record_and_resolve_n_trials(
+            prompt="screen_carry",
+            hypothesis=f"basket[{','.join(assets)}]/{args.tf}:carry_long_1x",
+            sharpe=sharpe_ratio(bret.dropna(), freq=252),
+            n_trades=len(bret.dropna()),
+        )
         m = _metrics(bret, beq, n_trials)
         print(f"══ PANIER équipondéré ({', '.join(assets)}) ══ ({len(bret)} jours)")
         print(f"  Sharpe : {m['sharpe']:.2f}   DSR : {m['dsr']:.2f} (p={m['p']:.3f})   "
-              f"Rendt/an : {m['ann_return_pct']:.1f}%   MaxDD : {m['maxdd']:.0%}")
+              f"t-jour : {m['t']:.2f} (p={m['p_t']:.3f})   "
+              f"Rendt/an : {m['ann_return_pct']:.1f}%   MaxDD : {m['maxdd']:.0%}   "
+              f"[n_trials={n_trials}]")
         go = (m['sharpe'] >= 1.0 and m['dsr'] > 0 and m['p'] < 0.05 and m['maxdd'] < 0.15)
         print(f"  GO : {go}")
 
