@@ -1,0 +1,223 @@
+//@version=6
+// ============================================================================
+//  INDICATEUR 2/2 v2 — « Signal d'Entrée + Risque »  (à lire en H4)
+//  Rôle : dire QUAND entrer et OÙ placer le Stop Loss / Take Profit.
+//
+//  NOUVEAU en v2 (vs indicateur_2_signal_entree.pine, conservé) :
+//    1. FILTRE DAILY INTÉGRÉ : la flèche n'apparaît que si la Boussole (D1)
+//       est d'accord. Plus besoin de changer de graphique = plus d'erreur
+//       d'alignement (c'était le principal risque humain de la stratégie).
+//       Anti-triche : on utilise le D1 de la VEILLE, déjà clôturé — la barre
+//       D1 du jour n'est pas finie, sa valeur changerait en cours de journée.
+//    2. SIGNAUX À LA CLÔTURE SEULEMENT (barstate.isconfirmed) : fini les
+//       flèches qui apparaissent puis disparaissent en cours de bougie.
+//    3. ALERTES avec Entrée/SL/TP dans le message → ton téléphone sonne,
+//       tu n'as plus à surveiller le graphique (l'« alerte Telegram » du
+//       projet, sans serveur).
+//    4. SL « structure » optionnel : sous le plus bas du repli (ce que le
+//       guide HTML conseillait de faire à la main).
+//    5. Taille de pip AUTOMATIQUE (fini les erreurs EURUSD vs JPY vs or).
+//    6. Niveau BREAK-EVEN (+1R) tracé + alerte quand il est atteint.
+//    7. Filtre de session optionnel (éviter les bougies de nuit, spread large).
+//    8. Tableau-checklist : chaque condition cochée en direct.
+// ============================================================================
+indicator("Signal d'Entrée + Risque v2 — Forex Swing", overlay = true)
+
+// ----------------------------- Entrées --------------------------------------
+emaFastLen       = input.int(20, "EMA rapide (zone repli)",  minval = 1, group = "Tendance / repli")
+emaMidLen        = input.int(50, "EMA moyenne (zone repli)", minval = 1, group = "Tendance / repli")
+pullbackLookback = input.int(5,  "Fenêtre de repli (barres)", minval = 1, group = "Tendance / repli")
+
+rsiLen = input.int(14,   "Longueur RSI", minval = 1, group = "Déclencheur")
+rsiMid = input.float(50, "Seuil RSI",                group = "Déclencheur")
+
+useD1Filter = input.bool(true, "Filtre Daily intégré (Boussole)", group = "Filtre Daily",
+     tooltip = "Achat seulement si le D1 de la veille est haussier (EMA20>50, Close>EMA200, ADX>seuil). Désactiver = comportement v1.")
+emaSlowD1 = input.int(200,  "EMA lente D1",   minval = 1, group = "Filtre Daily")
+adxLenD1  = input.int(14,   "Longueur ADX D1", minval = 1, group = "Filtre Daily")
+adxThrD1  = input.float(25, "Seuil ADX D1",   minval = 1, group = "Filtre Daily")
+
+atrLen  = input.int(14,    "Longueur ATR",            minval = 1,   group = "Risque")
+atrMult = input.float(1.5, "Multiplicateur SL (x ATR)", minval = 0.1, group = "Risque")
+rr      = input.float(2.0, "Ratio R:R (pour le TP)",    minval = 0.1, group = "Risque")
+slMode  = input.string("ATR", "Mode du Stop Loss", options = ["ATR", "Structure"], group = "Risque",
+     tooltip = "Structure = sous le plus bas du repli (au-dessus du plus haut pour une vente), avec une petite marge. Prend le plus prudent des deux.")
+slBufAtr = input.float(0.1, "Marge structure (x ATR)", minval = 0.0, group = "Risque")
+
+useSession = input.bool(false, "Limiter aux heures liquides", group = "Session",
+     tooltip = "Ignore les signaux des bougies de nuit (spread plus large, faux mouvements).")
+sessionStr = input.session("0700-2000", "Session (UTC)", group = "Session")
+
+autoPip = input.bool(true, "Taille de pip automatique", group = "Affichage",
+     tooltip = "Déduite de l'instrument (mintick × 10). Décocher pour saisir manuellement.")
+pipSizeManual = input.float(0.0001, "Taille d'un pip (si manuel)", group = "Affichage")
+showChecklist = input.bool(true, "Afficher la checklist", group = "Affichage")
+
+// ----------------------------- Calculs H4 -----------------------------------
+emaFast = ta.ema(close, emaFastLen)
+emaMid  = ta.ema(close, emaMidLen)
+rsi     = ta.rsi(close, rsiLen)
+atr     = ta.atr(atrLen)
+
+bull = emaFast > emaMid
+bear = emaFast < emaMid
+
+// Repli : le prix est revenu DANS la zone EMA20-EMA50 récemment
+hiZone      = math.max(emaFast, emaMid)
+loZone      = math.min(emaFast, emaMid)
+touchedZone = low <= hiZone and high >= loZone
+pulledBack  = ta.barssince(touchedZone) <= pullbackLookback
+
+// Déclencheurs
+rsiCrossUp   = ta.crossover(rsi, rsiMid)
+rsiCrossDown = ta.crossunder(rsi, rsiMid)
+bullCandle   = close > open
+bearCandle   = close < open
+
+// Plus bas / plus haut du repli (pour le SL « structure »)
+swingLow  = ta.lowest(low, pullbackLookback + 1)
+swingHigh = ta.highest(high, pullbackLookback + 1)
+
+// ----------------------------- Filtre Daily ---------------------------------
+// Régime D1 calculé sur la barre de la VEILLE ([1]) : valeur figée, identique
+// en historique et en temps réel → AUCUN repaint. (lookahead_on + [1] est le
+// duo classique « valeur confirmée d'hier ».)
+f_d1Regime() =>
+    emaF = ta.ema(close, emaFastLen)
+    emaM = ta.ema(close, emaMidLen)
+    emaS = ta.ema(close, emaSlowD1)
+    [_diP, _diM, adxV] = ta.dmi(adxLenD1, adxLenD1)
+    bullD = close > emaS and emaF > emaM and adxV > adxThrD1
+    bearD = close < emaS and emaF < emaM and adxV > adxThrD1
+    bullD ? 1 : bearD ? -1 : 0
+
+d1Regime = request.security(syminfo.tickerid, "D", f_d1Regime()[1],
+     lookahead = barmerge.lookahead_on)
+
+d1LongOk  = not useD1Filter or d1Regime == 1
+d1ShortOk = not useD1Filter or d1Regime == -1
+
+// ----------------------------- Session --------------------------------------
+inSession = not useSession or not na(time(timeframe.period, sessionStr, "UTC"))
+
+// ----------------------------- Signaux --------------------------------------
+longSetup  = bull and pulledBack and rsiCrossUp   and bullCandle and d1LongOk  and inSession
+shortSetup = bear and pulledBack and rsiCrossDown and bearCandle and d1ShortOk and inSession
+
+// Confirmés à la CLÔTURE de la bougie H4 (pas de clignotement intrabar)
+longSignal  = longSetup and barstate.isconfirmed
+shortSignal = shortSetup and barstate.isconfirmed
+
+// ----------------------------- Flèches --------------------------------------
+plotshape(longSignal,  title = "Achat", style = shape.triangleup,
+          location = location.belowbar, color = color.new(color.green, 0),
+          size = size.small, text = "ACHAT", textcolor = color.new(color.green, 0))
+plotshape(shortSignal, title = "Vente", style = shape.triangledown,
+          location = location.abovebar, color = color.new(color.red, 0),
+          size = size.small, text = "VENTE", textcolor = color.new(color.red, 0))
+
+// ----------------------------- SL / TP / BE ---------------------------------
+var float entry = na
+var float sl    = na
+var float tp    = na
+var float beLvl = na     // niveau +1R (déclencheur du passage à break-even)
+var int   dir   = 0
+var bool  beHit = false
+
+pipSize = autoPip ? syminfo.mintick * 10 : pipSizeManual
+
+if longSignal
+    entry := close
+    slAtr = close - atrMult * atr
+    slStr = swingLow - slBufAtr * atr
+    sl    := slMode == "ATR" ? slAtr : math.min(slAtr, slStr)  // le plus prudent
+    tp    := entry + (entry - sl) * rr
+    beLvl := entry + (entry - sl)
+    dir   := 1
+    beHit := false
+if shortSignal
+    entry := close
+    slAtr = close + atrMult * atr
+    slStr = swingHigh + slBufAtr * atr
+    sl    := slMode == "ATR" ? slAtr : math.max(slAtr, slStr)
+    tp    := entry - (sl - entry) * rr
+    beLvl := entry - (sl - entry)
+    dir   := -1
+    beHit := false
+
+// Break-even : +1R atteint (sur bougie clôturée) → alerte « SL à l'entrée »
+beReachedNow = barstate.isconfirmed and dir != 0 and not beHit and
+     (dir == 1 ? high >= beLvl : low <= beLvl)
+if beReachedNow
+    beHit := true
+
+plot(dir != 0 ? entry : na, "Entrée", color = color.new(color.blue,  0), style = plot.style_linebr, linewidth = 1)
+plot(dir != 0 ? sl    : na, "SL",     color = color.new(color.red,   0), style = plot.style_linebr, linewidth = 1)
+plot(dir != 0 ? tp    : na, "TP",     color = color.new(color.green, 0), style = plot.style_linebr, linewidth = 1)
+plot(dir != 0 ? beLvl : na, "+1R (break-even)", color = color.new(color.purple, 40),
+     style = plot.style_linebr, linewidth = 1)
+
+// ----------------------------- Alertes --------------------------------------
+alertcondition(longSignal,   "Signal ACHAT (clôture H4)",  "ACHAT confirmé — Entrée/SL/TP sur le graphique")
+alertcondition(shortSignal,  "Signal VENTE (clôture H4)",  "VENTE confirmée — Entrée/SL/TP sur le graphique")
+alertcondition(beReachedNow, "Break-even (+1R) atteint",   "+1R atteint — envisager SL au prix d'entrée")
+
+if longSignal or shortSignal
+    dirTxt = longSignal ? "ACHAT" : "VENTE"
+    alert(dirTxt + " " + syminfo.ticker
+         + "  Entrée=" + str.tostring(entry, format.mintick)
+         + "  SL=" + str.tostring(sl, format.mintick)
+         + "  TP=" + str.tostring(tp, format.mintick)
+         + "  Risque=" + str.tostring(math.abs(entry - sl) / pipSize, "#.0") + " pips",
+         alert.freq_once_per_bar_close)
+if beReachedNow
+    alert("+1R atteint sur " + syminfo.ticker + " — envisager SL à l'entrée ("
+         + str.tostring(entry, format.mintick) + ")", alert.freq_once_per_bar_close)
+
+// ----------------------------- Tableau --------------------------------------
+var table t = table.new(position.bottom_right, 2, 12, border_width = 1)
+
+riskPips = na(entry) or na(sl) ? na : math.abs(entry - sl) / pipSize
+
+f_check(ok) =>
+    ok ? "✓" : "✗"
+f_checkCol(ok) =>
+    ok ? color.new(color.green, 40) : color.new(color.gray, 60)
+
+if barstate.islast
+    // — Checklist en direct (l'indicateur devient la checklist du guide HTML)
+    if showChecklist
+        table.cell(t, 0, 0, "CHECKLIST", text_color = color.white, bgcolor = color.new(color.black, 0))
+        table.cell(t, 1, 0, bull ? "mode ACHAT" : bear ? "mode VENTE" : "—",
+             text_color = color.white, bgcolor = color.new(color.black, 0))
+        d1Ok = bull ? d1LongOk : bear ? d1ShortOk : false
+        table.cell(t, 0, 1, "1. Daily aligné",  text_color = color.white, bgcolor = color.new(color.black, 0))
+        table.cell(t, 1, 1, f_check(d1Ok),       text_color = color.white, bgcolor = f_checkCol(d1Ok))
+        table.cell(t, 0, 2, "2. Tendance H4",    text_color = color.white, bgcolor = color.new(color.black, 0))
+        table.cell(t, 1, 2, f_check(bull or bear), text_color = color.white, bgcolor = f_checkCol(bull or bear))
+        table.cell(t, 0, 3, "3. Repli zone EMA", text_color = color.white, bgcolor = color.new(color.black, 0))
+        table.cell(t, 1, 3, f_check(pulledBack), text_color = color.white, bgcolor = f_checkCol(pulledBack))
+        table.cell(t, 0, 4, "4. RSI vs 50",      text_color = color.white, bgcolor = color.new(color.black, 0))
+        rsiOk = bull ? rsi > rsiMid : bear ? rsi < rsiMid : false
+        table.cell(t, 1, 4, f_check(rsiOk) + "  (" + str.tostring(rsi, "#.0") + ")",
+             text_color = color.white, bgcolor = f_checkCol(rsiOk))
+        table.cell(t, 0, 5, "5. Session",        text_color = color.white, bgcolor = color.new(color.black, 0))
+        table.cell(t, 1, 5, f_check(inSession),  text_color = color.white, bgcolor = f_checkCol(inSession))
+
+    // — Dernier signal
+    if dir != 0
+        dirTxt = dir == 1 ? "ACHAT" : "VENTE"
+        dirCol = dir == 1 ? color.green : color.red
+        table.cell(t, 0, 6, "Dernier signal", text_color = color.white, bgcolor = color.new(dirCol, 20))
+        table.cell(t, 1, 6, dirTxt,           text_color = color.white, bgcolor = color.new(dirCol, 20))
+        table.cell(t, 0, 7, "Entrée", text_color = color.white, bgcolor = color.new(color.black, 0))
+        table.cell(t, 1, 7, str.tostring(entry, format.mintick), text_color = color.white, bgcolor = color.new(color.black, 0))
+        table.cell(t, 0, 8, "Stop Loss (" + slMode + ")", text_color = color.white, bgcolor = color.new(color.black, 0))
+        table.cell(t, 1, 8, str.tostring(sl, format.mintick), text_color = color.white, bgcolor = color.new(color.red, 40))
+        table.cell(t, 0, 9, "Take Profit", text_color = color.white, bgcolor = color.new(color.black, 0))
+        table.cell(t, 1, 9, str.tostring(tp, format.mintick), text_color = color.white, bgcolor = color.new(color.green, 40))
+        table.cell(t, 0, 10, "Risque (pips)", text_color = color.white, bgcolor = color.new(color.black, 0))
+        table.cell(t, 1, 10, str.tostring(riskPips, "#.0"), text_color = color.white, bgcolor = color.new(color.black, 0))
+        table.cell(t, 0, 11, "R:R  /  +1R", text_color = color.white, bgcolor = color.new(color.black, 0))
+        table.cell(t, 1, 11, "1:" + str.tostring(rr, "#.#") + (beHit ? "  ✅ BE atteint" : ""),
+             text_color = color.white, bgcolor = color.new(color.black, 0))
