@@ -1,6 +1,6 @@
 # Projet : Bot de Trading ML — CFD XTB → Alerte Telegram
 
-**Dernière mise à jour** : 2026-05-29 (refonte « bases saines » — audit complet v6+)
+**Dernière mise à jour** : 2026-06-09 (audit indépendant : bug « DSR ×√252 » découvert et CORRIGÉ ; les 3 « signaux réels » de `docs/signaux_reels_phase1.md` sont SUSPENDUS en attente de re-mesure ; stratégie manuelle TradingView portée en backtestable)
 **Mainteneur** : matthieu.fremont12@gmail.com
 
 > ⚠️ **CE FICHIER REMPLACE l'ancien `CLAUDE.md` (daté 2026-05-12, « EURUSD H1 / roadmap 7 steps »), qui était OBSOLÈTE.**
@@ -26,18 +26,19 @@ Construire un bot qui :
 
 **Aucun edge statistiquement valide n'a jamais été trouvé à ce jour.** C'est le point de départ honnête, établi par les propres post-mortems du projet (`docs/audit_final_post_mortem.md`, `docs/diagnostic_final_donchian_dead.md`, `docs/archive_v1/step_08_*`).
 
-Les deux seuls résultats « positifs » jamais affichés étaient des **artefacts de bugs** :
+Les TROIS seuls résultats « positifs » jamais affichés étaient des **artefacts de bugs** :
 
 | « Résultat » affiché | Réalité après correction des bugs |
 |---|---|
 | Donchian US30 D1 — **Sharpe walk-forward +8.84** (v2) | Artefact du simulateur « TP-prime » optimiste (bug F3) |
 | Portfolio v4 — **Sharpe +4.97 / DSR 19.5 (p=0.000)** | Après fix F1/F2/F3 → **Sharpe −5.42 / DSR −18.3 (p=1.000)** |
+| ORB US500 M5 — **DSR +11.29 (p=0.000)** avec Sharpe 0.17 (2026-05-30) | Artefact du bug « DSR ×√252 » (corrigé 2026-06-09) : Sharpe/trade ≈ 0.011 → **z ≈ 0.6, p ≈ 0.27 = bruit** |
 
 > 🚨 **`prompts/00_constitution.md` §1 affirme que la base « a trouvé un edge réel (Donchian +8.84) ». C'EST FAUX.** Voir le bloc de correction en tête de ce fichier. Toute décision bâtie sur cette prémisse est à reconsidérer.
 
 **Ce qui reste vrai :** l'infrastructure (features, métriques, DSR, coûts XTB) est de bonne facture *en isolation*. Ce qui est cassé, c'est la **chaîne de validation** (fuites + data-snooping) et **l'absence totale de l'étage temps réel**. Voir le backlog §6.
 
-**Pistes les moins désespérées** (jamais validées proprement) : actifs tendanciels **crypto (ETH/BTC) et or** en **D1/H4** (pas H1), avec **filtrage de régime** ; familles non explorées : carry JPY, ORB/Asian range, pairs trading/cointégration, pre-FOMC drift.
+**État de la recherche (2026-06-09)** : 10 familles testées honnêtement en local (2026-05-29→06-01) → mortes, sauf 3 signaux retenus dans `docs/signaux_reels_phase1.md` (pre-FOMC US500, carry JPY, ORB M5). **Leurs DSR sont CADUCS** (bug « DSR ×√252 ») → statuts **SUSPENDUS** ; re-mesure en local avec la pile corrigée = prochaine étape obligatoire. Candidat le plus crédible : **pre-FOMC** (effet documenté). Carry = dépend des swaps réels XTB (provisoires → `docs/checklist_couts_xtb.md`). La **stratégie manuelle** TradingView (`strategie-forex/`) est portée en module backtestable (`app/strategies/trend_pullback.py` + `scripts/screen_trend_pullback.py`) — NO-GO attendu (famille morte 10×), l'objectif est de donner un CHIFFRE au mainteneur.
 
 ---
 
@@ -45,11 +46,12 @@ Les deux seuls résultats « positifs » jamais affichés étaient des **artefac
 
 ```
 app/
-├── config/         # backtest, calendar, instruments (ASSET_CONFIGS = coûts XTB),
+├── config/         # backtest, calendar, instruments (ASSET_CONFIGS = coûts XTB,
+│                   # 15 actifs dont JPY ; swaps JPY/crypto PROVISOIRES),
 │                   # features_selected, hyperparams_tuned, model_selected, models, ml_pipeline_v4
 ├── core/           # exceptions, logging, retry, seeds, types
-├── data/           # ⛔ MANQUANT — jamais commité. loader/registry attendus par
-│                   #    app/features/research.py, superset.py + ~45 scripts (imports CASSÉS)
+├── data/           # ✅ RESTAURÉ (2026-05-29) : loader.py (load_asset), registry.py
+│                   #    (discover_assets). Les CSV restent hors repo (machine du mainteneur).
 ├── features/       # indicators, regime, macro_external, calendar, economic,
 │                   # ranking, research, superset
 ├── targets/        # labels.py (triple_barrier, meta-labels)
@@ -57,18 +59,26 @@ app/
 │                   # cpcv_evaluation, nested_tuning
 ├── backtest/       # simulator, deterministic, meta_labeling, cpcv, walk_forward,
 │                   # grid_search, metrics, filters, sizing
-├── strategies/     # 17 stratégies : donchian, bollinger, keltner, chandelier, dual_ma,
+├── strategies/     # 23 stratégies : donchian, bollinger, keltner, chandelier, dual_ma,
 │                   # sma_crossover, ts_momentum, mean_reversion, rsi_contrarian,
 │                   # volatility_breakout, parabolic, asian_range, nr7_meta,
-│                   # pairs_trading, pre_fomc_drift, pre_fomc_meta
-├── analysis/       # edge_validation.py (DSR, PSR, bootstrap, walk-forward, purged k-fold)
+│                   # pairs_trading, pre_fomc_drift, pre_fomc_meta, opening_range,
+│                   # gap_fade, crypto_trend, turn_of_month, trend_pullback (= stratégie manuelle)
+├── analysis/       # edge_validation.py (DSR canonique, PSR, bootstrap, t-test, purged k-fold)
 ├── research/       # ⭐ edge_harness.py — POINT D'ENTRÉE Phase 1 (backtest honnête +
-│                   #    split IS/OOS gelé + DSR n_trials auto). CLI: scripts/screen_edge.py
+│                   #    split IS/OOS gelé + DSR n_trials auto + record_and_resolve_n_trials
+│                   #    pour les screens). CLI: scripts/screen_edge.py
 ├── portfolio/      # constructor.py
 ├── pipelines/      # base, us30, xauusd, walk_forward, walk_forward_rolling
-└── testing/        # look_ahead_validator, snooping_guard  (⚠️ actuellement no-op, voir §6)
+└── testing/        # look_ahead_validator (cosmétique), snooping_guard (✅ opérant,
+                    #   branché dans edge_harness + tous les screens Phase 1)
 
-scripts/            # ~60 scripts run_*/diagnose_*/screen_* (exploration historique)
+scripts/            # ~70 scripts ; les SCREENS Phase 1 actifs : screen_pre_fomc,
+                    #   screen_orb(_fine), screen_carry(_voltarget), screen_crypto_trend,
+                    #   screen_turn_of_month, screen_event_drift, screen_gap_fade,
+                    #   screen_asian_range, screen_pairs, screen_trend_pullback, screen_edge
+strategie-forex/    # stratégie MANUELLE TradingView (2 indicateurs Pine v1 + v2 améliorés
+                    #   + strategie_backtest.pine + guide HTML) — cf. README.md du dossier
 prompts/            # 00_constitution → 24 (specs ; 20-24 = étage live XTB/Telegram, NON codé)
 docs/               # historique v1→v6, post-mortems, audits  (beaucoup de docs contradictoires)
 tests/              # unit/ integration/  (pytest installé à la demande)
@@ -78,11 +88,15 @@ tests/              # unit/ integration/  (pytest installé à la demande)
 
 ## 4. Contraintes d'environnement (session cloud)
 
-- **Aucune donnée dans le repo** (`data/` vide). Les backtests **ne peuvent pas tourner** sans re-télécharger.
-- **`app/data/` jamais commité** → imports cassés. À restaurer (loader + registry + downloader Dukascopy).
-- **PyPI accessible** (pip install OK) ; **Dukascopy/Yahoo en 403** sur appel direct (à valider via lib).
-- Format de données attendu (constitution) : `data/raw/<ASSET>/<TF>.csv`, index UTC tz-aware.
-- ➜ **Le travail de fondation (code/docs/tests) se fait ici ; la recherche empirique d'edge nécessite que le mainteneur fournisse/télécharge les données.**
+- **Aucune donnée dans le repo** (`data/` absent du repo). Les données complètes
+  (Dukascopy 2010→2026-05, dont US500 M5 ~704k bougies) sont **sur la machine
+  locale du mainteneur** → les screens empiriques tournent CHEZ LUI, pas ici.
+- **`app/data/` est COMMITÉ et fonctionnel** depuis 2026-05-29 (loader + registry).
+- **PyPI accessible** (pip install OK) ; **Dukascopy/Yahoo en 403** sur appel direct depuis le cloud.
+- Format de données : `data/raw/<ASSET>/<*>_<TF>.csv` (ex. `EURUSD_H4.csv`), index UTC tz-aware.
+- `TEST_SET_LOCK.json` (registre anti-snooping) est **local et gitignoré** : le
+  compteur n_trials de référence vit sur la machine du mainteneur.
+- ➜ **Le travail de fondation (code/docs/tests) se fait ici ; la recherche empirique d'edge tourne en local.**
 
 ---
 
@@ -103,11 +117,22 @@ Critères GO (constitution §2, maintenus) : Sharpe WF ≥ 1.0 · DSR > 0 (p<0.0
 
 ---
 
-## 6. Backlog de bugs CRITIQUES (issu de l'audit 2026-05-29)
+## 6. Backlog de bugs CRITIQUES (audits 2026-05-29 et 2026-06-09)
 
 Priorité décroissante. Chacun fausse les résultats ou casse le pipeline.
 
-**Validation / fuites (invalident tout edge passé)**
+**Statistique (verdicts faussés)**
+- ✅ **« DSR ×√252 » (2026-06-09)** — `validate_edge` passait le Sharpe ANNUALISÉ
+  au DSR avec `n_obs` = nb de trades → z gonflé jusqu'à ×√252. Fabriquait l'« ORB
+  DSR +11.29 ». CORRIGÉ : DSR canonique par-période (`deflated_sharpe`), SR₀ à
+  l'échelle σ_SR, + t-test par trade et bootstrap stationnaire dans le rapport.
+  Même bug corrigé dans `screen_carry._metrics` (réutilisé par carry_voltarget
+  et crypto_trend). **Toute valeur de DSR antérieure au 2026-06-09 est caduque.**
+- ✅ `n_trials` des screens autonomes — était `len(assets)` local ; désormais
+  cumul du registre via `record_and_resolve_n_trials` (edge_harness), branché
+  dans les 11 screens Phase 1 + screen_trend_pullback (C4 étendu).
+
+**Validation / fuites (invalident tout edge ML passé)**
 - `run_meta_labeling_cpcv.py:253` — CPCV final sur train+val+test **fusionnés** (C1).
 - `meta_labeling.py:147` — meta-labels calculés sur dataset entier avant split (C2).
 - `app/models/cpcv_evaluation.py:38-61` — k-fold **non causal** (train inclut barres post-test) + Sharpe `×√n_trades` (C3, M2).
@@ -115,19 +140,21 @@ Priorité décroissante. Chacun fausse les résultats ou casse le pipeline.
 - `meta_labeling.py:116` / `targets/labels.py:222` — intrabar « TP gagne » optimiste (H1).
 
 **Anti-snooping (crédibilité statistique)**
-- `scripts/verify_no_snooping.py:22` — **no-op** (pas de `TEST_SET_LOCK.json`) (C5).
+- ✅ `snooping_guard` — registre opérant (read_oos/n_unique_hypotheses), branché
+  dans edge_harness ET les screens. `TEST_SET_LOCK.json` local/gitignoré.
 - `app/testing/look_ahead_validator.py:50` — décorateur **cosmétique**, ne vérifie rien (H3).
-- `n_trials` codé en dur et incohérent (4/5/23/29/62…) alors que ~48 scripts touchent l'OOS (C4).
 
 **Backtest (edge gonflé)**
 - `app/pipelines/base.py:156` — `asset_cfg` **jamais passé** → swap overnight + sizing au risque **jamais exécutés** dans le chemin ML (C1-bt). *(NB : le chemin déterministe `deterministic.py` applique déjà le swap.)*
 - ✅ `deterministic.py` — fill honnête `entry_on_next_open` ajouté (entrée `open[i+1]`, scan depuis la barre d'entrée). **Défaut False (legacy)** ; la recherche d'edge Phase 1 DOIT passer True. *(`simulator.py:79` ML path reste à corriger.)*
-- `simulator.py` / `deterministic.py` — SL/TP rempli au prix exact, **aucun stop-slippage/gap** ; friction optimiste vs ~2-3 pips round-trip XTB réel (à traiter).
-- ✅ `metrics.py` `sharpe_daily_from_trades` — annualisation **routée par fréquence** (daily/weekly/per-trade) → tue l'inflation basse-fréquence (E4). *(`sharpe_annualized` routait déjà ; cohérence rétablie.)*
+- `simulator.py` / `deterministic.py` — SL/TP rempli au prix exact, **aucun stop-slippage/gap** ; friction optimiste vs réel (à traiter). *(NB : `trend_pullback.py` gère déjà le gap au-delà du SL → fill à l'open.)*
+- ✅ `metrics.py` `sharpe_daily_from_trades` — annualisation **routée par fréquence** (daily/weekly/per-trade) → tue l'inflation basse-fréquence (E4).
+- Swaps JPY/crypto **PROVISOIRES** dans `ASSET_CONFIGS` → relevés démo requis
+  (`docs/checklist_couts_xtb.md`) ; d'ici là `--cost-margin 1.5` dans les screens.
 
 **Infra**
-- `app/data/` manquant → restaurer (loader/registry/downloader).
-- Docs contradictoires (v1→v6) → consolider en 1 source de vérité ; `prompts/00` §1 à corriger.
+- ✅ `app/data/` restauré (loader/registry). Downloader : `scripts/download_orb_data.py` (M5) + scripts Dukascopy historiques.
+- Docs contradictoires (v1→v6) → consolider ; `prompts/00` §1 corrigé par bandeau ; fiches `strategies-doc/` marquées SUSPENDU/INVALIDÉ (2026-06-09).
 
 ---
 
