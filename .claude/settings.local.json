@@ -1,5 +1,4 @@
 {
-  "enabledMcpjsonServers": ["context7", "tavily"],
   "permissions": {
     "allow": [
       "Bash(Get-ChildItem -Path \"d:\\\\Documents\\\\learning-machine-learning\\\\\" -File | Select-Object Name | Sort-Object Name)",
@@ -13,7 +12,12 @@
       "Bash(Format-Table -AutoSize)",
       "Bash(grep -E \"\\\\.py$\")",
       "WebSearch",
-      "WebFetch(domain:www.xtb.com)"
+      "WebFetch(domain:www.xtb.com)",
+      "Bash(pip list *)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "context7",
+    "tavily"
+  ]
 }
