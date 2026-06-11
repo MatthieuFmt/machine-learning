@@ -12,7 +12,8 @@ Discipline :
     ``volatility_target_weights``).
   - Paramètres FIGÉS : fenêtre 60 j, cible 10 %/an, levier max 3× (standard,
     non tunés ; Sharpe ~invariant à la cible/au plafond).
-  - DSR avec Sharpe annualisé honnête (retours quotidiens → √252 correct).
+  - DSR canonique par-période (fix 2026-06-09, via screen_carry._metrics) ;
+    n_trials = cumul du registre anti-snooping.
 
 GO ssi : Sharpe ≥ 1 · DSR > 0 (p<0.05) · MaxDD < 15 %.
 
@@ -33,6 +34,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from app.backtest.sizing import volatility_target_weights  # noqa: E402
 from app.config.instruments import ASSET_CONFIGS  # noqa: E402
 from app.data.loader import load_asset  # noqa: E402
+from app.research.edge_harness import record_and_resolve_n_trials  # noqa: E402
 from scripts.screen_carry import _daily_carry_returns, _metrics  # noqa: E402
 
 
@@ -43,6 +45,7 @@ def _equity(ret: pd.Series, capital: float) -> pd.Series:
 def _print_block(label: str, m: dict) -> bool:
     go = bool(m["sharpe"] >= 1.0 and m["dsr"] > 0 and m["p"] < 0.05 and m["maxdd"] < 0.15)
     print(f"  {label:<16} Sharpe {m['sharpe']:+.2f}   DSR {m['dsr']:+.2f} (p={m['p']:.3f})   "
+          f"t-jour {m['t']:+.2f} (p={m['p_t']:.3f})   "
           f"MaxDD {m['maxdd']:.0%}   Rendt/an {m['ann_return_pct']:+.1f}%   "
           f"{'✅ GO' if go else '❌'}")
     return go
@@ -57,7 +60,8 @@ def main() -> int:
     parser.add_argument("--lookback", default=60, type=int)
     parser.add_argument("--target-vol", default=0.10, type=float)
     parser.add_argument("--max-leverage", default=3.0, type=float)
-    parser.add_argument("--n-trials", default=3, type=int)
+    parser.add_argument("--n-trials", default=None, type=int,
+                        help="Essais DSR (défaut : cumul du registre anti-snooping).")
     args = parser.parse_args()
 
     assets = [a.strip() for a in args.assets.split(",") if a.strip()]
@@ -85,12 +89,24 @@ def main() -> int:
     print("=" * 72)
     print(f"CARRY {', '.join(assets)} — BRUT vs VOLATILITY TARGETING ({args.tf})")
     print(f"vol cible {args.target_vol:.0%}/an · fenêtre {args.lookback} j · "
-          f"levier max {args.max_leverage:g}× · n_trials={args.n_trials}")
+          f"levier max {args.max_leverage:g}× · n_trials : registre anti-snooping")
     print(f"{len(basket)} jours ({basket.index.min().date()} → {basket.index.max().date()})")
     print("=" * 72)
 
+    def _resolve(label: str, ret: pd.Series) -> int:
+        if args.n_trials is not None:
+            return int(args.n_trials)
+        std = float(ret.std(ddof=1))
+        sr_ann = float(ret.mean()) / std * (252.0 ** 0.5) if std > 0 else 0.0
+        return record_and_resolve_n_trials(
+            prompt="screen_carry_voltarget",
+            hypothesis=f"basket[{','.join(assets)}]/{args.tf}:{label}",
+            sharpe=sr_ann,
+            n_trades=len(ret),
+        )
+
     # ── Baseline (exposition constante 1×) ───────────────────────────
-    m_base = _metrics(basket, _equity(basket, args.capital), args.n_trials)
+    m_base = _metrics(basket, _equity(basket, args.capital), _resolve("carry_1x", basket))
 
     # ── Volatility targeting ─────────────────────────────────────────
     weights = volatility_target_weights(
@@ -98,10 +114,13 @@ def main() -> int:
         lookback=args.lookback, max_leverage=args.max_leverage,
     )
     scaled = (weights * basket).dropna()
-    m_vt = _metrics(scaled, _equity(scaled, args.capital), args.n_trials)
+    m_vt = _metrics(
+        scaled, _equity(scaled, args.capital),
+        _resolve(f"carry_voltarget{args.target_vol:g}", scaled),
+    )
 
     print("\n── Comparaison ──")
-    go_base = _print_block("Carry BRUT", m_base)
+    _print_block("Carry BRUT", m_base)
     go_vt = _print_block("Carry VOL-TARGET", m_vt)
 
     w_valid = weights.dropna()

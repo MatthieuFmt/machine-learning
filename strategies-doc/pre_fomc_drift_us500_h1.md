@@ -1,6 +1,13 @@
 # Pre-FOMC Drift US500 H1 — Sleeve #1 (V1 déterministe)
 
-> **Statut** : ✅ GO net — Validé OOS 2024-01 → 2026-05 (p-value marginale, voir §6 et §9)
+> 🚨 **CADUC (audit 2026-06-09)** : les p-values/DSR de cette fiche ont été
+> calculés avec le bug « DSR ×√252 » (Sharpe annualisé passé au DSR avec
+> n_obs = nb de trades → z gonflé). Le signal reste le candidat le plus
+> crédible du projet (effet documenté, Lucca-Moench 2015), mais le statut GO
+> est **suspendu** jusqu'à re-mesure : `python scripts/screen_pre_fomc.py`
+> (stats corrigées : DSR canonique + t-test par trade + bootstrap).
+
+> **Statut** : ⏸️ SUSPENDU (ex-GO net) — re-mesure requise, voir bandeau ci-dessus
 > **Version** : V1 baseline déterministe sans ML
 > **Date de gel** : 2026-05-22
 > **n_trial consommé** : 1 (Étape 1) + 1 (Étape 2 ML rejetée) sur 56 cumulés

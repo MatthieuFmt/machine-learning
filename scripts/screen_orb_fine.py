@@ -12,8 +12,10 @@ Discipline identique aux autres screens : entrée à l'open de la barre suivante
 stop = côté opposé de l'OR, sortie EOD (flat la nuit → 0 swap), coûts réels,
 Sharpe annualisé routé par fréquence → validate_edge + DSR. Paramètres FIGÉS.
 
-⚠️ n_trials : chaque (--or-minutes × indice) testé = +1 essai. Pré-enregistrer
-   UNE config (défaut : OR=5 min, US500) ; explorer plusieurs = data-snooping.
+⚠️ n_trials : chaque (--or-minutes × indice) testé = +1 essai, compté
+   AUTOMATIQUEMENT dans le registre anti-snooping (TEST_SET_LOCK.json).
+   Pré-enregistrer UNE config (défaut : OR=5 min, US500) ; explorer plusieurs
+   = data-snooping (la pénalité DSR grossit d'elle-même).
 
 USAGE :
     python scripts/screen_orb_fine.py
@@ -34,6 +36,7 @@ from app.analysis.edge_validation import validate_edge  # noqa: E402
 from app.backtest.metrics import sharpe_daily_from_trades  # noqa: E402
 from app.config.instruments import ASSET_CONFIGS  # noqa: E402
 from app.data.loader import load_asset  # noqa: E402
+from app.research.edge_harness import record_and_resolve_n_trials  # noqa: E402
 from app.strategies.opening_range import simulate_orb_session  # noqa: E402
 
 # Séances cash (figées) : (fuseau, ouverture locale, clôture locale).
@@ -67,11 +70,10 @@ def main() -> int:
     args = parser.parse_args()
 
     assets = [a.strip() for a in args.assets.split(",") if a.strip()]
-    n_trials = len(assets)
 
     print("=" * 72)
     print(f"ORB FIN (honnête) — {args.tf}, opening range = {args.or_minutes} min")
-    print(f"Indices : {', '.join(assets)}   n_trials={n_trials}")
+    print(f"Indices : {', '.join(assets)}   n_trials : registre anti-snooping")
     print("=" * 72)
 
     any_go = False
@@ -101,6 +103,12 @@ def main() -> int:
         tpy = len(trades) / years
         ann_sharpe = sharpe_daily_from_trades(trades)
         equity, tdf = _equity_and_df(trades, cfg.pip_value_eur, args.capital)
+        n_trials = record_and_resolve_n_trials(
+            prompt="screen_orb_fine",
+            hypothesis=f"{asset}/{args.tf}:ORB{args.or_minutes}min",
+            sharpe=ann_sharpe,
+            n_trades=len(trades),
+        )
         report = validate_edge(
             equity, tdf, n_trials=n_trials, annualized_sharpe=ann_sharpe
         )
@@ -114,7 +122,11 @@ def main() -> int:
         print(f"\n══ {asset}/{args.tf} ══ ({len(trades)} trades, {tpy:.0f}/an, OR={args.or_minutes}min, "
               f"{df.index.min().date()}→{df.index.max().date()})")
         print(f"  Sharpe annualisé : {ann_sharpe:.2f}   "
-              f"DSR : {report.metrics['dsr']:.2f} (p={report.metrics['p_value']:.3f})")
+              f"DSR : {report.metrics['dsr']:.2f} (p={report.metrics['p_value']:.3f})   "
+              f"[n_trials={n_trials}]")
+        print(f"  Preuves primaires : t/trade = {report.metrics['t_stat']:.2f} "
+              f"(p={report.metrics['p_t']:.3f})   p_bootstrap = "
+              f"{report.metrics['p_bootstrap']:.3f}")
         print(f"  MaxDD : {report.metrics['max_dd']:.1%}   WR : {report.metrics['wr']:.0%}   "
               f"trades/an : {report.metrics['trades_per_year']:.1f}")
         print(f"  PnL net : {tdf['pnl'].sum():+.0f} €   long/short : {n_long}/{len(trades) - n_long}   "

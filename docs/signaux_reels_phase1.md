@@ -1,12 +1,28 @@
 # Signaux RÉELS trouvés (Phase 1 recherche d'edge) — à conserver
 
-**Dernière mise à jour** : 2026-05-30
+**Dernière mise à jour** : 2026-06-09
 
-> Mémo de référence : les 3 seuls signaux qui montrent un effet **statistiquement réel**
+> 🚨 **AVERTISSEMENT (audit 2026-06-09) — les DSR/p-values ci-dessous sont CADUCS.**
+> Un bug de calcul a été découvert et corrigé : le DSR recevait le Sharpe
+> **annualisé** avec n_obs = nb de trades, gonflant le z jusqu'à ×√252 (≈×16)
+> (`validate_edge` et `screen_carry._metrics`). Conséquences :
+> - **ORB M5 « DSR +11.29 (p=0.000) » est un artefact.** Recalcul à la main :
+>   Sharpe/trade ≈ 0.011 → z ≈ 0.6, p ≈ 0.27 → **bruit statistique**.
+> - Le « t≈2.5-2.8 » du pre-FOMC et le DSR du carry passaient par le même
+>   chemin → **à re-mesurer** avant toute décision.
+> Les scripts sont corrigés (DSR canonique + t-test par trade + bootstrap +
+> registre n_trials). **UNE re-mesure par signal**, puis mettre à jour ce mémo :
+> ```bash
+> python scripts/screen_pre_fomc.py --assets US500,US30 --tf H1
+> python scripts/screen_orb_fine.py --assets US500 --tf M5 --or-minutes 5
+> python scripts/screen_carry.py --assets AUDJPY,GBPJPY,EURJPY --tf D1
+> ```
+
+> Mémo de référence : les 3 seuls signaux qui montraient un effet jugé réel
 > après validation honnête (fill réaliste, coûts XTB, swap, DSR avec n_trials).
 > **Aucun ne franchit seul** la barre constitution (Sharpe ≥ 1 · DSR > 0 p<0.05 ·
-> MaxDD < 15 % · WR > 30 % · ≥ 30 trades/an). Mais ils sont **réels, décorrélés et
-> à friction légère** → candidats pour un portefeuille combiné.
+> MaxDD < 15 % · WR > 30 % · ≥ 30 trades/an). Mais ils étaient jugés **réels,
+> décorrélés et à friction légère** → candidats pour un portefeuille combiné.
 
 ---
 

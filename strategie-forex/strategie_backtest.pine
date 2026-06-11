@@ -1,0 +1,133 @@
+//@version=6
+// ============================================================================
+//  STRATÉGIE BACKTEST — version « strategy() » des 2 indicateurs (à lire en H4)
+//
+//  À quoi ça sert : coller ce script dans TradingView (graphique H4) et ouvrir
+//  l'onglet « Strategy Tester » → tu vois TOI-MÊME le taux de réussite, le
+//  gain moyen par trade (« espérance ») et la courbe de capital de la
+//  stratégie manuelle, sans rien croire sur parole.
+//
+//  Mêmes règles que indicateur_2_signal_entree_v2.pine :
+//    - filtre Daily intégré (régime de la VEILLE, jamais du jour → pas de triche) ;
+//    - signal à la CLÔTURE H4 → entrée à l'OUVERTURE de la bougie suivante
+//      (comportement par défaut de TradingView : honnête) ;
+//    - SL = 1.5 × ATR (ou structure), TP = 2 × le risque ;
+//    - taille de position calculée pour risquer « Risque par trade (%) ».
+//
+//  ⚠️ COÛTS : règle le spread dans Propriétés du Strategy Tester →
+//    « Slippage » (en ticks, ex. EURUSD : 1 pip ≈ 10 ticks) et « Commission ».
+//    Par défaut ce script met slippage=5 ticks — ajuste selon l'instrument.
+//  ⚠️ Le swap (frais de nuit, ~−0.8 pip/nuit sur EURUSD long) n'est PAS
+//    modélisé par TradingView : retire ~1 pip par nuit de détention de tête,
+//    ou fie-toi au backtest Python (scripts/screen_trend_pullback.py) qui lui
+//    compte tout.
+// ============================================================================
+strategy("Trend-Pullback D1/H4 — Backtest", overlay = true,
+     initial_capital = 2000, currency = currency.EUR,
+     default_qty_type = strategy.fixed, default_qty_value = 1,
+     slippage = 5, commission_type = strategy.commission.percent,
+     commission_value = 0.0, calc_on_every_tick = false)
+
+// ----------------------------- Entrées --------------------------------------
+emaFastLen       = input.int(20, "EMA rapide",  minval = 1, group = "Tendance / repli")
+emaMidLen        = input.int(50, "EMA moyenne", minval = 1, group = "Tendance / repli")
+pullbackLookback = input.int(5,  "Fenêtre de repli (barres)", minval = 1, group = "Tendance / repli")
+rsiLen           = input.int(14,   "Longueur RSI", minval = 1, group = "Déclencheur")
+rsiMid           = input.float(50, "Seuil RSI",                group = "Déclencheur")
+
+useD1Filter = input.bool(true, "Filtre Daily (Boussole)", group = "Filtre Daily")
+emaSlowD1   = input.int(200,  "EMA lente D1",    minval = 1, group = "Filtre Daily")
+adxLenD1    = input.int(14,   "Longueur ADX D1", minval = 1, group = "Filtre Daily")
+adxThrD1    = input.float(25, "Seuil ADX D1",    minval = 1, group = "Filtre Daily")
+
+atrLen   = input.int(14,    "Longueur ATR",             minval = 1,   group = "Risque")
+atrMult  = input.float(1.5, "Multiplicateur SL (x ATR)", minval = 0.1, group = "Risque")
+rr       = input.float(2.0, "Ratio R:R (pour le TP)",    minval = 0.1, group = "Risque")
+slMode   = input.string("ATR", "Mode du Stop Loss", options = ["ATR", "Structure"], group = "Risque")
+slBufAtr = input.float(0.1, "Marge structure (x ATR)", minval = 0.0, group = "Risque")
+riskPct  = input.float(1.0, "Risque par trade (% du capital)", minval = 0.1, maxval = 5.0, group = "Risque")
+
+useSession = input.bool(false, "Limiter aux heures liquides", group = "Session")
+sessionStr = input.session("0700-2000", "Session (UTC)", group = "Session")
+
+startDate = input.time(timestamp("2015-01-01T00:00:00+00:00"), "Début du backtest", group = "Période")
+endDate   = input.time(timestamp("2030-01-01T00:00:00+00:00"), "Fin du backtest",   group = "Période")
+inRange   = time >= startDate and time <= endDate
+
+// ----------------------------- Calculs (identiques à l'indicateur 2 v2) -----
+emaFast = ta.ema(close, emaFastLen)
+emaMid  = ta.ema(close, emaMidLen)
+rsi     = ta.rsi(close, rsiLen)
+atr     = ta.atr(atrLen)
+
+bull = emaFast > emaMid
+bear = emaFast < emaMid
+
+hiZone      = math.max(emaFast, emaMid)
+loZone      = math.min(emaFast, emaMid)
+touchedZone = low <= hiZone and high >= loZone
+pulledBack  = ta.barssince(touchedZone) <= pullbackLookback
+
+rsiCrossUp   = ta.crossover(rsi, rsiMid)
+rsiCrossDown = ta.crossunder(rsi, rsiMid)
+bullCandle   = close > open
+bearCandle   = close < open
+
+swingLow  = ta.lowest(low, pullbackLookback + 1)
+swingHigh = ta.highest(high, pullbackLookback + 1)
+
+f_d1Regime() =>
+    emaF = ta.ema(close, emaFastLen)
+    emaM = ta.ema(close, emaMidLen)
+    emaS = ta.ema(close, emaSlowD1)
+    [_diP, _diM, adxV] = ta.dmi(adxLenD1, adxLenD1)
+    bullD = close > emaS and emaF > emaM and adxV > adxThrD1
+    bearD = close < emaS and emaF < emaM and adxV > adxThrD1
+    bullD ? 1 : bearD ? -1 : 0
+
+d1Regime  = request.security(syminfo.tickerid, "D", f_d1Regime()[1],
+     lookahead = barmerge.lookahead_on)
+d1LongOk  = not useD1Filter or d1Regime == 1
+d1ShortOk = not useD1Filter or d1Regime == -1
+
+inSession = not useSession or not na(time(timeframe.period, sessionStr, "UTC"))
+
+longSignal  = bull and pulledBack and rsiCrossUp   and bullCandle and d1LongOk  and inSession and inRange
+shortSignal = bear and pulledBack and rsiCrossDown and bearCandle and d1ShortOk and inSession and inRange
+
+// ----------------------------- Ordres ---------------------------------------
+// Signal à la clôture → strategy.entry est exécuté à l'OPEN de la bougie
+// suivante (fill honnête). Une seule position à la fois.
+f_qty(slDistance) =>
+    riskMoney = strategy.equity * riskPct / 100.0
+    slDistance > 0 ? math.max(riskMoney / slDistance, 0.000001) : na
+
+if longSignal and strategy.position_size == 0
+    slAtr = close - atrMult * atr
+    slStr = swingLow - slBufAtr * atr
+    slL   = slMode == "ATR" ? slAtr : math.min(slAtr, slStr)
+    tpL   = close + (close - slL) * rr
+    qty   = f_qty(close - slL)
+    if not na(qty)
+        strategy.entry("Long", strategy.long, qty = qty)
+        strategy.exit("Long-exit", "Long", stop = slL, limit = tpL)
+
+if shortSignal and strategy.position_size == 0
+    slAtr = close + atrMult * atr
+    slStr = swingHigh + slBufAtr * atr
+    slS   = slMode == "ATR" ? slAtr : math.max(slAtr, slStr)
+    tpS   = close - (slS - close) * rr
+    qty   = f_qty(slS - close)
+    if not na(qty)
+        strategy.entry("Short", strategy.short, qty = qty)
+        strategy.exit("Short-exit", "Short", stop = slS, limit = tpS)
+
+// ----------------------------- Affichage ------------------------------------
+plot(emaFast, "EMA 20", color = color.new(color.aqua,   0))
+plot(emaMid,  "EMA 50", color = color.new(color.orange, 0), linewidth = 2)
+plotshape(longSignal,  title = "Achat", style = shape.triangleup,
+     location = location.belowbar, color = color.new(color.green, 0), size = size.tiny)
+plotshape(shortSignal, title = "Vente", style = shape.triangledown,
+     location = location.abovebar, color = color.new(color.red, 0), size = size.tiny)
+bgcolor(useD1Filter ? (d1Regime == 1 ? color.new(color.green, 92) :
+     d1Regime == -1 ? color.new(color.red, 92) : na) : na, title = "Régime D1 (veille)")

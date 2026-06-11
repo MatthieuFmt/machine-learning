@@ -937,3 +937,66 @@ Le mainteneur (débutant) est ouvert aux stratégies NON-ML.
    ORB, pairs trading, pre-FOMC) dans app/strategies/ et re-screener.
 
 ### n_trials cumul : inchangé (aucune lecture OOS sur données réelles enregistrée)
+
+## 2026-06-09 — Audit indépendant : bug « DSR ×√252 » + port de la stratégie manuelle
+
+### Découverte centrale (invalide les chiffres du 2026-05-30)
+- **Bug « DSR ×√252 »** : `validate_edge` passait le Sharpe ANNUALISÉ à
+  `deflated_sharpe` avec `n_obs` = nb de trades. La formule Bailey-LdP attend le
+  Sharpe PAR PÉRIODE → z gonflé d'un facteur égal à l'annualisation (×√252 pour
+  ~1 trade/jour). Reproduit exactement l'« ORB US500 M5 : DSR +11.29 (p=0.000) »
+  avec Sharpe annuel 0.17 → recalcul honnête : Sharpe/trade ≈ 0.011, z ≈ 0.6,
+  p ≈ 0.27 = **bruit**. 3ᵉ artefact de l'histoire du projet (après +8.84 et +4.97).
+  Même chemin bugué dans `screen_carry._metrics` (annualisé + n_obs jours) →
+  carry/crypto_trend/carry_voltarget caducs aussi ; pre-FOMC à re-mesurer.
+- SR₀ de l'ancienne implémentation = variante maison (√ du bracket, sans échelle
+  σ_SR) → remplacé par la forme canonique.
+
+### Réalisé
+- **`deflated_sharpe` canonique** : sr par-période, z = ŜR·√(n_obs−1)/denom − z_mix,
+  z_mix = (1−γ)Φ⁻¹(1−1/N)+γΦ⁻¹(1−1/(N·e)) (N=1 → 0). `validate_edge` nourrit
+  le DSR avec `sharpe_per_period` (mean/std brut) et expose des **preuves
+  primaires** : `t_stat`/`p_t` (t-test unilatéral par trade) et `p_bootstrap`
+  (bootstrap stationnaire réutilisé, param `bootstrap_iter`). Critère 1
+  (Sharpe ≥ 1, annualisé routé par fréquence) inchangé.
+- **Registre branché partout** : helper `record_and_resolve_n_trials`
+  (edge_harness) appelé par les 11 screens Phase 1 (pre_fomc, orb, orb_fine,
+  asian_range, event_drift, gap_fade, turn_of_month, pairs, carry,
+  carry_voltarget, crypto_trend) → n_trials = hypothèses uniques cumulées,
+  plus jamais `len(assets)`.
+- **Stratégie manuelle portée** : `app/strategies/trend_pullback.py`
+  (régime D1 de la VEILLE → ffill H4, repli zone EMA20-50, RSI×50, bougie ;
+  entrée open suivant, SL prioritaire, gap-through-SL → fill à l'open,
+  swap/nuit, `cost_multiplier` marge ×1.5) + `scripts/screen_trend_pullback.py`.
+- **TradingView v2** (`strategie-forex/`, originaux conservés) : indicateur 1 v2
+  (alertes de régime, distance EMA200 en ATR), indicateur 2 v2 (filtre D1
+  intégré sans repaint via `security(f()[1], lookahead_on)`, signaux à la
+  clôture, alertes avec Entrée/SL/TP, SL structure, pip auto, +1R/BE, session,
+  tableau-checklist), `strategie_backtest.pine` (Strategy Tester), README.
+- **Docs** : bandeau CADUC sur `signaux_reels_phase1.md` ; fiches strategies-doc
+  → SUSPENDU (pre-FOMC, NR7) / INVALIDÉ (meanrev meta) ; CLAUDE.md mis à jour
+  (§2 3ᵉ artefact, §3 arborescence réelle, §4 data restaurée, §6 backlog) ;
+  `docs/checklist_couts_xtb.md` (relevés démo : swaps réels JPY, spread par
+  heure, instruments futures-based « sans swap »).
+
+### Tests
+- ✅ `test_dsr_sanity` mis à jour (valeurs par-période + régression ORB :
+  z<1 / p>0.15 sur le profil 2 828 trades) ; `test_edge_validation` (DSR
+  par-période attendu, preuves primaires, garde anti-faux-négatif conservé).
+- ✅ Nouveau `test_trend_pullback.py` (13) : régime D1, troncature sans fuite
+  (`signal(df[:n])[-1] == signal(df)[n-1]`), D1 de la veille obligatoire,
+  entrée open suivant, SL prioritaire même barre, gap→open, marge de coûts,
+  1 position à la fois.
+- ✅ End-to-end : `screen_trend_pullback` sur CSV synthétique (marche aléatoire)
+  → NO-GO propre, registre écrit, t-test/bootstrap affichés, DSR NaN si n<30.
+
+### Prochaine étape (mainteneur, en LOCAL — UNE passe, coller les sorties ici)
+```bash
+python scripts/screen_pre_fomc.py --assets US500,US30 --tf H1
+python scripts/screen_orb_fine.py --assets US500 --tf M5 --or-minutes 5
+python scripts/screen_carry.py --assets AUDJPY,GBPJPY,EURJPY --tf D1
+python scripts/screen_trend_pullback.py --assets EURUSD,GBPUSD,USDJPY,XAUUSD
+```
+Puis : mettre à jour `signaux_reels_phase1.md` avec les chiffres honnêtes ;
+si ≥ 1 survivant → portefeuille combiné (session suivante) ; relevés démo XTB
+(`docs/checklist_couts_xtb.md`) quand possible.

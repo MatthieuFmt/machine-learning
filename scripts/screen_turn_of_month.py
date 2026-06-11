@@ -7,8 +7,8 @@ du mois, sortie au close du 3e jour de bourse suivant (fenêtre canonique −1/+
 
 Même discipline que screen_pre_fomc.py :
   - coûts XTB round-trip + swap × nuits ;
-  - Sharpe annualisé routé par fréquence ; DSR avec Sharpe par-période (fix) ;
-  - hypothèse pré-enregistrée → n_trials = nb d'actifs testés ;
+  - Sharpe annualisé routé par fréquence ; DSR canonique par-période (fix 2026-06-09) ;
+  - hypothèse pré-enregistrée → n_trials = cumul du registre anti-snooping ;
   - test « bat-on une fenêtre de même durée au hasard ? » (sépare l'effet du
     simple beta haussier) ; découpage pré/post pour la stabilité.
 
@@ -31,6 +31,7 @@ from app.analysis.edge_validation import validate_edge  # noqa: E402
 from app.backtest.metrics import sharpe_daily_from_trades  # noqa: E402
 from app.config.instruments import ASSET_CONFIGS  # noqa: E402
 from app.data.loader import load_asset  # noqa: E402
+from app.research.edge_harness import record_and_resolve_n_trials  # noqa: E402
 from app.strategies.turn_of_month import simulate_turn_of_month_trades  # noqa: E402
 
 
@@ -99,7 +100,13 @@ def main() -> int:
 
         equity, tdf = _equity_and_df(trades, cfg.pip_value_eur, args.capital)
         ann_sharpe = sharpe_daily_from_trades(trades)
-        report = validate_edge(equity, tdf, n_trials=len(assets), annualized_sharpe=ann_sharpe)
+        n_trials = record_and_resolve_n_trials(
+            prompt="screen_turn_of_month",
+            hypothesis=f"{asset}/{args.tf}:tom_hold{args.hold_days}",
+            sharpe=ann_sharpe,
+            n_trades=len(trades),
+        )
+        report = validate_edge(equity, tdf, n_trials=n_trials, annualized_sharpe=ann_sharpe)
 
         gross = np.array([t["pips_brut"] for t in trades])
         mu_all, t_stat, pct = _beta_benchmark(df, gross, cfg.pip_size, args.hold_days)
@@ -114,7 +121,10 @@ def main() -> int:
         print(f"══ {asset}/{args.tf} ══ ({len(trades)} trades, {len(trades)/span_years:.1f}/an)")
         print(f"  Sharpe annualisé : {ann_sharpe:.2f}   "
               f"DSR : {report.metrics['dsr']:.2f} (p={report.metrics['p_value']:.3f})   "
-              f"MaxDD : {report.metrics['max_dd']:.1%}")
+              f"MaxDD : {report.metrics['max_dd']:.1%}   [n_trials={n_trials}]")
+        print(f"  Preuves primaires : t/trade = {report.metrics['t_stat']:.2f} "
+              f"(p={report.metrics['p_t']:.3f})   p_bootstrap = "
+              f"{report.metrics['p_bootstrap']:.3f}")
         print(f"  WR : {wr:.0%}   pips moy/trade : {gross.mean():.1f} brut / "
               f"{np.mean([t['pips_net'] for t in trades]):.1f} net   "
               f"gain net € : {tdf['pnl'].sum():.0f}")

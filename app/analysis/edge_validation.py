@@ -207,17 +207,22 @@ def deflated_sharpe(
     skew: float,
     kurtosis: float,
 ) -> tuple[float, float]:
-    """Deflated Sharpe Ratio (Bailey & López de Prado 2014).
+    """Deflated Sharpe Ratio (Bailey & López de Prado 2014) — forme canonique.
 
     Corrige le Sharpe observé pour le nombre de stratégies testées (data-snooping).
 
+    ⚠️ FIX 2026-06-09 (bug « DSR ×√252 ») : `sr` doit être le Sharpe **PAR
+    PÉRIODE** (mean/std des retours, NON annualisé), estimé sur les MÊMES
+    `n_obs` observations. L'ancienne version recevait un Sharpe ANNUALISÉ
+    avec n_obs = nb de trades : le z était gonflé d'un facteur égal au facteur
+    d'annualisation (jusqu'à ×√252 ≈ ×16). C'est ce qui a fabriqué le
+    « ORB US500 M5 : DSR +11.29 (p=0.000) » avec un Sharpe annuel de 0.17
+    (vraie valeur après fix : z ≈ 0.6, p ≈ 0.27 → bruit).
+
     Args:
-        sr: Sharpe ratio observé ANNUALISÉ et HONNÊTE (annualisation routée par
-            fréquence). ⚠️ Ne PAS passer un Sharpe annualisé ×√252 calculé sur une
-            série par-trade basse fréquence : il serait gonflé et le DSR deviendrait
-            faussement positif (bug historique USDJPY/H4).
+        sr: Sharpe PAR PÉRIODE (mean/std, ddof=1) des n_obs retours.
         n_trials: Nombre total de stratégies/configurations testées (n_trials_cumul).
-        n_obs: Nombre d'observations (retours), ≥ 30 requis.
+        n_obs: Nombre d'observations (retours) ayant servi à estimer `sr`, ≥ 30.
         skew: Skewness des retours (scipy.stats.skew, bias=False).
         kurtosis: Kurtosis RAW (scipy.stats.kurtosis, bias=False, fisher=True) + 3.
 
@@ -225,12 +230,12 @@ def deflated_sharpe(
         (dsr_z, p_value) où p_value = 1 − Φ(dsr_z).
         (NaN, NaN) si n_trials < 1, n_obs < 30, ou dénominateur ≤ 0.
 
-    Formule (López de Prado 2014) :
+    Formule (Bailey & López de Prado 2014) :
         γ = constante d'Euler-Mascheroni ≈ 0.5772156649
-        SR₀ = √((1−γ)Φ⁻¹(1−1/N) + γ·Φ⁻¹(1−1/(N·e)))
-        numérateur = (ŜR − SR₀) · √(n_obs − 1)
-        dénominateur = √(1 − γ₃·ŜR + (γ₄−1)/4 · ŜR²)
-        DSR = numérateur / dénominateur
+        z_mix = (1−γ)·Φ⁻¹(1−1/N) + γ·Φ⁻¹(1−1/(N·e))   (E[max z] sous H₀, N essais)
+        σ_SR  = √(1 − γ₃·ŜR + (γ₄−1)/4·ŜR²) / √(n_obs−1)   (erreur-type de ŜR)
+        SR₀   = σ_SR · z_mix                            (meilleur Sharpe attendu par chance)
+        DSR_z = (ŜR − SR₀) / σ_SR  =  ŜR·√(n_obs−1)/√(…) − z_mix
     """
     if n_trials < 1:
         logger.warning("DSR: n_trials=%d < 1, retourne NaN.", n_trials)
@@ -240,20 +245,6 @@ def deflated_sharpe(
         logger.warning("DSR: n_obs=%d < 30, retourne NaN.", n_obs)
         return (float("nan"), float("nan"))
 
-    # Constante d'Euler-Mascheroni
-    euler = 0.5772156649015328606
-
-    # Quantiles gaussiens
-    z_alpha = scipy_stats.norm.ppf(1.0 - 1.0 / n_trials)
-    z_alpha_e = scipy_stats.norm.ppf(1.0 - 1.0 / (n_trials * np.e))
-
-    # SR₀ — Sharpe maximum attendu sous H₀ (dû au data-snooping)
-    sr_zero_sq = (1.0 - euler) * z_alpha + euler * z_alpha_e
-    # Protection : si sr_zero_sq est négatif (numériquement improbable), on clamp
-    sr_zero = float(np.sqrt(max(sr_zero_sq, 0.0)))
-
-    numerator = (sr - sr_zero) * np.sqrt(max(n_obs - 1, 0))
-
     denominator_sq = 1.0 - skew * sr + (kurtosis - 1.0) / 4.0 * sr**2
     if denominator_sq <= 0.0:
         logger.warning(
@@ -262,8 +253,19 @@ def deflated_sharpe(
         )
         return (float("nan"), float("nan"))
 
-    denominator = np.sqrt(denominator_sq)
-    dsr_z = numerator / denominator
+    # Constante d'Euler-Mascheroni
+    euler = 0.5772156649015328606
+
+    # E[max z] sous H₀ parmi n_trials essais indépendants. Pour N=1, il n'y a
+    # pas de sélection → aucune déflation (Φ⁻¹(0) = −inf sinon).
+    if n_trials == 1:
+        z_mix = 0.0
+    else:
+        z_alpha = scipy_stats.norm.ppf(1.0 - 1.0 / n_trials)
+        z_alpha_e = scipy_stats.norm.ppf(1.0 - 1.0 / (n_trials * np.e))
+        z_mix = float((1.0 - euler) * z_alpha + euler * z_alpha_e)
+
+    dsr_z = sr * np.sqrt(max(n_obs - 1, 0)) / np.sqrt(denominator_sq) - z_mix
     p_value = 1.0 - scipy_stats.norm.cdf(dsr_z)
 
     return (float(dsr_z), float(p_value))
@@ -473,6 +475,7 @@ def validate_edge(
     trades: pd.DataFrame,
     n_trials: int | None = None,
     annualized_sharpe: float | None = None,
+    bootstrap_iter: int = 500,
 ) -> EdgeReport:
     """Validation complète selon les 5 critères de la constitution.
 
@@ -490,8 +493,16 @@ def validate_edge(
         ``equity.pct_change()`` × √252 (legacy).
       - DSR (critère 2) = la formule de Bailey & López de Prado attend le Sharpe
         PAR-PÉRIODE (NON annualisé) : le terme √(n_obs−1) fait déjà l'échelle.
-        Lui passer un Sharpe ×√252 le double-annualise et peut INVERSER son signe
-        (bug historique). On calcule donc ici ``sr_per_periode = mean/std`` brut.
+        FIX 2026-06-09 : l'ancienne version passait ici le Sharpe ANNUALISÉ avec
+        n_obs = nb de trades → z gonflé jusqu'à ×√252 (artefact « ORB DSR +11.29 »).
+        On calcule désormais ``sr_pp = mean/std`` brut des retours par-période.
+
+    En complément du DSR, le rapport inclut deux preuves PRIMAIRES plus simples
+    (métriques ``t_stat``/``p_t`` et ``p_bootstrap``) :
+      - t-test unilatéral H₁: E[retour par trade] > 0 (Student, df = n−1) ;
+      - bootstrap stationnaire (Politis-Romano) : proportion de Sharpe
+        ré-échantillonnés ≤ 0. Elles ne participent PAS au gate GO (constitution
+        inchangée) mais doivent être lues avant toute décision humaine.
 
     Args:
         equity: Courbe d'equity, pd.Series indexée par datetime.
@@ -505,6 +516,8 @@ def validate_edge(
         annualized_sharpe: Sharpe annualisé honnête pour le critère 1. Si None,
             repli legacy (``equity.pct_change()`` × √252, possiblement biaisé en
             basse fréquence).
+        bootstrap_iter: Itérations du bootstrap stationnaire (0 = désactivé,
+            ``p_bootstrap`` vaut alors NaN). Défaut 500 (compromis vitesse).
 
     Returns:
         EdgeReport avec go=True si et seulement si TOUS les critères passent.
@@ -533,24 +546,44 @@ def validate_edge(
     if sr_annual < 1.0:
         reasons.append(f"Sharpe {sr_annual:.2f} < 1.0")
 
-    # ── 2. DSR ──────────────────────────────────────────────────────────────
-    # `deflated_sharpe` est calibrée pour un Sharpe ANNUALISÉ (cf. SR0 avec V≈1 ;
-    # cf. tests). Le bug historique n'était PAS l'annualisation en soi, mais le
-    # fait d'annualiser ×√252 une série PAR-TRADE (~17 trades/an) → Sharpe gonflé
-    # à 2.4 au lieu de 0.52 → DSR faussement positif. On lui passe donc le MÊME
-    # Sharpe annualisé HONNÊTE (routé par fréquence) que le critère 1.
+    # ── 2. DSR (Sharpe PAR PÉRIODE, fix 2026-06-09) ─────────────────────────
     n_obs = len(period_returns)
     skew = float(period_returns.skew())
     # scipy kurtosis donne l'excess kurtosis (fisher=True), on ajoute 3
     kurt_raw = float(period_returns.kurtosis()) + 3.0
 
+    std_pp = float(period_returns.std(ddof=1)) if n_obs >= 2 else 0.0
+    sr_pp = (
+        float(period_returns.mean()) / std_pp
+        if std_pp > 0.0 and np.isfinite(std_pp)
+        else 0.0
+    )
+    metrics["sharpe_per_period"] = sr_pp
+
     dsr, p_dsr = deflated_sharpe(
-        sr=sr_annual,
+        sr=sr_pp,
         n_trials=n_trials,
         n_obs=n_obs,
         skew=skew,
         kurtosis=kurt_raw,
     )
+
+    # ── 2bis. Preuves primaires : t-test par période + bootstrap par blocs ──
+    if n_obs >= 2 and std_pp > 0.0:
+        t_res = scipy_stats.ttest_1samp(
+            period_returns.values, 0.0, alternative="greater"
+        )
+        metrics["t_stat"] = float(t_res.statistic)
+        metrics["p_t"] = float(t_res.pvalue)
+    else:
+        metrics["t_stat"] = float("nan")
+        metrics["p_t"] = float("nan")
+
+    if bootstrap_iter > 0 and n_obs >= 2:
+        _, p_boot = bootstrap_sharpe(period_returns, n_iter=bootstrap_iter)
+        metrics["p_bootstrap"] = p_boot
+    else:
+        metrics["p_bootstrap"] = float("nan")
     metrics["dsr"] = dsr if not np.isnan(dsr) else float("nan")
     metrics["p_value"] = p_dsr if not np.isnan(p_dsr) else float("nan")
 

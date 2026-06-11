@@ -1,6 +1,12 @@
 # EURUSD H4 Mean-Reversion + Méta-Labeling RF
 
-> **Statut** : ✅ GO — Validé OOS 2024-01 → 2026-05  
+> 🚨 **CADUC (audit 2026-06-09)** : fiche gelée le 2026-05-16, AVANT toutes les
+> corrections (fill open suivant, Sharpe par fréquence du 2026-05-29 ; DSR
+> canonique du 2026-06-09). La famille « retour à la moyenne technique » est
+> par ailleurs déclarée MORTE dans `docs/signaux_reels_phase1.md`. Ce GO est
+> **invalidé** ; fiche conservée pour l'historique uniquement.
+
+> **Statut** : ❌ INVALIDÉ (ex-GO) — résultats pré-correctifs  
 > **Pipeline ML** : Frozen v4.0.0 — [`app/config/ml_pipeline_v4.py`](../app/config/ml_pipeline_v4.py)  
 > **Date de gel** : 2026-05-16  
 > **n_trial consommé** : 1 (H_new3) sur 28 cumulés

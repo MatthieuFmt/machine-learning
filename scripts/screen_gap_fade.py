@@ -10,7 +10,7 @@ le coût aller-retour.
 
 Discipline : signal connu à l'open (gap = open − close veille), exécution
 open→close, coûts XTB réels, Sharpe annualisé routé par fréquence →
-validate_edge + DSR. Paramètres FIGÉS, n_trials = nombre d'indices.
+validate_edge + DSR. Paramètres FIGÉS, n_trials = registre anti-snooping.
 
 ⚠️ Effet documenté mais réputé AFFAIBLI — on mesure ce qu'il en reste.
 
@@ -35,6 +35,7 @@ from app.analysis.edge_validation import validate_edge  # noqa: E402
 from app.backtest.metrics import sharpe_daily_from_trades  # noqa: E402
 from app.config.instruments import ASSET_CONFIGS  # noqa: E402
 from app.data.loader import load_asset  # noqa: E402
+from app.research.edge_harness import record_and_resolve_n_trials  # noqa: E402
 from app.strategies.gap_fade import simulate_gap_fade  # noqa: E402
 
 # Séances cash (figées) : (fuseau, ouverture locale, clôture locale).
@@ -69,12 +70,11 @@ def main() -> int:
     args = parser.parse_args()
 
     assets = [a.strip() for a in args.assets.split(",") if a.strip()]
-    n_trials = len(assets)
 
     print("=" * 72)
     print(f"GAP FADE (honnête) — {args.tf}, intraday flat la nuit")
     print(f"seuil gap ≥ {args.min_gap_mult:g}× coût a/r   Indices : {', '.join(assets)}   "
-          f"n_trials={n_trials}")
+          f"n_trials : registre anti-snooping")
     print("=" * 72)
 
     any_go = False
@@ -104,6 +104,12 @@ def main() -> int:
         tpy = len(trades) / years
         ann_sharpe = sharpe_daily_from_trades(trades)
         equity, tdf = _equity_and_df(trades, cfg.pip_value_eur, args.capital)
+        n_trials = record_and_resolve_n_trials(
+            prompt="screen_gap_fade",
+            hypothesis=f"{asset}/{args.tf}:gap_fade_min{args.min_gap_mult:g}",
+            sharpe=ann_sharpe,
+            n_trades=len(trades),
+        )
         report = validate_edge(
             equity, tdf, n_trials=n_trials, annualized_sharpe=ann_sharpe
         )
@@ -115,7 +121,11 @@ def main() -> int:
         print(f"\n══ {asset}/{args.tf} ══ ({len(trades)} trades, {tpy:.0f}/an, "
               f"{df.index.min().date()}→{df.index.max().date()})")
         print(f"  Sharpe annualisé : {ann_sharpe:.2f}   "
-              f"DSR : {report.metrics['dsr']:.2f} (p={report.metrics['p_value']:.3f})")
+              f"DSR : {report.metrics['dsr']:.2f} (p={report.metrics['p_value']:.3f})   "
+              f"[n_trials={n_trials}]")
+        print(f"  Preuves primaires : t/trade = {report.metrics['t_stat']:.2f} "
+              f"(p={report.metrics['p_t']:.3f})   p_bootstrap = "
+              f"{report.metrics['p_bootstrap']:.3f}")
         print(f"  MaxDD : {report.metrics['max_dd']:.1%}   WR : {report.metrics['wr']:.0%}   "
               f"trades/an : {report.metrics['trades_per_year']:.1f}")
         print(f"  PnL net : {tdf['pnl'].sum():+.0f} €   long/short : {n_long}/{len(trades) - n_long}   "

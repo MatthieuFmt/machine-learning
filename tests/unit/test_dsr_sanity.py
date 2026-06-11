@@ -9,7 +9,6 @@ Vérifie les invariants de la formule Bailey & López de Prado 2014 :
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
 from app.analysis.edge_validation import deflated_sharpe
 
@@ -49,19 +48,43 @@ def test_dsr_increases_with_n_obs() -> None:
 
 
 def test_dsr_pvalue_consistent_with_normal_cdf() -> None:
-    """p-value = 1 - Φ(dsr). Pour dsr=0, p ≈ 0.5. Pour dsr=1.645, p ≈ 0.05."""
+    """p-value = 1 - Φ(dsr), strictement décroissante avec le Sharpe par-période.
+
+    Valeurs PAR PÉRIODE réalistes (sémantique canonique post-fix 2026-06-09) :
+    sur 1000 observations, SR/période −0.05 / 0.01 / 0.10 → z ≈ −2.1 / −0.2 / +2.6.
+    """
     base = dict(n_trials=2, n_obs=1000, skew=0.0, kurtosis=3.0)
-    # On cherche un sr tel que dsr soit proche de 1.645
-    # Pour n_trials=2 sr_zero ≈ 0.45, donc sr ≈ 0.5 + 1.645/sqrt(999) × √denom
-    # Approximation suffisante : on teste juste la monotonie.
-    dsr_neg, p_neg = deflated_sharpe(sr=-0.5, **base)
-    dsr_zero, p_zero = deflated_sharpe(sr=0.5, **base)
-    dsr_pos, p_pos = deflated_sharpe(sr=2.0, **base)
+    dsr_neg, p_neg = deflated_sharpe(sr=-0.05, **base)
+    dsr_zero, p_zero = deflated_sharpe(sr=0.01, **base)
+    dsr_pos, p_pos = deflated_sharpe(sr=0.10, **base)
 
     assert p_pos < p_zero < p_neg, (
         "p-value doit décroître avec DSR : "
-        f"p(sr=-0.5)={p_neg:.3f}, p(sr=0.5)={p_zero:.3f}, p(sr=2.0)={p_pos:.3f}"
+        f"p(sr=-0.05)={p_neg:.3f}, p(sr=0.01)={p_zero:.3f}, p(sr=0.10)={p_pos:.3f}"
     )
+    assert dsr_neg < dsr_zero < dsr_pos
+
+
+def test_dsr_orb_regression_per_period_not_annualized() -> None:
+    """Régression du bug « ORB US500 M5 : DSR +11.29 (p=0.000) » (2026-06-09).
+
+    Profil réel : ~2 828 trades sur 11 ans (~1/jour), Sharpe/trade ≈ 0.011
+    (≈ 0.17 annualisé). En per-période (canonique), z ≈ 0.6 → bruit. L'ancien
+    chemin (Sharpe ANNUALISÉ avec n_obs = nb de trades) donnait z > 5 → faux edge.
+    """
+    sr_per_trade = 0.17 / np.sqrt(252)  # ≈ 0.0107
+    z, p = deflated_sharpe(
+        sr=sr_per_trade, n_trials=1, n_obs=2828, skew=0.5, kurtosis=5.0
+    )
+    assert z < 1.0, f"z={z:.2f} : un Sharpe/trade de 0.011 ne peut pas être significatif"
+    assert p > 0.15
+
+    # Démonstration de l'artefact : nourrir le Sharpe annualisé explose le z.
+    z_bug, p_bug = deflated_sharpe(
+        sr=0.17, n_trials=1, n_obs=2828, skew=0.5, kurtosis=5.0
+    )
+    assert z_bug > 5.0
+    assert p_bug < 1e-6
 
 
 def test_dsr_handles_invalid_inputs() -> None:

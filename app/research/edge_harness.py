@@ -119,6 +119,27 @@ def _equity_and_df(
     return equity, trades_df
 
 
+def record_and_resolve_n_trials(
+    prompt: str,
+    hypothesis: str,
+    sharpe: float,
+    n_trades: int,
+) -> int:
+    """Journalise une lecture OOS et retourne le n_trials cumulé pour le DSR.
+
+    À appeler par tout screen autonome JUSTE AVANT `validate_edge` : la lecture
+    courante est enregistrée dans le registre anti-snooping (TEST_SET_LOCK.json)
+    puis comptée dans la pénalité. n_trials = nombre d'hypothèses UNIQUES
+    (clé prompt+hypothesis) → re-lancer le même screen n'inflate pas la pénalité,
+    tester une nouvelle configuration si. Remplace les `n_trials=len(assets)`
+    locaux qui sous-comptaient l'historique cumulé du projet (fix C4).
+    """
+    from app.testing.snooping_guard import n_unique_hypotheses, read_oos
+
+    read_oos(prompt=prompt, hypothesis=hypothesis, sharpe=sharpe, n_trades=n_trades)
+    return max(1, n_unique_hypotheses())
+
+
 def evaluate_oos(
     df: pd.DataFrame,
     signals: pd.Series,

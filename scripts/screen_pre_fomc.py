@@ -8,8 +8,9 @@ paramètre libre : long à FOMC−24h, sortie à FOMC−1h, toujours long.
 Discipline appliquée :
   - Coûts XTB réels (spread+slippage round-trip) + 1 nuit de swap (cfg).
   - Sharpe annualisé routé par fréquence (sharpe_daily_from_trades).
-  - DSR avec le Sharpe PAR-PÉRIODE (fix 2026-05-29) — n_trials petit car
-    hypothèse pré-enregistrée (≠ recherche technique massive).
+  - DSR canonique (Sharpe PAR-PÉRIODE, fix 2026-06-09) ; n_trials cumulé lu
+    depuis le registre anti-snooping (record_and_resolve_n_trials).
+  - Preuves primaires affichées : t-test par trade + bootstrap stationnaire.
   - Comme la stratégie n'a AUCUN paramètre à ajuster, on l'évalue sur tout
     l'échantillon (≈ 8 trades/an × ~16 ans ≈ 128 trades → DSR calculable),
     PLUS un découpage temporel pré/post-2015 pour détecter une décroissance
@@ -34,6 +35,7 @@ from app.analysis.edge_validation import validate_edge  # noqa: E402
 from app.backtest.metrics import sharpe_daily_from_trades  # noqa: E402
 from app.config.instruments import ASSET_CONFIGS  # noqa: E402
 from app.data.loader import load_asset  # noqa: E402
+from app.research.edge_harness import record_and_resolve_n_trials  # noqa: E402
 from app.strategies.pre_fomc_drift import (  # noqa: E402
     load_fomc_announcement_times,
     simulate_pre_fomc_trades,
@@ -116,8 +118,15 @@ def main() -> int:
         # Verdict honnête sur tout l'échantillon (hypothèse pré-enregistrée).
         equity, tdf = _equity_and_df(trades, cfg.pip_value_eur, args.capital)
         ann_sharpe = sharpe_daily_from_trades(trades)
-        # n_trials=2 : on teste 2 actifs (US500, US30) sur cette hypothèse unique.
-        report = validate_edge(equity, tdf, n_trials=len(assets), annualized_sharpe=ann_sharpe)
+        # n_trials cumulé via le registre anti-snooping (fix C4) — plus jamais
+        # un len(assets) local qui ignore l'historique du projet.
+        n_trials = record_and_resolve_n_trials(
+            prompt="screen_pre_fomc",
+            hypothesis=f"{asset}/{args.tf}:pre_fomc_drift",
+            sharpe=ann_sharpe,
+            n_trades=len(trades),
+        )
+        report = validate_edge(equity, tdf, n_trials=n_trials, annualized_sharpe=ann_sharpe)
 
         full = _summarize(trades, "TOUT")
         pre_s = _summarize(pre, f"<{args.split_year}")
@@ -127,7 +136,10 @@ def main() -> int:
               f"{full['n'] / max((fomc.max() - fomc.min()).days / 365.25, 1):.1f}/an)")
         print(f"  Sharpe annualisé : {ann_sharpe:.2f}   "
               f"DSR : {report.metrics['dsr']:.2f} (p={report.metrics['p_value']:.3f})   "
-              f"MaxDD : {report.metrics['max_dd']:.1%}")
+              f"MaxDD : {report.metrics['max_dd']:.1%}   [n_trials={n_trials}]")
+        print(f"  Preuves primaires : t/trade = {report.metrics['t_stat']:.2f} "
+              f"(p={report.metrics['p_t']:.3f})   p_bootstrap = "
+              f"{report.metrics['p_bootstrap']:.3f}")
         print(f"  WR : {full['wr']:.0%}   pips moy/trade : {full['avg_pips']:.1f}   "
               f"gain net € : {tdf['pnl'].sum():.0f}")
         print(f"  GO : {report.go}")
