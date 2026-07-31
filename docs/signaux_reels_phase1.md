@@ -18,6 +18,42 @@
 > python scripts/screen_carry.py --assets AUDJPY,GBPJPY,EURJPY --tf D1
 > ```
 
+---
+
+## Re-verdict ANALYTIQUE (2026-07-31) — en attendant la re-mesure sur bougies
+
+Les screens exigent les CSV locaux, indisponibles en session cloud (sources de
+données bloquées par la politique réseau). Mais le bug corrigé était un bug
+d'**algèbre** (Sharpe annualisé → par-période), pas de données : le verdict
+corrigé se recalcule depuis les Sharpe/fréquences déjà publiés ci-dessous.
+
+➡️ `python scripts/recheck_signals_from_stats.py` (reproductible, sans données)
+
+| Signal | Sharpe/période | n_obs | **t-test (preuve primaire)** | Verdict |
+|---|---|---|---|---|
+| **Pre-FOMC** | 0,2475 | 128 | **t = 2,80 · p = 0,0030** | ✅ **SURVIT** |
+| Carry JPY | 0,0252 | 4 032 | t = 1,60 · p = 0,055 | ❌ non significatif (+ DD 23 % > 15 %) |
+| ORB US500 M5 | 0,0106 | 2 827 | t = 0,56 · p = 0,287 | ❌ **BRUIT** — confirme l'artefact |
+
+**Le t-test est la preuve la plus robuste** : contrairement au DSR, il ne dépend
+pas du nombre d'hypothèses testées. Un signal qui échoue au t-test est mort quelle
+que soit l'hypothèse retenue sur `n_trials`.
+
+Sur le DSR, la colonne à lire pour ces 3 signaux est **`n_trials = 1`** : les
+trois sont des hypothèses **pré-enregistrées** (publiées dans la littérature
+AVANT nos tests — Lucca & Moench 2015, carry FX, Zarattini & Aziz 2023), donc non
+data-minées par nous. Pre-FOMC y obtient z = +2,75 (p = 0,003), robuste au
+scénario « queues épaisses » (z = +2,55). Avec la pénalité cumulée du projet
+(n_trials 15-60) il tomberait à p = 0,16-0,34 — mais appliquer notre compteur de
+snooping à une hypothèse qu'on n'a pas cherchée serait une double peine injustifiée.
+
+### Ce que ce re-verdict NE tranche PAS
+- **La décroissance post-publication du pre-FOMC** (l'effet a-t-il survécu après
+  2015 ?) — c'est le test `--split-year` de `screen_pre_fomc.py`, il EXIGE les
+  bougies. **C'est le seul contrôle qui reste avant toute décision.**
+- Le bootstrap stationnaire et les moments exacts (skew/kurtosis réels).
+- Une éventuelle erreur dans le backtest lui-même (coûts, fill) — non ré-auditée ici.
+
 > Mémo de référence : les 3 seuls signaux qui montraient un effet jugé réel
 > après validation honnête (fill réaliste, coûts XTB, swap, DSR avec n_trials).
 > **Aucun ne franchit seul** la barre constitution (Sharpe ≥ 1 · DSR > 0 p<0.05 ·

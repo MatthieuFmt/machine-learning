@@ -1000,3 +1000,48 @@ python scripts/screen_trend_pullback.py --assets EURUSD,GBPUSD,USDJPY,XAUUSD
 Puis : mettre à jour `signaux_reels_phase1.md` avec les chiffres honnêtes ;
 si ≥ 1 survivant → portefeuille combiné (session suivante) ; relevés démo XTB
 (`docs/checklist_couts_xtb.md`) quand possible.
+
+## 2026-07-31 — Re-verdict analytique des 3 signaux (sans bougies)
+
+### Contexte
+Mainteneur indisponible pour lancer les screens ; session cloud sans données
+(`data/` absent) et **sources bloquées par la politique réseau** : Dukascopy,
+Yahoo Finance et Stooq répondent tous 403 au CONNECT du proxy d'egress
+(vérifié via `$HTTPS_PROXY/__agentproxy/status`). Les 4 screens ne peuvent donc
+pas tourner ici.
+
+### Contournement : le bug corrigé était algébrique, pas dépendant des données
+Le fix « DSR ×√252 » portait uniquement sur `SR_pp = SR_ann / √(périodes/an)`.
+Le verdict corrigé est donc recalculable depuis les stats résumées publiées.
+→ **`scripts/recheck_signals_from_stats.py`** (nouveau) : re-juge les 3 signaux
+avec le `deflated_sharpe` canonique du repo + t-test unilatéral, avec balayage de
+sensibilité (skew/kurtosis gaussien vs queues épaisses ; n_trials ∈ {1, 15, 60}).
+
+### Résultats
+| Signal | SR/période | n_obs | t-test | Verdict |
+|---|---|---|---|---|
+| Pre-FOMC US500 | 0,2475 | 128 | **t=2,80 p=0,0030** | ✅ SURVIT |
+| Carry JPY | 0,0252 | 4 032 | t=1,60 p=0,055 | ❌ + DD 23 % > 15 % |
+| ORB US500 M5 | 0,0106 | 2 827 | t=0,56 p=0,287 | ❌ BRUIT |
+
+- **ORB confirmé mort** : p=0,287. Le « DSR +11,29 (p=0,000) » était bien un pur
+  artefact du bug — 3ᵉ artefact de l'histoire du projet, confirmé quantitativement.
+- **Carry mort** : t=1,60 sous le seuil, et le DD 17-30 % viole la constitution.
+- **Pre-FOMC seul survivant** : p=0,003 au t-test (preuve indépendante du
+  data-snooping). DSR z=+2,75 à n_trials=1, lecture défendable car hypothèse
+  pré-enregistrée (Lucca & Moench 2015, non data-minée par nous). Robuste au
+  scénario queues épaisses (z=+2,55).
+- Ne franchit toutefois PAS la barre constitution : Sharpe 0,70 < 1,0 et
+  8 trades/an < 30.
+
+### Reste à faire EN LOCAL (bloquant, exige les bougies)
+1. `python scripts/screen_pre_fomc.py --assets US500,US30 --tf H1`
+   → **le test `--split-year 2015` est le contrôle décisif** : l'effet a-t-il
+   décru après publication ? (destin classique des anomalies publiées)
+2. `python scripts/screen_trend_pullback.py --assets EURUSD,GBPUSD,USDJPY,XAUUSD`
+   (stratégie manuelle TradingView — jamais chiffrée)
+3. Carry et ORB : re-mesure devenue non prioritaire (verdict analytique sans appel).
+
+### Vérifications
+- `pytest tests/unit/test_dsr_sanity.py test_edge_validation.py test_trend_pullback.py`
+  → **61 passed** (pile statistique validée).
