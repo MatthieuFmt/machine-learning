@@ -1045,3 +1045,71 @@ sensibilité (skew/kurtosis gaussien vs queues épaisses ; n_trials ∈ {1, 15, 
 ### Vérifications
 - `pytest tests/unit/test_dsr_sanity.py test_edge_validation.py test_trend_pullback.py`
   → **61 passed** (pile statistique validée).
+
+## 2026-07-31 (suite) — Premiers RELEVÉS RÉELS de coûts XTB (captures app mobile)
+
+Le mainteneur a fourni 5 captures de l'app XTB (US500 ×2, AUDJPY, EURJPY, GBPJPY),
+relevées à 23:07-23:08 heure FR — **marché en pré-ouverture = spreads au pire**.
+
+### 🔴 Découverte : le spread US500 du code était sous-estimé ×15
+Déduction depuis l'écran (indépendante de la convention de pip) :
+```
+contrat 1 636,33 EUR pour 0,005 lot, indice 7 503
+→ 1 POINT d'indice = 1636.33/7503 = 0,2181 EUR
+→ « valeur du pip » affichée 0,22 EUR ⇒ le pip XTB = 1 POINT (pas 0,1)
+→ spread 0,20 EUR / 0,2181 = 0,92 POINT d'indice = 9,2 pips internes
+```
+Code : `spread_pips=0.5` avec `pip_size=0.1` ⇒ 0,06 point supposé. **×15 trop bas.**
+→ `ASSET_CONFIGS["US500"]` corrigé : spread 0.5→9.2, slippage 0.1→1.8,
+  min_lot 0.01→0.005 (réel), max_lot 10→52 (réel).
+
+**2ᵉ raison indépendante de la mort de l'ORB** : 257 A/R par an × 2 × 0,92 pt
+≈ **473 points d'indice de frais annuels** (~6 % du notionnel) — l'edge brut
+n'a jamais eu la moindre chance. Le bug DSR ET le spread pointaient au même endroit.
+**Le pre-FOMC, lui, résiste** : 8 A/R/an ≈ 15 pts de frais contre un drift brut
+de ~180-300 pts/an → les frais mangent ~5-8 % de l'edge. Sans effet sur le verdict.
+
+### ✅ Confirmations (l'estimation était bonne)
+- **Swap US500** : réel Achat −0,021167 %/nuit = −1,59 pt ; code −16 pips = −1,60 pt
+  → **juste à 1 %**. Le modèle de swap du projet est validé sur cet actif.
+- **Commission 0,00 EUR** confirmée sur les 4 instruments.
+- **GBPJPY** : réel 3,1 pips ; code 2,5+0,6 = 3,1 → exact.
+- EURJPY réel 2,9 vs code 1,9 (optimiste ×1,5) ; AUDJPY réel 26 pips mais à
+  l'heure la plus morte pour l'AUD → non représentatif, valeur conservée + commentaire.
+
+### ⚠️ US500 = CFD sur FUTURES, rollover le 16/09/2026
+Écran « Informations clés » : *S&P500 index futures contract*, rollover trimestriel
+(dernier 17/06/2026, **suivant 16/09/2026**), levier 1:20, lot min 0,005.
+🚨 **Le rollover tombe le jour de la décision FOMC de septembre (15-16/09)** →
+collision avec la fenêtre du trade pre-FOMC. À trancher avant de jouer la date.
+
+### 💰 Capital réel du compte : 139,97 EUR — contrainte bloquante
+Position US500 minimale = 0,005 lot → marge 81,38 EUR (58 % du compte),
+**notionnel 1 636 EUR = levier réel 11,7× sur le compte**.
+| mouvement S&P | impact sur le compte |
+|---|---|
+| 1 % | −11,7 % |
+| 2 % | −23,4 % |
+| 3 % | −35,1 % |
+Pour risquer 2 % du compte avec un stop à 1,5 %, le notionnel devrait être 187 EUR :
+le minimum imposé est **9× trop gros**. → **capital minimum pour un dimensionnement
+sain sur US500 : ~1 230 EUR.** En dessous, la taille de lot minimale impose le levier.
+
+### Effet de bord corrigé
+`test_cost_vs_sl_ratio[US500]` a échoué avec le vrai coût (11,0/100 = 11 % > 10 %).
+Le garde-fou avait raison : le SL par défaut (100 pips = 10 pts = 0,13 % d'un
+indice à 7 500) n'était tenable qu'avec le spread faux. Recalibré à
+**SL 400 pips (0,53 %) / TP 800 pips (1,07 %)** — ordre de grandeur de l'ATR
+journalier du S&P, ratio 2:1 conservé, coût = 2,8 % du stop. Ces défauts ne
+servent qu'aux pipelines ML hérités (les screens Phase 1 passent leur grille).
+
+### Vérifications
+- `pytest tests/unit/` → **908 passed, 14 failed** = les 13 pré-existants
+  (6 `test_instruments_costs` sur coûts JPY/crypto provisoires + 7 `test_regime`)
+  **+ 0 nouveau** après recalibrage (US500 repasse au vert).
+- ruff ✅ · mypy ✅ sur `instruments.py`.
+
+### Reste à relever (app XTB, 5 min)
+- [ ] **Swaps AUDJPY / GBPJPY / EURJPY** — derrière « Afficher les détails ».
+- [ ] Spread US500 en **séance NY** (15h30-22h FR) : 0,92 est un pire-cas.
+- [ ] Spread AUDJPY en séance Tokyo (02h-09h FR).

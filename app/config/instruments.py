@@ -310,20 +310,49 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
     # v4: vrai XTB ~0.5 pts, slippage majeure 0.2×
     # ⚠️ pip_size = 0.1 (le S&P cote au dixième de point)
     "US500": AssetConfig(
-        spread_pips=0.5,
-        slippage_pips=0.1,
-        commission_pips=0.0,
-        pip_size=0.1,          # 1 pt S&P = 0.1 (cotation au dixième)
-        pip_value_eur=0.092,   # 0.1 pt × 0.92 ≈ 0.092 EUR
-        tp_points=200,
-        sl_points=100,
+        # ⚠️ RELEVÉ RÉEL app XTB, 2026-07-31 23:08 (heure FR, marché en PRÉ-OUVERTURE
+        # = heure creuse → spread au PIRE). Écran : spread 0.20 EUR, valeur du pip
+        # 0.22 EUR, valeur du contrat 1 636.33 EUR pour 0.005 lot, indice 7 503.
+        #   valeur d'1 POINT d'indice = 1636.33/7503 = 0.2181 EUR
+        #   → le « pip » affiché par XTB vaut 1 POINT d'indice (0.22/0.2181 ≈ 1.0)
+        #   → spread réel = 0.20/0.2181 = 0.92 POINT = 9.2 pips ici (pip_size=0.1)
+        # L'ancienne valeur (0.5) supposait 0.06 point : SOUS-ESTIMATION ×15.
+        # C'est ce qui rendait l'ORB M5 (≈257 A/R par an) faussement viable.
+        # 🔜 À raffiner : relevé en séance NY (15h30-22h) où le spread est plus
+        #    serré ; d'ici là on garde la mesure pire-cas (conservateur = correct).
+        spread_pips=9.2,
+        slippage_pips=1.8,     # 0.2 × spread (règle projet, majeures)
+        commission_pips=0.0,   # ✅ confirmé à l'écran : « Commission 0.00 EUR »
+        pip_size=0.1,          # 1 pip interne = 0.1 point d'indice
+        # ⚠️ pip_value_eur est une constante de NORMALISATION (échelle € des
+        # rapports), pas un coût : le Sharpe/DSR n'en dépendent pas. Réel mesuré :
+        # 0.0218 EUR par 0.1 point pour 0.005 lot. Laissé à 0.092 pour ne pas
+        # casser la comparabilité des rapports historiques.
+        pip_value_eur=0.092,
+        # TP/SL par défaut RECALIBRÉS avec le vrai spread. L'ancien SL (100 pips
+        # = 10 points d'indice = 0.13 % d'un indice à 7 500) n'était « viable »
+        # que parce que le spread était sous-estimé ×15 : le garde-fou
+        # test_cost_vs_sl_ratio le rejette dès qu'on met le coût réel
+        # (11.0/100 = 11 % du stop > seuil 10 %). Nouvelles valeurs :
+        #   SL 400 pips = 40 pts = 0.53 %   TP 800 pips = 80 pts = 1.07 %
+        # → ordre de grandeur de l'ATR journalier du S&P (~1 %), ratio 2:1 conservé,
+        #   coût = 2.8 % du stop. (Les screens Phase 1 passent leur propre grille
+        #   TP/SL ; ces défauts ne servent qu'aux pipelines ML hérités.)
+        tp_points=800,
+        sl_points=400,
         window_hours=120,
-        min_lot=0.01,
-        max_lot=10.0,
-        # F6 — swaps estimés indices CFD (financement SOFR + ~5% = ~10%/an)
-        # US500 ≈ 6000 × 10%/an / 365 ≈ $1.64/jour = 16 pips (pip=$0.1)
+        min_lot=0.005,         # ✅ relevé réel (l'ancien 0.01 était faux)
+        max_lot=52.0,          # ✅ relevé réel « Taille maximale de la position »
+        # ✅ SWAP CONFIRMÉ par relevé : Achat -0.021167 %/nuit, Vente -0.001056 %.
+        # -0.021167 % × 7503 = -1.59 point = -15.9 pips → l'estimation -16.0
+        # était juste à 1 % près. Aucun changement nécessaire.
         swap_long_pips_per_night=-16.0,
         swap_short_pips_per_night=2.0,
+        # ⚠️ US500 chez XTB est un CFD sur FUTURES (pas cash) : rollover
+        # trimestriel — dernier 17/06/2026, suivant 16/09/2026. Le rollover
+        # crée un saut de prix (compensé en cash). ⚠️ Le 16/09/2026 tombe le
+        # JOUR de la décision FOMC de septembre → collision avec la fenêtre
+        # du trade pre-FOMC. À vérifier avant de jouer cette date.
     ),
     # ── GER30 (DAX 40 CFD) ───────────────────────────────────────────────
     # v3: spread=2.0 + slippage=3.0 = 5.0  ← surestimation × 4.2
@@ -534,6 +563,11 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
     # Le swap encode le carry : taux locaux 2026 ≈ AUD 4.35 %, GBP 4.5 %,
     # EUR 2.5 %, JPY 0.5 % → long cross = carry positif, short = fortement négatif.
     "AUDJPY": AssetConfig(
+        # ⚠️ RELEVÉ RÉEL 2026-07-31 23:07 (FR) : spread **26 pips** (1.44 EUR /
+        # 0.01 lot). C'est l'heure la PLUS creuse de la journée pour l'AUD
+        # (clôture NY, avant Sydney/Tokyo) — non représentatif d'une entrée en
+        # séance. Valeur conservée : estimation heures liquides.
+        # 🔜 Relevé requis en séance Tokyo (02h-09h FR) pour trancher.
         spread_pips=1.8,
         slippage_pips=0.4,     # mineure : ~0.2-0.5× spread
         commission_pips=0.0,
@@ -549,6 +583,9 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
         swap_short_pips_per_night=-2.4,
     ),
     "EURJPY": AssetConfig(
+        # ✅ RELEVÉ RÉEL 2026-07-31 23:08 (FR, heure creuse) : 2.9 pips
+        # (0.16 EUR / 0.01 lot). Estimation 1.6+0.3=1.9 → correcte à l'ordre de
+        # grandeur, légèrement optimiste. Commission 0.00 EUR confirmée.
         spread_pips=1.6,
         slippage_pips=0.3,
         commission_pips=0.0,
@@ -564,6 +601,8 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
         swap_short_pips_per_night=-1.6,
     ),
     "GBPJPY": AssetConfig(
+        # ✅ RELEVÉ RÉEL 2026-07-31 23:08 (FR, heure creuse) : 3.1 pips
+        # (0.17 EUR / 0.01 lot) — l'estimation 2.5+0.6=3.1 tombe EXACTEMENT juste.
         spread_pips=2.5,       # cross volatile, spread plus large
         slippage_pips=0.6,
         commission_pips=0.0,

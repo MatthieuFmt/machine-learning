@@ -140,11 +140,11 @@ def main() -> int:
             f"   (= {sig.annualized_sharpe:.2f} / √{sig.periods_per_year:.0f})"
         )
         print(f"  n_obs : {n}  ({sig.periods_per_year:.0f}/an × {sig.years:.0f} ans)")
-        print(f"\n  PREUVE PRIMAIRE (t-test unilatéral, indépendant du data-snooping) :")
+        print("\n  PREUVE PRIMAIRE (t-test unilatéral, indépendant du data-snooping) :")
         verdict_t = "significatif" if p_t < 0.05 else "NON significatif"
         print(f"     t = {t_stat:.2f}   p = {p_t:.4f}   → {verdict_t}")
 
-        print(f"\n  DSR corrigé (pénalité de data-snooping) :")
+        print("\n  DSR corrigé (pénalité de data-snooping) :")
         header = "     scénario        " + "".join(f"  n_trials={k:<3d}" for k in N_TRIALS_GRID)
         print(header)
         for label, skew, kurt in MOMENT_SCENARIOS:
@@ -158,7 +158,7 @@ def main() -> int:
             print(f"     {label:<15s}" + "".join(cells))
 
         # Rappel des autres critères GO de la constitution (§5 CLAUDE.md).
-        print(f"\n  Autres critères GO :")
+        print("\n  Autres critères GO :")
         ok_sharpe = sig.annualized_sharpe >= 1.0
         ok_dd = sig.max_dd < 0.15
         ok_freq = sig.periods_per_year >= 30.0
