@@ -578,9 +578,13 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
         window_hours=120,
         min_lot=0.01,
         max_lot=10.0,
-        # Carry AUD(4.35%)-JPY(0.5%) ≈ +3.85 %/an, markup broker déduit
-        swap_long_pips_per_night=0.9,
-        swap_short_pips_per_night=-2.4,
+        # ✅ SWAP RELEVÉ 2026-07-31 : Achat +0.01 EUR / Vente −0.10 EUR (0.01 lot,
+        # pip = 0.0551 EUR) → long +0.18 pips, short −1.81 pips.
+        # ⚠️ L'estimation +0.9 était ×5 TROP OPTIMISTE côté long : le markup XTB
+        # absorbe l'essentiel du différentiel de taux. Carry réel : +0.60 %/an
+        # (sur 612 EUR de notionnel) au lieu des ~+3.85 %/an supposés.
+        swap_long_pips_per_night=0.18,
+        swap_short_pips_per_night=-1.81,
     ),
     "EURJPY": AssetConfig(
         # ✅ RELEVÉ RÉEL 2026-07-31 23:08 (FR, heure creuse) : 2.9 pips
@@ -596,9 +600,13 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
         window_hours=120,
         min_lot=0.01,
         max_lot=10.0,
-        # Carry EUR(2.5%)-JPY(0.5%) ≈ +2 %/an, modeste
-        swap_long_pips_per_night=0.3,
-        swap_short_pips_per_night=-1.6,
+        # 🔴 SWAP RELEVÉ 2026-07-31 : Achat **−0.02 EUR** / Vente −0.09 EUR
+        # (0.01 lot, pip = 0.0551 EUR) → long −0.36 pips, short −1.63 pips.
+        # ⚠️ SIGNE INVERSE de l'estimation (+0.3) : être LONG EURJPY COÛTE de
+        # l'argent chaque nuit (−0.73 %/an). La prémisse même du carry
+        # (« le swap paie le portage ») est FAUSSE sur cette paire chez XTB.
+        swap_long_pips_per_night=-0.36,
+        swap_short_pips_per_night=-1.63,
     ),
     "GBPJPY": AssetConfig(
         # ✅ RELEVÉ RÉEL 2026-07-31 23:08 (FR, heure creuse) : 3.1 pips
@@ -613,8 +621,11 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
         window_hours=120,
         min_lot=0.01,
         max_lot=10.0,
-        # Carry GBP(4.5%)-JPY(0.5%) ≈ +4 %/an
-        swap_long_pips_per_night=1.0,
-        swap_short_pips_per_night=-2.6,
+        # ✅ SWAP RELEVÉ 2026-07-31 : Achat +0.02 EUR / Vente −0.15 EUR (0.01 lot,
+        # pip = 0.0551 EUR) → long +0.36 pips, short −2.72 pips.
+        # ⚠️ L'estimation +1.0 était ×2.8 trop optimiste côté long.
+        # Carry réel : +0.62 %/an sur 1 175 EUR de notionnel.
+        swap_long_pips_per_night=0.36,
+        swap_short_pips_per_night=-2.72,
     ),
 }

@@ -32,8 +32,27 @@ corrigé se recalcule depuis les Sharpe/fréquences déjà publiés ci-dessous.
 | Signal | Sharpe/période | n_obs | **t-test (preuve primaire)** | Verdict |
 |---|---|---|---|---|
 | **Pre-FOMC** | 0,2475 | 128 | **t = 2,80 · p = 0,0030** | ✅ **SURVIT** |
-| Carry JPY | 0,0252 | 4 032 | t = 1,60 · p = 0,055 | ❌ non significatif (+ DD 23 % > 15 %) |
+| Carry JPY | 0,0252 | 4 032 | t = 1,60 · p = 0,055 | ☠️ **MORT** (voir ci-dessous) |
 | ORB US500 M5 | 0,0106 | 2 827 | t = 0,56 · p = 0,287 | ❌ **BRUIT** — confirme l'artefact |
+
+### ☠️ Carry JPY — ENTERRÉ par les relevés de coûts réels (2026-07-31)
+
+Swaps mesurés sur l'app XTB (détail : `docs/checklist_couts_xtb.md`) :
+
+| Paire | Swap long réel | Estimation du code | Carry réel /an |
+|---|---|---|---|
+| AUDJPY | +0,18 pips | +0,9 (×5 optimiste) | +0,60 % |
+| EURJPY | **−0,36 pips** | +0,3 (**signe inverse**) | **−0,73 %** |
+| GBPJPY | +0,36 pips | +1,0 (×2,8 optimiste) | +0,62 % |
+
+**Carry réel du panier : +0,16 %/an** contre +0,7 à +3 %/an supposés.
+Être long EURJPY **coûte** de l'argent chaque nuit → la prémisse de la stratégie
+(« le swap paie le portage ») est fausse chez ce courtier. Il faudrait ~145 ans de
+swap pour rembourser une seule mauvaise année (perte max 17-30 %).
+
+➡️ **Deux raisons indépendantes** (statistique + économique). Famille close,
+ne pas ré-ouvrir. Les swaps côté SHORT étaient, eux, bien estimés : l'erreur
+était unilatérale et favorisait précisément l'hypothèse testée.
 
 **Le t-test est la preuve la plus robuste** : contrairement au DSR, il ne dépend
 pas du nombre d'hypothèses testées. Un signal qui échoue au t-test est mort quelle

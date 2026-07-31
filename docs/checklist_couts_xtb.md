@@ -131,3 +131,41 @@ sur US30, soit décaler, soit contrôler le traitement du rollover par XTB.
 - [ ] **Spread AUDJPY en séance Tokyo** (02h-09h FR) → les 26 pips relevés sont
       une anomalie d'heure creuse.
 - [ ] Instruments basés futures sans swap quotidien (OIL, NATGAS, agricoles).
+
+---
+
+# 🔴 SWAPS JPY RELEVÉS — 2026-07-31 23:25-23:27 : LE CARRY EST MORT
+
+Relevés app XTB (volume 0,01 lot ; 1 pip = 10 JPY / 181,441 = **0,0551 EUR**).
+
+| Paire | Swap ACHAT (long) | en pips | Estimation du code | Carry réel /an |
+|---|---|---|---|---|
+| AUDJPY | **+0,01 EUR** | +0,18 | +0,9 → **×5 trop optimiste** | +0,60 % |
+| EURJPY | **−0,02 EUR** | −0,36 | +0,3 → 🔴 **SIGNE INVERSE** | **−0,73 %** |
+| GBPJPY | **+0,02 EUR** | +0,36 | +1,0 → **×2,8 trop optimiste** | +0,62 % |
+
+**Carry moyen du panier : +0,16 %/an.** Le projet supposait **+0,7 à +3 %/an**.
+
+### Pourquoi c'est un arrêt définitif
+La stratégie carry repose sur UNE prémisse : *« le swap paie le portage »*.
+Or, chez XTB :
+- le markup courtier absorbe l'essentiel du différentiel de taux côté long ;
+- sur **EURJPY**, être long **COÛTE** de l'argent chaque nuit — la prémisse est
+  littéralement fausse ;
+- il faudrait **~145 ans** de swap (+0,16 %/an) pour rembourser UNE mauvaise
+  année de la stratégie (perte max historique mesurée : 17-30 %).
+
+C'est cohérent avec le verdict statistique indépendant du 2026-07-31
+(t = 1,60 · p = 0,055 → non significatif). **Deux raisons indépendantes : carry
+définitivement enterré, ne pas ré-ouvrir cette famille.**
+
+### Note : les swaps côté VENTE étaient bien estimés
+| Paire | short réel | code | écart |
+|---|---|---|---|
+| AUDJPY | −1,81 | −2,4 | correct |
+| EURJPY | −1,63 | −1,6 | quasi exact |
+| GBPJPY | −2,72 | −2,6 | quasi exact |
+
+➡️ L'erreur était **systématique et unilatérale** : seul le côté LONG (celui qui
+portait l'edge supposé) était surestimé. Leçon : quand une estimation favorise
+précisément l'hypothèse testée, c'est le premier endroit à vérifier.

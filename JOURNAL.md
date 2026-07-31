@@ -1113,3 +1113,40 @@ servent qu'aux pipelines ML hérités (les screens Phase 1 passent leur grille).
 - [ ] **Swaps AUDJPY / GBPJPY / EURJPY** — derrière « Afficher les détails ».
 - [ ] Spread US500 en **séance NY** (15h30-22h FR) : 0,92 est un pire-cas.
 - [ ] Spread AUDJPY en séance Tokyo (02h-09h FR).
+
+## 2026-07-31 (fin) — Swaps JPY relevés : le carry est ENTERRÉ
+
+Captures app XTB 23:25-23:27 (0,01 lot ; 1 pip = 10 JPY/181,441 = 0,0551 EUR).
+
+| Paire | Swap ACHAT relevé | pips | Code | Carry réel /an |
+|---|---|---|---|---|
+| AUDJPY | +0,01 EUR | +0,18 | +0,9 (**×5 optimiste**) | +0,60 % |
+| EURJPY | **−0,02 EUR** | −0,36 | +0,3 (🔴 **SIGNE INVERSE**) | **−0,73 %** |
+| GBPJPY | +0,02 EUR | +0,36 | +1,0 (**×2,8 optimiste**) | +0,62 % |
+
+**Carry réel du panier : +0,16 %/an** vs +0,7 à +3 %/an supposés dans le projet.
+
+### Verdict : famille close
+La stratégie carry repose sur une seule prémisse — « le swap paie le portage ».
+Chez XTB le markup absorbe le différentiel de taux, et sur **EURJPY être long
+COÛTE** de l'argent. Il faudrait **~145 ans** de swap (+0,16 %/an) pour rembourser
+UNE mauvaise année (perte max mesurée 17-30 %). S'ajoute au verdict statistique
+indépendant du même jour (t=1,60, p=0,055). **Deux raisons indépendantes.**
+
+### 🔍 Le point méthodologique le plus intéressant
+Les swaps côté **VENTE** étaient bien estimés (−1,81 vs −2,4 ; −1,63 vs −1,6 ;
+−2,72 vs −2,6). Seul le côté **ACHAT** — celui qui portait l'edge supposé — était
+surestimé, jusqu'au signe. L'erreur d'estimation était **unilatérale et alignée
+sur l'hypothèse testée**. À retenir comme heuristique d'audit : quand une
+estimation favorise précisément ce qu'on cherche à prouver, c'est le premier
+endroit à mesurer.
+
+`ASSET_CONFIGS` mis à jour (AUDJPY/EURJPY/GBPJPY, long ET short).
+Tests : 6 échecs pré-existants sur `test_instruments_costs`, **0 nouveau**.
+
+### État des 3 signaux après cette session
+| Signal | Statut |
+|---|---|
+| **Pre-FOMC US500** | ✅ seul survivant (t=2,80, p=0,003) — reste le test de décroissance post-2015 |
+| Carry JPY | ☠️ mort (statistique + économique) |
+| ORB US500 M5 | ☠️ mort (bug DSR + spread ×15) |
