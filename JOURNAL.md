@@ -1296,3 +1296,67 @@ Corrigé : comparaison USD↔USD ; fourchette BTC ré-ancrée sur la mesure
 5 échecs `test_cost_vs_sl_ratio` (XAGUSD, USDJPY, AUDJPY, EURJPY, GBPJPY) :
 même cause que US500/GER30 — `sl_points=10` est un stop absurdement serré face au
 spread réel. Familles concernées désormais mortes → priorité basse.
+
+## 2026-08-01 — « A-t-on testé TOUTES les stratégies crypto ? » → non, UNE seule
+
+### Réponse factuelle
+Une seule famille crypto a jamais été screenée : **`crypto_trend` / TSMOM**
+(time-series momentum D1, position continue long/short, momentum 100 j,
+vol-target 20 %). C'est exactement la famille que le portage tue. « Crypto » a
+donc été enterrée à tort sur la base d'un seul essai.
+
+### Nouvel outil : `scripts/crypto_cost_feasibility.py`
+Puisque les coûts sont désormais MESURÉS, on peut trancher analytiquement toutes
+les familles sans en coder aucune. Métrique retenue (après une première version
+fausse, cf. ci-dessous) : le **Sharpe annuel de seuil**, celui qu'il faut
+atteindre juste pour payer les frais.
+
+```
+coût(h)   = spread_A/R + h × swap_par_nuit
+σ(h)      = σ_journalier × √h
+SR_seuil  = coût(h)/σ(h) × √(trades par an)
+SR_net    = SR_brut_référence (0.6, optimiste) − SR_seuil
+```
+
+| Famille | testée | coût/trade | coût/an | SR seuil | SR net | verdict |
+|---|---|---|---|---|---|---|
+| Momentum D1 (TSMOM) | **oui** | 4,03 % | 24,2 % | 0,42 | 0,18 | ☠️ |
+| Tendance long-only | — | 4,67 % | 37,3 % | 0,66 | −0,06 | ☠️ |
+| Swing 3 jours | — | 0,49 % | 19,5 % | 0,59 | 0,01 | ☠️ |
+| Effet week-end | — | 0,59 % | 30,8 % | 0,82 | −0,22 | ☠️ |
+| Intraday quotidien | — | 0,30 % | 75,4 % | 1,59 | −0,99 | ☠️ |
+| Intraday hebdomadaire | — | 0,30 % | 15,7 % | 0,72 | −0,12 | ☠️ |
+| **Intraday rare (~1/mois)** | — | 0,30 % | 3,6 % | 0,35 | **0,25** | 🟢 |
+| **Tendance short-only** | — | 1,53 % | 12,2 % | 0,21 | **0,39** | 🟢 |
+
+Le verdict TSMOM (SR net 0,18, sous la barre 0,20) **converge avec la mesure
+empirique** — bon signe de cohérence entre l'analytique et le screen.
+
+### 🔑 Le résultat structurel
+Le coût croît en **h** (le swap s'accumule chaque nuit), l'amplitude en **√h**.
+Donc plus on tient, plus les frais mangent une grosse part du mouvement
+(13 % à 1 j → 20 % à 30 j → 32 % à 90 j). **Sur CFD crypto, tenir longtemps est
+mécaniquement perdant** — l'inverse exact de ce dont le trend-following a besoin.
+Ce n'est pas un accident de paramétrage, c'est la structure du produit.
+
+### Les 2 cases encore ouvertes (coût seul — aucun edge démontré)
+1. **Intraday rare (~12 trades/an, clôturé le jour même)** — zéro nuit de
+   portage, budget frais 3,6 %/an. ⚠️ Contrainte forte : il faut un signal qui se
+   déclenche ~1×/mois ET se résout dans la journée.
+2. **Tendance short-only** — le swap short est 3,5× moins cher que le long.
+   ⚠️ **Réserve majeure** : le coût est favorable mais le SIGNAL est adverse —
+   shorter en tendance de fond haussière est structurellement perdant. Le filtre
+   coût ne dit rien de ça. À ne PAS confondre avec une piste prometteuse.
+
+### 💡 Convergence intéressante
+La case 1 a **exactement la forme du pre-FOMC** : événementiel, rare, détention
+courte. Piste naturelle et principielle : le comportement de la crypto autour des
+annonces macro programmées (FOMC), qui l'affectent aussi. Une hypothèse dérivée
+d'un mécanisme déjà validé, pas un balayage. À arbitrer plus tard.
+
+### Correction interne (métrique)
+Première version du script : `coût/σ(h)` avec seuil 33 % → **toutes** les
+familles passaient, y compris TSMOM pourtant mort empiriquement. Erreur :
+comparer le coût à l'amplitude TOTALE suppose que la stratégie capture 100 % du
+mouvement. Corrigé en Sharpe de seuil (× √trades/an), qui reproduit le verdict
+empirique. ruff ✅.
