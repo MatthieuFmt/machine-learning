@@ -1150,3 +1150,46 @@ Tests : 6 échecs pré-existants sur `test_instruments_costs`, **0 nouveau**.
 | **Pre-FOMC US500** | ✅ seul survivant (t=2,80, p=0,003) — reste le test de décroissance post-2015 |
 | Carry JPY | ☠️ mort (statistique + économique) |
 | ORB US500 M5 | ☠️ mort (bug DSR + spread ×15) |
+
+## 2026-07-31 (suite) — Nouvelle hypothèse testable : Pre-ECB drift
+
+### Question du mainteneur : « d'autres stratégies à tester ? l'ORB par exemple »
+L'ORB est précisément celle qu'on vient d'enterrer (bug DSR + spread ×15).
+Chiffrage avec le VRAI spread relevé : 257 A/R par an × 2 × 0,92 pt
+= **473 points d'indice/an ≈ 6,3 % du notionnel en frais**. Toute stratégie
+quotidienne sur US500 doit donc battre ~6 %/an AVANT de gagner un centime.
+→ **Heuristique à retenir : la fréquence est l'ennemi.** Le pre-FOMC (8 A/R/an
+= 15 pts = 0,2 % du notionnel) est **30× moins cher** à exploiter.
+
+### Proposition retenue : `scripts/screen_pre_ecb.py` (NOUVEAU)
+Hypothèse dérivée d'un MÉCANISME, pas d'un balayage : l'« announcement premium »
+(Ai & Bansal 2018) qui explique le pre-FOMC n'a rien de spécifiquement américain.
+Prédiction pré-enregistrée : le même effet doit apparaître sur un indice européen
+avant les décisions BCE. **Fenêtre figée à l'identique** (annonce−24 h → −1 h),
+zéro paramètre ajusté, GER30 (DAX, dispo chez XTB).
+
+Les deux issues sont informatives :
+- ✅ → ~8 trades/an de plus, faiblement corrélés au FOMC (banques centrales
+  distinctes) → panier FOMC+BCE ≈ 16 trades/an, Sharpe combiné amélioré ;
+- ❌ → **affaiblit le pre-FOMC lui-même** (l'effet serait un artefact US).
+C'est un test de falsification, pas une pêche.
+
+Le chargeur de calendrier était déjà générique (`event_name`) → coût d'implémentation
+quasi nul. Le script auto-découvre le libellé BCE (`--list-events` en filet de
+sécurité : « Main Refinancing Rate », « Minimum Bid Rate » selon l'époque),
+applique `--cost-margin 1.5` (GER30 non encore relevé sur l'app XTB) et
+`record_and_resolve_n_trials`.
+
+### Vérification
+Test bout-en-bout sur données SYNTHÉTIQUES (marche aléatoire, 6 ans H1 + calendrier
+BCE factice) : 48 trades / 8,1 par an détectés correctement, verdict **NO-GO**
+(t=−1,01, p=0,840) — la pile rend bien un résultat nul sur du bruit pur. ruff ✅.
+
+### Commande pour le mainteneur (dès qu'il a son PC)
+```bash
+python scripts/screen_pre_ecb.py --assets GER30 --tf H1
+# si le libellé BCE diffère dans ses CSV :
+python scripts/screen_pre_ecb.py --list-events
+```
+### À relever sur l'app XTB (leçon du jour : les coûts estimés mentent)
+- [ ] **GER30** : spread + swap (config actuelle = estimation non vérifiée).
