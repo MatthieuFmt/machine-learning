@@ -137,3 +137,58 @@ swap=0) ; Asian Range Breakout forex (cassures = fakeouts) ; ORB indices H1
 
 **Leçon transverse** : le swap CFD tue les holds multi-jours ; l'intraday évite le
 swap mais les edges accessibles sont petits ; les seuls effets réels sont faibles.
+
+---
+
+## 🚨 Pre-FOMC — la littérature répond déjà : effet DISPARU après 2015 (recherche 2026-08-01)
+
+Le test bloquant (`--split-year 2015`) a **déjà été fait par des chercheurs**, sur
+un échantillon plus long et plus propre que le nôtre.
+
+**Kurov, Wolfe & Gilbert (2021), « The disappearing pre-FOMC announcement drift »,
+*Finance Research Letters* 40** — échantillon étendu à décembre 2019 :
+> le drift pre-FOMC **a essentiellement disparu après 2015**, aussi bien pour les
+> annonces avec conférence de presse que sans. Explication avancée : baisse de
+> l'incertitude après la sortie du taux zéro (décembre 2015).
+
+Découpage rapporté : drift présent sur avril 2011 → décembre 2015, **aucune trace
+significative** sur janvier 2016 → décembre 2019.
+
+### Contre-évidence (plus faible)
+- Un article de 2024 (*Applied Economics*) conclut à un effet « long-lasting »,
+  mais sur un cadrage différent (marchés de volatilité inclus).
+- Des sources non académiques (blogs quant) affirment l'effet vivant jusqu'en 2024.
+- La NY Fed (Liberty Street, 2018) trouvait des rendements résiduels **uniquement
+  pour les réunions avec conférence de presse** — nuance devenue caduque : depuis
+  2019 **toutes** les réunions FOMC ont une conférence de presse.
+
+⚖️ Le poids de la preuve penche du côté « effet mort » : la source la plus solide
+(revue à comité de lecture, méthodologie explicite) est celle qui conclut à la
+disparition.
+
+### 💥 Conséquence directe pour ce projet
+Notre mesure (Sharpe 0,70 · t = 2,80 · p = 0,003) porte sur **2010 → 2026**, donc
+**à cheval sur les deux régimes**. Si l'effet s'est éteint fin 2015, alors :
+- les ~40 trades d'avant 2015 portent tout le signal ;
+- les ~88 trades d'après ne rapportent rien ;
+- notre t = 2,80 global **mesure un effet historique, pas un effet exploitable**.
+
+C'est le destin classique d'une anomalie publiée — exactement ce que ce projet
+passe son temps à traquer, cette fois sur son propre survivant.
+
+**Statut du pre-FOMC : ⏸️ SUSPENDU → 🔻 probablement MORT en pratique.**
+Le `--split-year 2015` reste à lancer pour confirmer sur NOS données, mais
+l'attente est désormais un échec sur la seconde moitié. Ne PAS engager d'argent
+sur la réunion de septembre 2026 avant ce résultat.
+
+### Effet sur le pre-ECB
+Le screen pre-ECB avait été dérivé du mécanisme « announcement premium ». Si ce
+mécanisme a été arbitragé aux US, l'hypothèse européenne perd sa force — mais
+devient une question distincte et légitime : la zone euro a-t-elle suivi le même
+chemin, ou avec du retard ? Le test garde donc son intérêt, avec une attente
+revue à la baisse.
+
+Sources : [Kurov, Wolfe & Gilbert — SSRN](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3134546) ·
+[version PMC](https://pmc.ncbi.nlm.nih.gov/articles/PMC7525326/) ·
+[Lucca & Moench, NY Fed SR512](https://www.newyorkfed.org/research/staff_reports/sr512.html) ·
+[Liberty Street Economics 2018](https://libertystreeteconomics.newyorkfed.org/2018/11/the-pre-fomc-announcement-drift-more-recent-evidence/)
