@@ -1360,3 +1360,40 @@ familles passaient, y compris TSMOM pourtant mort empiriquement. Erreur :
 comparer le coût à l'amplitude TOTALE suppose que la stratégie capture 100 % du
 mouvement. Corrigé en Sharpe de seuil (× √trades/an), qui reproduit le verdict
 empirique. ruff ✅.
+
+## 2026-08-01 — Contrainte de DÉPLOIEMENT (le mainteneur a aussi un compte Trade Republic)
+
+### Le point structurel, plus important que le prochain screen
+Même si le pre-FOMC est réel (t=2,80 · p=0,003), il n'expose le capital que
+**8 jours par an** → le compte dort **98 % de l'année**. Sur 140 EUR, l'espérance
+est de l'ordre de **~9 EUR/an**. Ce n'est pas un problème de qualité du signal,
+c'est un problème de **taux d'occupation du capital**.
+
+➡️ **Une stratégie à 8 trades/an ne peut pas être le MOTEUR d'un portefeuille.**
+Elle ne peut être qu'un complément posé à côté d'un socle qui travaille toute
+l'année. Conséquence pour la suite du projet : le bon critère n'est plus
+« cette stratégie a-t-elle un Sharpe ≥ 1 ? » mais **« que rapporte-t-elle EN PLUS
+d'un socle passif, pour le risque ajouté ? »** — un critère d'alpha, pas de Sharpe
+absolu. À intégrer au verdict portefeuille prévu en Phase 2.
+
+Benchmark de référence à battre : ETF actions monde, Sharpe ≈ 0,45, ~7 %/an,
+zéro travail, zéro maintenance. Toute stratégie du repo doit se juger CONTRE ça.
+
+### Second courtier disponible : Trade Republic
+Détention réelle (pas de CFD) → **aucun financement quotidien**. Résout le
+problème mesuré sur XTB (35,4 %/an) pour toute exposition de plusieurs mois.
+Comparatif détention 6 mois sur 140 EUR : CFD XTB ≈ **49 EUR** de frais vs
+détention à 0-2 %/an ≈ **0 à 1,4 EUR**.
+
+⚠️ Coûts Trade Republic **NON RELEVÉS** — ne pas les supposer (leçon du jour :
+5 estimations sur 5 étaient fausses, toujours dans le sens favorable).
+- [ ] Frais d'ordre par transaction
+- [ ] Écart achat/vente sur la crypto (souvent bien plus large que sur actions)
+- [ ] Frais annuels si l'exposition crypto passe par un ETP/ETN et non du spot
+
+### Répartition des rôles (à valider)
+| Besoin | Outil | Pourquoi |
+|---|---|---|
+| Trades courts, événementiels (pre-FOMC/BCE) | XTB | coût proportionnel très bas (0,03 % du notionnel), lot fractionnable |
+| Détention de plusieurs mois | Trade Republic | zéro portage ; le CFD est disqualifié |
+| Socle passif de référence | Trade Republic | ETF, benchmark que le reste doit battre |
