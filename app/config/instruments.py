@@ -358,20 +358,36 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
     # v3: spread=2.0 + slippage=3.0 = 5.0  ← surestimation × 4.2
     # v4: vrai XTB ~1.0 pt, slippage majeure 0.2×
     "GER30": AssetConfig(
-        spread_pips=1.0,
-        slippage_pips=0.2,
-        commission_pips=0.0,
-        pip_size=1.0,          # 1 pt DAX = 1 EUR
-        pip_value_eur=1.0,
+        # ⚠️ RELEVÉ RÉEL app XTB (ticker « DE40 »), 2026-08-01 12:08 — marché en
+        # PRÉ-OUVERTURE (pire cas). Écran : spread 0.46 EUR / « 9.2 PIPS »,
+        # contrat 1 288.80 EUR pour 0.002 lot, indice 25 771.4, pip 0.05 EUR.
+        #   1 POINT d'indice = 1288.80/25771.4 = 0.05001 EUR → le pip XTB = 1 point
+        #   → spread réel = 0.46/0.05001 = 9.2 POINTS d'indice
+        # L'ancienne valeur (1.0) était SOUS-ESTIMÉE ×9.2 — même erreur que sur
+        # US500 (×15). 🔜 À raffiner par un relevé en séance (09h-17h30 FR).
+        spread_pips=9.2,
+        slippage_pips=1.8,     # 0.2 × spread (règle projet)
+        commission_pips=0.0,   # ✅ confirmé à l'écran
+        pip_size=1.0,          # 1 pip interne = 1 point DAX
+        pip_value_eur=1.0,     # normalisation (réel mesuré : 0.05 EUR à 0.002 lot)
+        # TP/SL recalibrés pour rester sous le garde-fou coût/SL (10 %) avec le
+        # vrai spread : 11.0/200 = 5.5 % ✅ — les valeurs 400/200 restent valides
+        # (200 pts = 0.78 % d'un DAX à 25 771, ordre de grandeur de l'ATR).
         tp_points=400,
         sl_points=200,
         window_hours=120,
-        min_lot=0.01,
+        min_lot=0.002,         # ✅ relevé réel (l'ancien 0.01 était faux)
         max_lot=10.0,
-        # F6 — swaps estimés indices CFD (financement ESTR + ~5% = ~8%/an)
-        # DAX ≈ 23000 × 8%/an / 365 ≈ €5/jour = 5 pips (pip=€1)
-        swap_long_pips_per_night=-5.0,
-        swap_short_pips_per_night=0.5,
+        # ✅ SWAP CONFIRMÉ : réel Achat −0.22 EUR / Vente −0.06 EUR (0.002 lot)
+        # → long −4.4 points/nuit (−0.0171 %/nuit ≈ −6.2 %/an). Estimation −5.0
+        # juste à 12 % près. Comme sur US500 : le modèle de SWAP est bon, c'est
+        # l'estimation de SPREAD qui était systématiquement fausse.
+        swap_long_pips_per_night=-4.4,
+        swap_short_pips_per_night=-1.2,
+        # ⚠️ DE40 est lui aussi un CFD sur FUTURES (« DAX index futures contract »).
+        # Coût d'un trade pre-ECB (A/R + 1 nuit) = 22.8 pts = 0.088 % du notionnel,
+        # soit 1.9× le coût du même trade sur US500 → barre plus haute pour le
+        # screen pre-ECB (les frais mangent ~22 % d'un drift brut de 0.4 %).
     ),
     # ── XAUUSD (Or spot) ─────────────────────────────────────────────────
     # v3: spread=25.0 + slippage=10.0 = 35.0  ← surestimation × 100

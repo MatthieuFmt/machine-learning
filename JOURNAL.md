@@ -1193,3 +1193,51 @@ python scripts/screen_pre_ecb.py --list-events
 ```
 ### À relever sur l'app XTB (leçon du jour : les coûts estimés mentent)
 - [ ] **GER30** : spread + swap (config actuelle = estimation non vérifiée).
+
+## 2026-08-01 — Relevé DE40 (GER30) : le schéma d'erreur se confirme
+
+Capture app XTB 12:08 (pré-ouverture) du ticker **DE40** (= GER30 dans nos configs).
+
+| Grandeur | Relevé réel | Config avant | Verdict |
+|---|---|---|---|
+| Spread | **9,2 points d'indice** (0,46 EUR / 0,002 lot) | 1,0 point | 🔴 **×9,2 trop bas** |
+| Swap long | −0,22 EUR = **−4,4 pts/nuit** (−6,2 %/an) | −5,0 pts | ✅ juste à 12 % |
+| Commission | 0,00 EUR | 0,0 | ✅ |
+| Lot min | **0,002** | 0,01 | corrigé |
+
+Déduction du spread (indépendante de la convention de pip) :
+`1288.80 / 25771.4 = 0,05001 EUR par point` ⇒ le « pip » XTB = 1 POINT ;
+`0,46 / 0,05001 = 9,2 points`.
+
+### 🔬 Schéma d'erreur maintenant confirmé sur 2 indices + 3 paires forex
+| | Estimations de SWAP | Estimations de SPREAD |
+|---|---|---|
+| US500 | ✅ juste à 1 % | 🔴 ×15 trop bas |
+| GER30 | ✅ juste à 12 % | 🔴 ×9,2 trop bas |
+| JPY (short) | ✅ juste | — |
+| JPY (long, = l'edge supposé) | 🔴 jusqu'au signe | — |
+
+➡️ **La méthode d'estimation des SPREADS du projet est structurellement fausse**
+(elle confondait « pip » interne et « pip » broker). Le modèle de SWAP, lui, est bon
+— sauf là où le swap PORTAIT l'hypothèse (carry long). Conclusion opérationnelle :
+**tout `spread_pips` non relevé doit être considéré comme faux jusqu'à mesure.**
+
+### Impact sur le screen pre-ECB (déjà écrit)
+Coût d'un trade pre-ECB sur DAX = 2×9,2 (A/R) + 4,4 (1 nuit) = **22,8 points
+= 0,088 % du notionnel**, soit **1,9× le coût du même trade sur US500** (0,046 %).
+Sur un drift brut attendu de ~0,4 %, les frais mangent ~22 % de l'edge.
+Le pre-ECB part donc avec une barre plus haute que le pre-FOMC. Le screen tourne
+avec `--cost-margin 1.5` par-dessus ces valeurs désormais réelles.
+
+Tests : 6 échecs pré-existants sur `test_instruments_costs`, **0 nouveau**
+(GER30 repasse : 11,0/200 = 5,5 % < 10 %). ruff ✅ mypy ✅.
+
+### Question ouverte : crypto ?
+`ASSET_CONFIGS` suppose BTCUSD swap_long −16 (≈ −0,016 %/nuit ≈ −4 %/an) et
+ETHUSD −80 — **PROVISOIRES, jamais relevés**. Or le suivi de tendance crypto est
+la famille la plus plausible restante (`docs/regime_analysis.md` : crypto = seule
+classe franchement tendancielle ; les 10 échecs de trend-following portaient sur
+forex/indices, qui sont en range). Mais c'est une stratégie à portage LONG
+(semaines) → **le swap décide tout**, exactement comme pour le carry.
+Seuil : si le financement dépasse ~10 %/an, la famille est morte avant d'être codée.
+- [ ] **Relever BTCUSD sur l'app** : `swap Achat ÷ valeur du contrat × 365`.
