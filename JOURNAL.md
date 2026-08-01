@@ -1397,3 +1397,62 @@ détention à 0-2 %/an ≈ **0 à 1,4 EUR**.
 | Trades courts, événementiels (pre-FOMC/BCE) | XTB | coût proportionnel très bas (0,03 % du notionnel), lot fractionnable |
 | Détention de plusieurs mois | Trade Republic | zéro portage ; le CFD est disqualifié |
 | Socle passif de référence | Trade Republic | ETF, benchmark que le reste doit battre |
+
+## 2026-08-01 — Outillage : recoupement externe + déblocage des données
+
+### Ce qui a été INSTALLÉ / AJOUTÉ
+- **QuantStats 0.0.81** (`requirements-dev.txt`) → implémentation TIERCE des
+  métriques de performance. **`scripts/crosscheck_metrics_quantstats.py`** compare
+  nos calculs aux siens sur une série synthétique à queues épaisses (Student(4),
+  10 ans) :
+
+  | Métrique | NOUS | QuantStats | écart |
+  |---|---|---|---|
+  | Sharpe annualisé | 0,5039 | 0,5039 | 0,00 % |
+  | Sortino annualisé | 0,7461 | 0,7481 | 0,27 % |
+  | Max drawdown | 0,4231 | 0,4231 | 0,00 % |
+  | Volatilité annualisée | 0,1746 | 0,1746 | 0,00 % |
+
+  ✅ **Nos métriques de base sont désormais recoupées par une source externe.**
+  Portée limitée : ne couvre PAS le DSR (absent de QuantStats) ni le simulateur.
+
+- **`data/vendor/FOMC_dates_tobiasi.csv`** — 768 réunions FOMC depuis 1940,
+  scrape du site de la Fed (github.com/tobiasi/FOMCscrape). Récupéré via
+  `raw.githubusercontent.com`, **seul hôte externe joignable** de cette session.
+- **`scripts/verify_fomc_calendar.py`** — compare le calendrier local aux dates de
+  référence (manquants / en trop / doublons). Comble un angle mort réel : si le
+  scrape Forex Factory a des dates fausses, le backtest pre-FOMC mesure autre
+  chose et **aucun test statistique ne peut le détecter**. 2010-2018 = 72 dates
+  VÉRIFIÉES ; 2019-2026 = indicatives (federalreserve.gov inaccessible).
+
+### 🔓 `.gitignore` — les données peuvent enfin être versionnées
+Piège git corrigé au passage : `/data/` (le dossier) empêchait toute ré-inclusion,
+git ne descendant jamais dans un dossier exclu. Remplacé par `/data/*` répété à
+chaque niveau. Vérifié par `git check-ignore` :
+suivis → `data/vendor/**`, `data/raw/economic_calendar/**`,
+`US500_H1.csv`, `US30_H1.csv`, `GER30_H1.csv` ;
+ignorés → tout le reste (`US500_M5.csv`, `EURUSD_H4.csv`, …).
+
+➡️ **Le mainteneur n'a plus qu'à committer 2 fichiers (~6 Mo pièce) pour que les
+screens tournent EN SESSION, sans dépendre de son PC.**
+
+### Réseau : cartographie définitive
+| Hôte | Statut |
+|---|---|
+| `raw.githubusercontent.com` | ✅ **200** — seule porte d'entrée |
+| Dukascopy · Yahoo · Stooq | ❌ 403 |
+| FRED · federalreserve.gov · ECB | ❌ 403 |
+| PyPI | ✅ (pip fonctionne) |
+| Tavily extract sur federalreserve.gov | ❌ 403 |
+
+### MCP / plugins — état honnête
+- **MCP pertinents** (non installés, à connecter depuis claude.ai) : **Alpha
+  Vantage** et **FMP** (données de marché + calendrier économique). ⚠️ Leurs
+  offres gratuites plafonnent l'historique intraday à ~2 ans — insuffisant pour
+  16 ans de US500 H1. Utiles en recoupement, pas en remplacement.
+- **Plugins** : le catalogue ne contient que `finance` (comptabilité/clôture),
+  `data` (analyse statistique générique) et `marketing`. **Aucun n'est pertinent**
+  pour la recherche d'edge quantitatif. Ne rien installer.
+- `mlfinlab` (code de référence López de Prado : DSR, PSR, CPCV) n'est **plus
+  distribué sur PyPI** — c'était le plus intéressant pour recouper le DSR.
+  Le DSR reste couvert par `tests/unit/test_dsr_sanity.py` (valeurs à la main).

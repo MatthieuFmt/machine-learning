@@ -1,8 +1,32 @@
 # Données brutes et intermédiaires (ancré à la racine pour ne PAS ignorer app/data/ = code)
-/data/
+# ⚠️ On ignore le CONTENU (/data/*) et non le dossier (/data/) : git ne descend
+# jamais dans un dossier exclu, donc un « ! » sur un fichier à l'intérieur serait
+# sans effet. Même logique répétée à chaque niveau ci-dessous.
+/data/*
 /data-future/
 /cleaned-data/
 /ready-data/
+
+# ── EXCEPTIONS (2026-08-01) — jeux de données volontairement VERSIONNÉS ──────
+# Motif : les sessions cloud n'ont accès à AUCUNE source de marché (Dukascopy,
+# Yahoo, Stooq, FRED, federalreserve.gov → tous refusés par la politique réseau).
+# Versionner ces fichiers permet de lancer les screens DIRECTEMENT en session,
+# sans dépendre de la disponibilité de la machine du mainteneur.
+!/data/vendor/
+!/data/raw/
+/data/raw/*
+!/data/raw/economic_calendar/
+
+# Séries de prix des 2 tests restants — à ajouter par le mainteneur (~6 Mo pièce).
+!/data/raw/US500/
+/data/raw/US500/*
+!/data/raw/US500/US500_H1.csv
+!/data/raw/US30/
+/data/raw/US30/*
+!/data/raw/US30/US30_H1.csv
+!/data/raw/GER30/
+/data/raw/GER30/*
+!/data/raw/GER30/GER30_H1.csv
 
 # Artefacts générés (prédictions, importances, trades détaillés)
 results/
