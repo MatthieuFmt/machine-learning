@@ -169,3 +169,29 @@ définitivement enterré, ne pas ré-ouvrir cette famille.**
 ➡️ L'erreur était **systématique et unilatérale** : seul le côté LONG (celui qui
 portait l'edge supposé) était surestimé. Leçon : quand une estimation favorise
 précisément l'hypothèse testée, c'est le premier endroit à vérifier.
+
+---
+
+## ⚠️ Conséquence pratique : ne JAMAIS garder un CFD crypto plusieurs mois
+
+Déduit du swap mesuré (−0,0970 %/nuit côté achat, relevé BTCUSD 2026-08-01) :
+
+| Durée de détention | Frais cumulés | Hausse du BTC nécessaire pour être à zéro |
+|---|---|---|
+| 1 mois | 3,2 % | 3,2 % |
+| 3 mois | 9,0 % | 9,0 % |
+| 6 mois | **17,8 %** | 17,8 % |
+| 12 mois | **35,7 %** | 35,7 % |
+
+Le CFD facture un **loyer quotidien**. C'est un instrument conçu pour des
+positions courtes ; l'utiliser comme véhicule de détention longue transfère
+mécaniquement le capital au courtier, quel que soit le sens du marché.
+
+**Détenir les coins réels sur une plateforme d'échange coûte 0 en portage.**
+Hors périmètre XTB, mais c'est la distinction décisive pour toute exposition
+au-delà de quelques jours.
+
+⚠️ Distinction à garder nette dans ce projet : *investir* (pari directionnel long
+terme sur un actif) n'est pas *trader un edge* (exploiter une régularité
+statistique mesurable). Toute l'infrastructure d'ici mesure le second. Le premier
+n'est ni mesurable ni validable avec ces outils — ne pas prétendre le contraire.
