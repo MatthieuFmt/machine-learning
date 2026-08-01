@@ -513,21 +513,41 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
     # Source : XTB.com → Crypto → BITCOIN — spread variable selon marché
     # ⚠️ PROVISOIRE — à valider en démo MT5 (Symbol Specifications)
     "BTCUSD": AssetConfig(
-        spread_pips=30.0,      # ≈ 30 USD spread typique heures actives
-        slippage_pips=30.0,    # crypto : 1.0× spread (forte volatilité)
-        commission_pips=0.0,
+        # ☠️ RELEVÉ RÉEL app XTB, 2026-08-01 12:14, **marché OUVERT** (donc pas
+        # une anomalie d'heure creuse). Écran : bid 62 849.7 / ask 63 039.2,
+        # spread 0.99 EUR, contrat 329.93 EUR pour 0.006 lot,
+        # swap Vente −0.09 EUR / **Achat −0.32 EUR**, marge 163.85 EUR.
+        #
+        # SPREAD  : 189.5 USD = 0.302 % du prix (code : 30 → ×6.3 trop bas).
+        # SWAP LONG : −0.32/329.93 = −0.0970 %/nuit → sur 1 BTC : **−61 USD/nuit**
+        #             (code : −16 → ×3.8 trop bas).
+        #   ⇒ **−35.4 %/AN de portage** pour une position longue.
+        # SWAP SHORT : −0.09 EUR → −17.2 USD/nuit ≈ −10 %/an (code : −3).
+        #
+        # 🚫 CONSÉQUENCE — le suivi de tendance crypto via CFD XTB est MORT avant
+        # d'être codé. Seuil décidé AVANT le relevé : 10 %/an de financement.
+        # Réel : 35.4 %/an, soit 3.5× le seuil. Une stratégie longue exposée 70 %
+        # du temps devrait voir le BTC monter de **25 %/an rien que pour payer le
+        # financement**. Ne PAS écrire de screen crypto_trend long.
+        # (La détention réelle des coins sur une plateforme d'échange n'a aucun
+        #  financement — mais c'est hors périmètre XTB fixé par le mainteneur.)
+        spread_pips=189.5,
+        slippage_pips=189.5,   # crypto : 1.0× spread (convention projet, volatilité)
+        commission_pips=0.0,   # ✅ confirmé à l'écran
         pip_size=1.0,          # 1 pip BTC = 1 USD (big figure)
         pip_value_eur=0.92,    # 1 USD ≈ 0.92 EUR
-        tp_points=2000,        # 2000 USD soit ~3-5% du prix BTC typique
-        sl_points=1000,
+        # TP/SL élargis : l'ancien SL (1 000 USD = 1.6 % du prix) est sous l'ATR
+        # journalier du BTC (~2-3 %) et ne passe plus le garde-fou coût/SL avec le
+        # vrai spread. 3 000 USD ≈ 4.8 % ⇒ ratio 379/3000 = 12.6 % < seuil 25 %.
+        tp_points=6000,
+        sl_points=3000,
         window_hours=120,
-        min_lot=0.01,
+        # 0.006 lot observé sélectionnable ⇒ le minimum réel est ≤ 0.006
+        # (valeur non mesurée précisément ; 0.01 était un majorant faux).
+        min_lot=0.006,
         max_lot=5.0,
-        # F6 — swaps estimés (financement crypto CFD ~10%/an)
-        # BTC $60k × 10%/an / 365 ≈ $16/jour ≈ 16 pips/nuit (pip=$1)
-        # Short rebate généralement faible/négatif chez CFD broker
-        swap_long_pips_per_night=-16.0,
-        swap_short_pips_per_night=-3.0,
+        swap_long_pips_per_night=-61.0,
+        swap_short_pips_per_night=-17.2,
     ),
     # ── ETHUSD (Ethereum spot) — NOUVEAU C1, PROVISOIRE ──────────────────
     # ⚠️ PROVISOIRE — à valider en démo

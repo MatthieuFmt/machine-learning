@@ -1241,3 +1241,58 @@ forex/indices, qui sont en range). Mais c'est une stratégie à portage LONG
 (semaines) → **le swap décide tout**, exactement comme pour le carry.
 Seuil : si le financement dépasse ~10 %/an, la famille est morte avant d'être codée.
 - [ ] **Relever BTCUSD sur l'app** : `swap Achat ÷ valeur du contrat × 365`.
+
+## 2026-08-01 — Relevé BITCOIN : la piste crypto est close avant d'être codée
+
+Capture app XTB 12:14, **marché OUVERT** (donc pas une anomalie d'heure creuse).
+bid 62 849.7 / ask 63 039.2 · contrat 329.93 EUR pour 0.006 lot ·
+swap Vente −0.09 EUR / **Achat −0.32 EUR** · marge 163.85 EUR · commission 0.
+
+| Grandeur | Réel | Config avant | Verdict |
+|---|---|---|---|
+| Spread | **189,5 USD** (0,302 % du prix) | 30 USD | 🔴 ×6,3 trop bas |
+| Swap LONG | **−61 USD/nuit = −0,0970 %/nuit** | −16 | 🔴 ×3,8 trop bas |
+| **⇒ financement long** | **−35,4 %/AN** | ~−4 %/an | ☠️ |
+| Swap SHORT | −17,2 USD/nuit ≈ −10 %/an | −3 | ×5,7 trop bas |
+
+### Décision appliquée telle qu'annoncée AVANT le relevé
+Seuil pré-enregistré : **10 %/an de financement = limite de viabilité**.
+Réel **35,4 %/an = 3,5× le seuil** → **screen crypto_trend long NON écrit.**
+Une stratégie longue exposée 70 % du temps exigerait que le BTC monte de
+**25 %/an rien que pour payer le portage**. Le pari devient « le BTC fait mieux
+que +25 %/an », pas « ma stratégie a un edge ».
+
+⚠️ À noter : c'était la famille la plus plausible qui restait
+(`docs/regime_analysis.md` : la crypto est la seule classe franchement
+tendancielle ; les 10 échecs du trend-following portaient sur forex/indices, en
+range). Elle meurt sur le COÛT, pas sur le signal. La détention réelle des coins
+sur une plateforme d'échange n'a aucun financement — mais hors périmètre XTB.
+
+### Contrainte de capital, en dur
+Marge exigée au volume affiché (0,006) : **163,85 EUR** > fonds disponibles
+**139,97 EUR**. Le mainteneur **ne peut pas ouvrir** cette position. Levier crypto
+limité à 2× (marge 50 %) → classe d'actifs très gourmande en capital.
+
+### 🔧 Correction d'une erreur d'arithmétique de ma part (sessions précédentes)
+Un aller-retour coûte **UN** spread (achat à l'ask, revente au bid), pas deux.
+J'avais compté ×2 dans mes messages. Chiffres corrigés (verdicts INCHANGÉS) :
+| | annoncé | corrigé |
+|---|---|---|
+| ORB US500, frais annuels | 6,3 % | **3,2 %** |
+| pre-ECB DAX, coût/trade | 0,088 % | **0,053 %** |
+| pre-FOMC US500, coût/trade | — | 0,033 % |
+| surcoût DAX vs S&P | ×1,9 | **×1,6** |
+Le code, lui, était correct : `total_cost_pips` est déjà un coût aller-retour
+complet (cf. `edge_harness.run_honest_backtest`). Seule ma prose était fausse.
+
+### Bug d'unité corrigé dans les TESTS (même classe que le désastre des spreads)
+`test_btcusd_costs_realistic` / `test_ethusd_costs_realistic` comparaient
+`spread_pips` (en PIPS) à des bornes en USD, sans multiplier par `pip_size`.
+→ ETHUSD (300 pips × 0.01 = 3,00 USD) échouait à tort depuis des semaines.
+Corrigé : comparaison USD↔USD ; fourchette BTC ré-ancrée sur la mesure
+([60, 600] USD au lieu de [10, 60] inventés). **Échecs 6 → 5.**
+
+### Reste connu (non traité, hors périmètre du jour)
+5 échecs `test_cost_vs_sl_ratio` (XAGUSD, USDJPY, AUDJPY, EURJPY, GBPJPY) :
+même cause que US500/GER30 — `sl_points=10` est un stop absurdement serré face au
+spread réel. Familles concernées désormais mortes → priorité basse.

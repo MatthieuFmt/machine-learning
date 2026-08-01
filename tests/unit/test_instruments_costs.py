@@ -75,11 +75,24 @@ def test_usdchf_present_and_correct() -> None:
 
 
 def test_btcusd_costs_realistic() -> None:
-    """BTCUSD : spread dans [10, 60] USD, slippage ≥ spread × 0.3."""
+    """BTCUSD : spread dans [60, 600] USD, slippage ≥ spread × 0.3.
+
+    ⚠️ FIX 2026-08-01 (double correction) :
+    1. La fourchette [10, 60] USD était une ESTIMATION jamais mesurée. Relevé
+       réel sur l'app XTB (marché ouvert) : bid 62 849.7 / ask 63 039.2 →
+       **189.5 USD**, soit 0.30 % du prix. Nouvelle fourchette ancrée sur la
+       mesure : 0.1 % à 1 % d'un BTC autour de 60 k$ → [60, 600] USD.
+    2. Le test comparait `spread_pips` (en PIPS) à une borne en USD, sans
+       multiplier par `pip_size` — même confusion d'unité que celle qui a rendu
+       tous les spreads du projet ×6 à ×15 trop bas. On compare désormais des USD
+       à des USD.
+    """
     assert "BTCUSD" in ASSET_CONFIGS, "BTCUSD manquant dans ASSET_CONFIGS v4"
     cfg = ASSET_CONFIGS["BTCUSD"]
-    assert 10.0 <= cfg.spread_pips <= 60.0, (
-        f"BTCUSD spread {cfg.spread_pips} hors fourchette réaliste [10, 60] USD"
+    spread_usd = cfg.spread_pips * cfg.pip_size
+    assert 60.0 <= spread_usd <= 600.0, (
+        f"BTCUSD spread {spread_usd} USD hors fourchette réaliste [60, 600] "
+        f"(relevé XTB 2026-08-01 : 189.5 USD)"
     )
     assert cfg.slippage_pips >= 0.3 * cfg.spread_pips, (
         f"BTCUSD slippage {cfg.slippage_pips} < 0.3 × spread {cfg.spread_pips}"
@@ -90,11 +103,20 @@ def test_btcusd_costs_realistic() -> None:
 
 
 def test_ethusd_costs_realistic() -> None:
-    """ETHUSD : spread dans [1, 10] USD, slippage ≥ spread × 0.3."""
+    """ETHUSD : spread dans [1, 10] USD, slippage ≥ spread × 0.3.
+
+    ⚠️ FIX 2026-08-01 : le test comparait `spread_pips` (300 pips) à une borne en
+    USD, alors que `pip_size=0.01` → le vrai spread vaut 300 × 0.01 = 3.00 USD,
+    bien DANS la fourchette. L'échec était un bug d'unité du test, pas de la
+    config. Même classe d'erreur que le « pip interne vs pip broker » qui a
+    faussé tous les spreads du projet.
+    ⚠️ Valeurs ETHUSD encore NON RELEVÉES sur l'app XTB (contrairement à BTCUSD).
+    """
     assert "ETHUSD" in ASSET_CONFIGS, "ETHUSD manquant dans ASSET_CONFIGS v4"
     cfg = ASSET_CONFIGS["ETHUSD"]
-    assert 1.0 <= cfg.spread_pips <= 10.0, (
-        f"ETHUSD spread {cfg.spread_pips} hors fourchette réaliste [1, 10] USD"
+    spread_usd = cfg.spread_pips * cfg.pip_size
+    assert 1.0 <= spread_usd <= 10.0, (
+        f"ETHUSD spread {spread_usd} USD hors fourchette réaliste [1, 10]"
     )
     assert cfg.slippage_pips >= 0.3 * cfg.spread_pips, (
         f"ETHUSD slippage {cfg.slippage_pips} < 0.3 × spread {cfg.spread_pips}"
