@@ -1456,3 +1456,165 @@ screens tournent EN SESSION, sans dépendre de son PC.**
 - `mlfinlab` (code de référence López de Prado : DSR, PSR, CPCV) n'est **plus
   distribué sur PyPI** — c'était le plus intéressant pour recouper le DSR.
   Le DSR reste couvert par `tests/unit/test_dsr_sanity.py` (valeurs à la main).
+
+## 2026-08-06 — Les 2 derniers screens ont tourné. Verdict : NO-GO (avec une réserve)
+
+Données versionnées (US500_H1, US30_H1, GER30_H1, `economic_calendar/` 2010-2025,
+~19,5 Mo) → **les screens tournent désormais en session**. `.gitignore` inchangé :
+les exceptions écrites le 2026-08-01 visaient déjà les bons chemins.
+
+### 1. Vérification du calendrier FOMC — ✅ le calendrier est SAIN
+
+`python scripts/verify_fomc_calendar.py` → **0 doublon, 0 date manquante sur la
+période VÉRIFIÉE (2010-2018)**. Les 11 écarts signalés s'expliquent tous, et
+aucun n'est un défaut du scrape :
+
+| Écart | Explication | Action |
+|---|---|---|
+| 2020-03-18 manquante en local | La réunion programmée du 17-18 mars 2020 a été **ANNULÉE** (COVID) et remplacée par la décision d'urgence du dimanche 15 mars | ✅ **le local a raison, c'est la liste de référence du script qui est fausse** |
+| 2020-03-03 et 2020-03-15 « en trop » | Ce sont les 2 baisses d'urgence COVID — réelles, mais **NON PROGRAMMÉES** | ⚠️ voir §3 : contaminent le backtest |
+| 8 dates de 2026 manquantes | Le calendrier local **s'arrête au 2025-12-31** (pas de `2026.csv`) | ⚠️ aucun événement 2026 testable |
+
+➡️ **Le calendrier n'est pas le problème.** L'angle mort qu'on craignait n'existe pas.
+➡️ En revanche : les prix vont jusqu'à 2026-05 mais le calendrier s'arrête fin 2025
+   → **l'OOS vierge ≥2026 est INUTILISABLE** pour tout screen événementiel.
+
+### 2. Résultats bruts (une seule exécution, comme prévu)
+
+```
+python scripts/screen_pre_fomc.py --assets US500,US30 --tf H1
+python scripts/screen_pre_ecb.py  --assets GER30      --tf H1
+```
+
+| | trades | Sharpe | **t/trade (preuve primaire)** | p_bootstrap | DSR | médiane/trade |
+|---|---|---|---|---|---|---|
+| **US500** pre-FOMC | 112 | 0,57 | **2,11 · p=0,018** | 0,028 | 0,16 (p=0,436) | **−16,2 pips** |
+| **US30** pre-FOMC | 109 | 0,73 | **2,48 · p=0,007** | 0,012 | 0,93 (p=0,177) | +13,4 pips |
+| **GER30** pre-ECB | 117 | 0,14 | **0,53 · p=0,298** | 0,216 | −1,72 (p=0,957) | — |
+
+**Pre-ECB : ❌ NO-GO net et définitif.** Coûts DE40 mesurés, t=0,53. L'« announcement
+premium » ne se généralise pas à la BCE. Cohérent avec la mort de l'effet US.
+
+### 3. Le pre-FOMC : le t-test passe, mais il ne veut rien dire ici
+
+C'est le point délicat. Par la règle du projet (t-test = preuve primaire),
+US500 et US30 « passent » à p<0,05. **Ils ne devraient pas être crus, pour cinq
+raisons mesurées :**
+
+**a) La médiane US500 est NÉGATIVE (−16,2 pips).** Plus d'un trade sur deux perd
+de l'argent. WR 48 %. La moyenne n'est positive que grâce à quelques coups.
+
+**b) Le gain est porté par une poignée de trades.**
+
+| | 1 meilleur | 3 meilleurs | 5 meilleurs |
+|---|---|---|---|
+| US500 | 20,0 % du gain | **50,9 %** | **75,9 %** |
+| US30 | 22,3 % du gain | 42,4 % | 57,4 % |
+
+**c) Le trade n°1 des DEUX actifs est une réunion NON PROGRAMMÉE** : le
+**2020-03-03** (baisse d'urgence COVID) → +1 096 pips US500 / +1 074 pips US30,
+soit 20-22 % du gain total. Une réunion surprise n'a **par construction aucune
+fenêtre d'anticipation** : ce n'est pas du « pre-FOMC drift », c'est un rebond de
+krach. En la retirant : **US500 t 2,10 → 1,84** · US30 t 2,68 → 2,55.
+
+> ⚙️ Note de réconciliation : ces `t` (2,10 / 2,68) sont calculés sur les **pips
+> bruts, chaque trade à poids égal**. Le screen affiche 2,11 / 2,48 car
+> `validate_edge` teste `equity.pct_change()` — les rendements **en %** d'un
+> compte qui capitalise. Sur US500 l'equity bouge peu (10 000 → 10 503) : les
+> deux coïncident. Sur US30 elle monte de 44 % (→ 14 439), donc les trades
+> tardifs pèsent moins en % et le `t` descend à 2,48. Les deux sont corrects,
+> ils ne pondèrent simplement pas pareil. Aucun n'échappe aux points (a)-(e).
+
+**d) Les queues sont trop épaisses pour que le t-test soit calibré.**
+US500 skew 1,39 / kurtosis 4,46 ; US30 skew 2,20 / **kurtosis 10,82**. Sur ce
+type de distribution, le t de Student **sur-rejette** : le p=0,018 nominal est
+optimiste. C'est la même famille d'erreur que le bug « DSR ×√252 ».
+
+**e) US500 et US30 ne sont PAS deux confirmations indépendantes** (corrélation
+~0,95). C'est essentiellement UN test, pas deux.
+
+### 4. Le test de décroissance ne peut PAS être fait sur ces données
+
+Résultat affiché : −26,6 pips avant 2015 (24 tr) → **+69,4 après** (88 tr).
+Soit l'inverse de Kurov, Wolfe & Gilbert (2021).
+
+**Il ne faut pas y lire un démenti de la littérature.** Nos prix US500 commencent
+le **2012-01-16**. L'échantillon de Lucca & Moench était 1994-2011. Le bloc
+« avant 2015 » ne fait donc que **3 ans, entièrement POSTÉRIEURS à l'étude
+d'origine** : il n'y a aucune période pré-publication dans nos données.
+**Le test `--split-year 2015` est structurellement incapable de répondre à la
+question.** (Le mémo du 2026-08-01 anticipait « ~40 trades avant 2015 » : il y en
+a 24, et ils perdent.)
+
+Ce que le découpage ANNÉE PAR ANNÉE montre (descriptif, aucun test dessus) :
+
+```
+US500  2012:-7  2013:-25  2014:-48  2015:-24  2016:-10  2017:-0  2018:+42  2019:-47
+       2020:+256  2021:-41  2022:+298  2023:+65  2024:+173  2025:+52
+```
+
+**2012→2019 (8 ans, à cheval sur la césure de 2015) : plat à négatif.** Tout le
+gain vient de 2020, 2022 et 2024 — des années de forte volatilité. Lu ainsi, le
+résultat est **compatible** avec « effet mort depuis longtemps », l'apparente
+force post-2015 étant un phénomène 2020+.
+
+### 5. Test placebo — la fenêtre bat le hasard, mais de peu
+
+Contrôle absent du screen : la stratégie est **toujours longue** sur des indices
+qui ont beaucoup monté. Comparaison à 20 000 tirages de fenêtres de 23 h prises
+au hasard sur la même période, mêmes coûts :
+
+| | pre-FOMC | fenêtre au hasard | p empirique |
+|---|---|---|---|
+| US500 | +48,9 pips | −10,8 pips | **0,041** |
+| US30 | +44,3 pips | −2,5 pips | **0,036** |
+
+Donc ce n'est pas QUE du beta de marché. Mais p≈0,04 sur un effet dont 20 % vient
+d'une réunion surprise, ce n'est pas une base pour engager de l'argent.
+
+### 6. 🚨 US30 : verdict IMPOSSIBLE à rendre — le spread n'a jamais été relevé
+
+`ASSET_CONFIGS["US30"]` porte `spread_pips=1.5`, commentaire « v4: vrai XTB
+Standard ~1.5 pts ». **Aucun relevé, aucune date, aucune capture.** C'est
+exactement la classe d'estimation qui s'est révélée fausse ×15 sur US500 et ×9,2
+sur GER30. Sensibilité calculée :
+
+| | coût/trade EN PLUS qui ramène t à 1,66 | facteur de spread correspondant |
+|---|---|---|
+| US500 (coût **mesuré**, pire cas) | 10,3 pips | ×2,1 |
+| US500 hors réunion d'urgence | 3,8 pips | ×1,4 |
+| **US30 (coût ESTIMÉ)** | 16,8 pips | **×12,2** |
+| **US30 hors réunion d'urgence** | 12,1 pips | **×9,1** |
+
+➡️ **Une erreur de ×9,1 suffirait à annuler le résultat US30. L'erreur constatée
+sur GER30 était de ×9,2.** Le meilleur chiffre du projet repose sur le seul coût
+des trois qui n'a jamais été vérifié.
+
+Note en faveur d'US500 : son spread a été relevé en **pré-ouverture = pire cas**,
+et le swap mesuré (−0,021167 %/nuit) confirme l'estimation à 1 % près. Le chiffre
+US500 est donc honnête côté coûts — c'est sa **statistique** qui est fragile.
+
+### 7. Verdict
+
+| Signal | Verdict | Motif |
+|---|---|---|
+| **Pre-ECB GER30** | ❌ **NO-GO définitif** | t=0,53 (p=0,30), coûts mesurés. Rien. |
+| **Pre-FOMC US500** | ❌ **NO-GO** | médiane négative, 76 % du gain sur 5 trades, t→1,84 hors réunion surprise, Sharpe 0,57, DSR non significatif (n_trials=43), 8 trades/an |
+| **Pre-FOMC US30** | ⏸️ **SUSPENDU — non concluable** | le résultat tient à un spread jamais mesuré ; ×9,1 d'erreur l'annule |
+
+**Aucun des 4 candidats du projet n'est validé. Le compte reste à zéro stratégie.**
+
+Et même si US30 survivait à un relevé de coût : Sharpe 0,73 < 1,0 et **8 trades/an**
+— la contrainte de déploiement du 2026-08-01 (« 8 trades/an ne peut pas être un
+moteur ») s'applique telle quelle. Ce ne serait au mieux qu'un complément.
+
+### 8. Ce qu'il faut pour débloquer
+
+- [ ] **Capture app XTB du US30** (ticker « US30 » / « DJI30 ») : spread affiché,
+      valeur du pip, valeur du contrat, swap Achat/Vente, commission.
+      Sans ça, US30 reste non concluable — **ne pas ré-estimer**.
+- [ ] `data/raw/economic_calendar/2026.csv` si un jour un screen événementiel doit
+      toucher l'OOS 2026.
+- [ ] Corriger la liste de référence de `verify_fomc_calendar.py` : retirer
+      2020-03-18 (réunion annulée), ajouter 2020-03-03 et 2020-03-15 comme
+      **non programmées**, et les EXCLURE du screen pre-FOMC.

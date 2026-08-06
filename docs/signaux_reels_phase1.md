@@ -1,6 +1,104 @@
 # Signaux RÉELS trouvés (Phase 1 recherche d'edge) — à conserver
 
-**Dernière mise à jour** : 2026-06-09
+**Dernière mise à jour** : 2026-08-06
+
+> # ☠️ CE DOCUMENT N'A PLUS DE SURVIVANT (2026-08-06)
+>
+> Les 2 derniers screens ont tourné sur les vraies bougies. **Aucun des 4
+> candidats du projet n'est validé.** Le titre « Signaux RÉELS » est caduc :
+> il décrit ce qu'on a cru avoir, pas ce qu'on a.
+>
+> | Signal | Statut au 2026-08-06 | Motif |
+> |---|---|---|
+> | ORB US500 M5 | ☠️ **MORT** | t=0,56 · p=0,287 — artefact du bug « DSR ×√252 » |
+> | Carry JPY | ☠️ **MORT** | swap réel +0,16 %/an au lieu de +0,7 à +3 % |
+> | Tendance crypto | ☠️ **MORTE** | financement XTB mesuré à 35,4 %/an |
+> | **Pre-FOMC US500** | ❌ **NO-GO** | médiane/trade **négative**, 76 % du gain sur 5 trades, réunion d'urgence COVID = 20 % du gain |
+> | **Pre-FOMC US30** | ⏸️ **NON CONCLUABLE** | repose sur un spread **jamais relevé** ; ×9,1 d'erreur l'annule |
+> | **Pre-ECB GER30** | ❌ **NO-GO** | t=0,53 · p=0,298 — rien, coûts mesurés |
+>
+> Détail complet des mesures : `JOURNAL.md`, section **2026-08-06**.
+> Le reste de ce fichier est conservé comme **archive** de l'état antérieur.
+> ⚠️ Ne plus s'appuyer sur les verdicts ci-dessous sans lire le bandeau.
+
+---
+
+## 🔻 Re-mesure FINALE sur bougies (2026-08-06) — ce qui remplace tout le reste
+
+Données enfin versionnées (US500/US30/GER30 H1 + calendrier 2010-2025), screens
+lancés **une seule fois chacun**, conformément à la règle « un seul regard ».
+
+| | trades | Sharpe | **t/trade (preuve primaire)** | p_bootstrap | DSR | médiane/trade |
+|---|---|---|---|---|---|---|
+| US500 pre-FOMC | 112 | 0,57 | 2,11 · p=0,018 | 0,028 | 0,16 (p=0,436) | **−16,2 pips** |
+| US30 pre-FOMC | 109 | 0,73 | 2,48 · p=0,007 | 0,012 | 0,93 (p=0,177) | +13,4 pips |
+| GER30 pre-ECB | 117 | 0,14 | **0,53 · p=0,298** | 0,216 | −1,72 (p=0,957) | — |
+
+### Pourquoi un t-test à p<0,05 ne suffit PAS ici
+1. **Médiane US500 négative** (−16,2 pips) : le trade typique perd. WR 48 %.
+2. **5 trades = 76 % du gain** (US500) ; 3 trades = 51 %.
+3. **Le meilleur trade des 2 actifs est le 2020-03-03**, réunion d'**urgence
+   COVID non programmée** → aucune fenêtre d'anticipation possible. 20-22 % du
+   gain total. Hors cette réunion, US500 tombe à **t=1,84**.
+4. **Queues trop épaisses pour Student** : kurtosis 4,46 (US500) et **10,82**
+   (US30) → le t-test sur-rejette, le p nominal est optimiste.
+5. **US500 et US30 ne sont pas indépendants** (corrélation ~0,95) : un test, pas deux.
+
+### Le test de décroissance pré/post-2015 est IMPOSSIBLE sur nos données
+Affiché : −26,6 pips avant 2015 (24 tr) → +69,4 après (88 tr). **Ce n'est pas un
+démenti de Kurov, Wolfe & Gilbert (2021)** : nos prix commencent le 2012-01-16,
+alors que Lucca & Moench portaient sur 1994-2011. Le bloc « avant 2015 » ne
+couvre que 3 ans, **entièrement postérieurs à l'étude d'origine** → il n'existe
+aucune période pré-publication dans l'échantillon. Le `--split-year` ne peut pas
+répondre à la question. (Le mémo du 2026-08-01 tablait sur ~40 trades avant
+2015 : il y en a 24, et ils perdent de l'argent.)
+
+Année par année (descriptif, aucun test dessus), US500 :
+`2012:-7 2013:-25 2014:-48 2015:-24 2016:-10 2017:-0 2018:+42 2019:-47`
+`2020:+256 2021:-41 2022:+298 2023:+65 2024:+173 2025:+52`
+→ **2012-2019 plat à négatif**, tout le gain vient de 2020/2022/2024. Lecture
+compatible avec « effet éteint depuis longtemps, reste de la volatilité ».
+
+### Test placebo (contrôle qui manquait au screen)
+La stratégie est **toujours longue** sur des indices qui ont beaucoup monté.
+Contre 20 000 tirages de fenêtres de 23 h au hasard, mêmes coûts :
+
+| | pre-FOMC | fenêtre au hasard | p empirique |
+|---|---|---|---|
+| US500 | +48,9 pips | −10,8 pips | 0,041 |
+| US30 | +44,3 pips | −2,5 pips | 0,036 |
+
+Ce n'est donc pas que du beta de marché — mais p≈0,04 sur un effet dont 20 %
+provient d'une réunion surprise ne justifie pas d'engager de l'argent.
+
+### 🚨 US30 : le meilleur chiffre repose sur le seul coût jamais mesuré
+`ASSET_CONFIGS["US30"].spread_pips = 1.5` — commentaire « vrai XTB ~1.5 pts »,
+**sans relevé, sans date, sans capture**. Même classe d'estimation que celles
+trouvées fausses **×15 sur US500** et **×9,2 sur GER30**.
+
+| | coût/trade EN PLUS qui ramène t à 1,66 | facteur de spread |
+|---|---|---|
+| US500 (mesuré, pire cas) | 10,3 pips | ×2,1 |
+| US500 hors réunion d'urgence | 3,8 pips | ×1,4 |
+| **US30 (estimé)** | 16,8 pips | **×12,2** |
+| **US30 hors réunion d'urgence** | 12,1 pips | **×9,1** |
+
+➡️ **×9,1 suffirait à annuler US30. L'erreur mesurée sur GER30 était ×9,2.**
+**Rien ne sera conclu sur US30 avant une capture de l'app XTB.**
+
+### Calendrier FOMC : ✅ vérifié, il n'est PAS le problème
+`scripts/verify_fomc_calendar.py` → **0 doublon, 0 manquant sur 2010-2018
+(période vérifiée)**. Les écarts s'expliquent tous :
+- 2020-03-18 absente en local = réunion **annulée** (COVID) → **le local a
+  raison, c'est la liste de référence du script qui est fausse** ;
+- 2020-03-03 / 2020-03-15 « en trop » = les 2 décisions d'urgence, réelles mais
+  **non programmées** → à **exclure** du screen (cf. point 3) ;
+- 8 dates de 2026 absentes = le calendrier **s'arrête au 2025-12-31**
+  → **l'OOS vierge ≥2026 est inutilisable** pour tout screen événementiel.
+
+---
+
+# 📦 ARCHIVE — état du document avant la re-mesure du 2026-08-06
 
 > 🚨 **AVERTISSEMENT (audit 2026-06-09) — les DSR/p-values ci-dessous sont CADUCS.**
 > Un bug de calcul a été découvert et corrigé : le DSR recevait le Sharpe
@@ -31,7 +129,7 @@ corrigé se recalcule depuis les Sharpe/fréquences déjà publiés ci-dessous.
 
 | Signal | Sharpe/période | n_obs | **t-test (preuve primaire)** | Verdict |
 |---|---|---|---|---|
-| **Pre-FOMC** | 0,2475 | 128 | **t = 2,80 · p = 0,0030** | ✅ **SURVIT** |
+| **Pre-FOMC** | 0,2475 | 128 | **t = 2,80 · p = 0,0030** | ~~✅ SURVIT~~ → ❌ **INFIRMÉ le 2026-08-06** (voir bandeau) |
 | Carry JPY | 0,0252 | 4 032 | t = 1,60 · p = 0,055 | ☠️ **MORT** (voir ci-dessous) |
 | ORB US500 M5 | 0,0106 | 2 827 | t = 0,56 · p = 0,287 | ❌ **BRUIT** — confirme l'artefact |
 
@@ -180,6 +278,14 @@ passe son temps à traquer, cette fois sur son propre survivant.
 Le `--split-year 2015` reste à lancer pour confirmer sur NOS données, mais
 l'attente est désormais un échec sur la seconde moitié. Ne PAS engager d'argent
 sur la réunion de septembre 2026 avant ce résultat.
+
+> ✅ **FAIT le 2026-08-06 — mais le test ne pouvait pas trancher.** Nos données
+> commencent en 2012 : il n'existe aucune période pré-publication à comparer.
+> Le découpage a donné l'inverse de l'attendu (−26,6 → +69,4 pips), ce qui **ne
+> valide pas** l'effet — le gain est concentré sur 2020/2022/2024 et 2012-2019
+> est plat à négatif. Verdict final rendu sur d'autres critères (médiane
+> négative, concentration, réunion d'urgence, coûts US30 non mesurés) :
+> **NO-GO US500 · non concluable US30**. Voir le bandeau en tête de fichier.
 
 ### Effet sur le pre-ECB
 Le screen pre-ECB avait été dérivé du mécanisme « announcement premium ». Si ce
