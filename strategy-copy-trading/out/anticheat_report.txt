@@ -1,0 +1,24 @@
+=== ANTI-CHEAT REPORT — Trading Family VIP ===
+
+1) DELETIONS (gaps in message ids)
+   id range 1..3786 (3786 slots), 165 missing = 4.4%
+   signals followed within 3 ids by a deleted message: 53 / 810 (7%)
+   NOTE: deleted content is unrecoverable; a 4% deletion rate over 4 years
+   is normal channel hygiene, but losing follow-ups COULD hide among them.
+
+2) SELF-REPORTED RECAPS ('Résumé des trades de la semaine')
+   WIN=162  LOSS=32  BE(break-even)=113  total lines=307
+   headline 'win rate' ignoring BE: 84%  (if BE counted as scratch, still 53% wins)
+   -> They DO post losses, so it is not a 'delete every loss' scam.
+   -> BUT a 'win' = TP1 merely touched (then 50% out + SL to break-even).
+      A high win/BE rate is fully compatible with NEGATIVE expectancy when
+      TP1 sits very close to entry while the full SL is far (small R wins,
+      full-R losses). The replay below shows exactly that.
+
+3) TIMING / BACKFILL HEURISTIC (testable signals only)
+   checked: 227
+   stated entry INSIDE the alert-hour price range: 156 (69%)  -> consistent with a live market post
+   stated entry OUTSIDE that range (limit-like / late): 71 (31%)
+   TP1 ALREADY reached in the 3h BEFORE the alert (backfill red flag): 27 (12%)
+   -> A low pre-move rate means alerts generally precede the move (good).
+   -> Edits proper are invisible in this export; this is the best proxy.

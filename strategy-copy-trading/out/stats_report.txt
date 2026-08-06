@@ -1,0 +1,41 @@
+=== LUCK vs EDGE — per-trade tests (n_trials=1, most generous) ===
+
+[ideal_nocost / scaleout]  n=227
+   mean_R=+0.1420  sr/trade=+0.1126  t=+1.70  p(mean>0)=0.046
+   bootstrap mean_R 95% CI=[-0.020, +0.303]  P(mean>0)=0.956
+   PSR(SR>0)=0.960  DSR_z=+1.75  DSR_p=0.040
+
+[ideal_nocost / hold]  n=227
+   mean_R=+0.2042  sr/trade=+0.1086  t=+1.64  p(mean>0)=0.052
+   bootstrap mean_R 95% CI=[-0.037, +0.452]  P(mean>0)=0.952
+   PSR(SR>0)=0.957  DSR_z=+1.72  DSR_p=0.043
+
+[ideal_costs / scaleout]  n=227
+   mean_R=+0.0422  sr/trade=+0.0346  t=+0.52  p(mean>0)=0.302
+   bootstrap mean_R 95% CI=[-0.112, +0.201]  P(mean>0)=0.703
+   PSR(SR>0)=0.701  DSR_z=+0.53  DSR_p=0.299
+
+[ideal_costs / hold]  n=227
+   mean_R=+0.0871  sr/trade=+0.0485  t=+0.73  p(mean>0)=0.233
+   bootstrap mean_R 95% CI=[-0.140, +0.319]  P(mean>0)=0.761
+   PSR(SR>0)=0.772  DSR_z=+0.75  DSR_p=0.228
+
+[realistic_nocost / scaleout]  n=225
+   mean_R=-0.0108  sr/trade=-0.0094  t=-0.14  p(mean>0)=0.556
+   bootstrap mean_R 95% CI=[-0.158, +0.144]  P(mean>0)=0.442
+   PSR(SR>0)=0.444  DSR_z=-0.14  DSR_p=0.556
+
+[realistic_nocost / hold]  n=225
+   mean_R=+0.0297  sr/trade=+0.0174  t=+0.26  p(mean>0)=0.397
+   bootstrap mean_R 95% CI=[-0.189, +0.257]  P(mean>0)=0.596
+   PSR(SR>0)=0.604  DSR_z=+0.26  DSR_p=0.396
+
+[realistic_costs / scaleout]  n=225
+   mean_R=-0.1128  sr/trade=-0.0983  t=-1.47  p(mean>0)=0.929
+   bootstrap mean_R 95% CI=[-0.256, +0.041]  P(mean>0)=0.074
+   PSR(SR>0)=0.081  DSR_z=-1.40  DSR_p=0.919
+
+[realistic_costs / hold]  n=225
+   mean_R=-0.0858  sr/trade=-0.0521  t=-0.78  p(mean>0)=0.782
+   bootstrap mean_R 95% CI=[-0.292, +0.130]  P(mean>0)=0.220
+   PSR(SR>0)=0.227  DSR_z=-0.75  DSR_p=0.773

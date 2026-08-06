@@ -1,0 +1,104 @@
+=== PARSE REPORT — Trading Family VIP ===
+messages id range: 1..3786
+deleted (gaps): 165
+signals detected: 937
+  sanity OK: 810
+  failed sanity: 127
+  testable (local data): 248
+follow-up messages: 2008
+recap outcome lines: 307  {'BE': 113, 'LOSS': 32, 'WIN': 162}
+
+signals by ticker (sanity OK):
+  US100      124
+  ??         55
+  XAUUSD     44
+  ETHUSD     39
+  US30       23
+  USDCAD     22
+  USOIL      21
+  BTCUSD     21
+  EURAUD     19
+  GBPCHF     17
+  US500      17
+  GBPAUD     16
+  GBPCAD     15
+  AUDJPY     15
+  AUDUSD     15
+  CADCHF     15
+  USDCHF     15
+  EURGBP     13
+  EURUSD     13
+  GBPJPY     12
+  GBPNZD     12
+  EURCHF     12
+  CHFJPY     11
+  NZDUSD     11
+  NZDCAD     11
+  AUDCAD     10
+  GBPUSD     9
+  EURNZD     9
+  GER30      9
+  LINKUSDT   9
+  EURCAD     8
+  EURJPY     8
+  FTMUSDT    8
+  AUDNZD     8
+  ATOMUSDT   7
+  BNBUSDT    7
+  NZDCHF     7
+  CADJPY     7
+  SEIUSDT    7
+  AVAXUSDT   6
+  AUDCHF     6
+  SOLUSDT    6
+  APTUSDT    6
+  FETUSD     5
+  ADAUSDT    4
+  NEARUSDT   4
+  GRTUSDT    4
+  TIAUSDT    4
+  XRPUSDT    3
+  DOGEUSDT   3
+  SANDUSDT   3
+  NZDJPY     3
+  NKNUSDT    3
+  JUPUSDT    3
+  OPUSDT     2
+  USDSGD     2
+  LTCUSDT    2
+  AAVEUSDT   2
+  USDJPY     2
+  FRA40      2
+  ORDIUSDT   2
+  SEIUSD     2
+  TAOUSD     2
+  MANAUSDT   1
+  EGLDUSDT   1
+  INJUSDT    1
+  ACAUSDT    1
+  CHZUSDT    1
+  MASKUSDT   1
+  FETUSDT    1
+  LINAUSDT   1
+  GALAUSDT   1
+  RNDRUSDT   1
+  DYDXUSDT   1
+  TRXUSDT    1
+  ETCUSDT    1
+  USDCNH     1
+  XTZUSDT    1
+  FLOWUSDT   1
+  ALTUSDT    1
+  LRCUSDT    1
+  CAKEUSDT   1
+  CKBUSDT    1
+  ROSEUSDT   1
+  DOTUSDT    1
+  ICPUSDT    1
+  SUIUSST    1
+  ADAUSD     1
+  XRPUSD     1
+  HYPEUSD    1
+  APTUSD     1
+
+direction split: {'SELL': 397, 'BUY': 413}

@@ -1,0 +1,18 @@
+
+=== SCENARIO COMPARISON (mean_R / total_R / profit_factor per policy) ===
+scenario           policy       n   winR    meanR     totR     PF
+ideal_nocost       tp1        227  0.533   0.1418   32.189  1.294
+ideal_nocost       scaleout   227  0.533    0.142   32.236  1.294
+ideal_nocost       hold       227 0.3304   0.2042   46.363  1.288
+
+ideal_costs        tp1        227  0.511   0.0339    7.699  1.067
+ideal_costs        scaleout   227 0.5066   0.0422    9.583  1.083
+ideal_costs        hold       227  0.326   0.0871   19.776  1.118
+
+realistic_nocost   tp1        225 0.4889  -0.0193   -4.337  0.961
+realistic_nocost   scaleout   225 0.5067  -0.0108   -2.431  0.978
+realistic_nocost   hold       225 0.3333   0.0297    6.687  1.042
+
+realistic_costs    tp1        225 0.4533  -0.1242   -27.94   0.77
+realistic_costs    scaleout   225 0.4711  -0.1128  -25.372  0.789
+realistic_costs    hold       225 0.3244  -0.0858  -19.302  0.885

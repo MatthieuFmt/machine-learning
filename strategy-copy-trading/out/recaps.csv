@@ -1,0 +1,308 @@
+msg_id,file,dt_utc,asset_raw,ticker,outcome,detail
+951,messages.html,2023-03-09T08:58:02+00:00,CHF/JPY,CHFJPY,BE,"TP1 touché, 50% de la position sortie. S"
+951,messages.html,2023-03-09T08:58:02+00:00,ETH/USDT,ETHUSD,BE,"TP1 touché, 50% de la position sortie. P"
+1162,messages2.html,2023-04-21T17:30:37+00:00,EUR/AUD,EURAUD,BE,TP1 ✅ Sorti BE après avoir encaissé 50%
+1162,messages2.html,2023-04-21T17:30:37+00:00,EUR/AUD,EURAUD,BE,TP1 ✅ Sorti BE après avoir encaissé 50%
+1162,messages2.html,2023-04-21T17:30:37+00:00,EUR/NZD,EURNZD,BE,TP1 ✅ Sorti BE après avoir encaissé 50%
+1162,messages2.html,2023-04-21T17:30:37+00:00,GBP/CAD,GBPCAD,LOSS,SL ❌
+1207,messages2.html,2023-04-28T13:26:43+00:00,USD/CAD,USDCAD,BE,Sorti au point d’entrée
+1207,messages2.html,2023-04-28T13:26:43+00:00,Gold,XAUUSD,LOSS,SL ❌
+1207,messages2.html,2023-04-28T13:26:43+00:00,USD/CAD,USDCAD,BE,TP1 ✅ Sorti BE après avoir encaissé 50%
+1207,messages2.html,2023-04-28T13:26:43+00:00,AUD/JPY,AUDJPY,WIN,"TP1 ✅ Sorti 20% au TP1, trade en cours"
+1207,messages2.html,2023-04-28T13:26:43+00:00,Gold,XAUUSD,BE,TP1 ✅ Sorti BE après avoir encaissé 50%
+1207,messages2.html,2023-04-28T13:26:43+00:00,Gold,XAUUSD,LOSS,SL ❌
+1207,messages2.html,2023-04-28T13:26:43+00:00,Jones,,WIN,TP2 ✅ +212 points
+1207,messages2.html,2023-04-28T13:26:43+00:00,NZD/CAD,NZDCAD,WIN,TP2 ✅
+1207,messages2.html,2023-04-28T13:26:43+00:00,Nasdaq,US100,WIN,TP3 ✅ +180 points
+1249,messages2.html,2023-05-05T16:59:13+00:00,GBP/USD,GBPUSD,LOSS,"TP2 ✅ 50% du trade encaissé, SL au point"
+1249,messages2.html,2023-05-05T16:59:13+00:00,AAVE/USDT,AAVEUSDT,LOSS,SL ❌
+1249,messages2.html,2023-05-05T16:59:13+00:00,Nasdaq,US100,BE,TP1 ✅Sorti BE après avoir encaissé 50% (
+1249,messages2.html,2023-05-05T16:59:13+00:00,Nasdaq,US100,BE,TP1 ✅Sorti BE après avoir encaissé 50% (
+1249,messages2.html,2023-05-05T16:59:13+00:00,GBP/CHF,GBPCHF,WIN,TP1 touché ✅ 20% de la position encaissé
+1249,messages2.html,2023-05-05T16:59:13+00:00,SOL/USDT,SOLUSDT,BE,Sorti au point d’entrée
+1279,messages2.html,2023-05-12T15:33:03+00:00,ETH/USDT,ETHUSD,WIN,TP2 ✅
+1279,messages2.html,2023-05-12T15:33:03+00:00,USD/CAD,USDCAD,WIN,TP1 en approche ✅ trade sécurisé
+1279,messages2.html,2023-05-12T15:33:03+00:00,Nasdaq,US100,LOSS,SL ❌(-16 point)
+1279,messages2.html,2023-05-12T15:33:03+00:00,Gold,XAUUSD,WIN,TP1 ✅ trade en cours
+1279,messages2.html,2023-05-12T15:33:03+00:00,Jones,,BE,TP1 ✅Sorti BE après avoir encaissé 50% (
+1279,messages2.html,2023-05-12T15:33:03+00:00,Nasdaq,US100,BE,TP1 ✅Sorti BE après avoir encaissé 50% (
+1331,messages2.html,2023-05-19T18:21:52+00:00,Nasdaq,US100,WIN,TP2 ✅ +48 points
+1331,messages2.html,2023-05-19T18:21:52+00:00,AUD/JPY,AUDJPY,BE,Sorti BE
+1331,messages2.html,2023-05-19T18:21:52+00:00,Nasdaq,US100,BE,TP1 ✅ Sorti BE après avoir encaissé 50% 
+1331,messages2.html,2023-05-19T18:21:52+00:00,Pétrole,USOIL,BE,TP1 ✅ Sorti BE après avoir encaissé 50%
+1331,messages2.html,2023-05-19T18:21:52+00:00,Pétrole,USOIL,LOSS,SL ❌
+1331,messages2.html,2023-05-19T18:21:52+00:00,Nasdaq,US100,LOSS,SL ❌ -37 points
+1331,messages2.html,2023-05-19T18:21:52+00:00,Nasdaq,US100,BE,Sorti BE
+1331,messages2.html,2023-05-19T18:21:52+00:00,CAD/CHF,CADCHF,LOSS,SL ❌
+1368,messages2.html,2023-05-26T18:53:03+00:00,GBP/CAD,GBPCAD,WIN,TP2 ✅
+1368,messages2.html,2023-05-26T18:53:03+00:00,Nasdaq,US100,WIN,TP2 ✅ +80 points
+1368,messages2.html,2023-05-26T18:53:03+00:00,CHF/JPY,CHFJPY,LOSS,SL ❌
+1368,messages2.html,2023-05-26T18:53:03+00:00,Nasdaq,US100,BE,TP1 ✅ Sorti 50% de la position (sorti BE
+1368,messages2.html,2023-05-26T18:53:03+00:00,BTC/USDT,BTCUSD,BE,Sorti BE
+1368,messages2.html,2023-05-26T18:53:03+00:00,GBP/AUD,GBPAUD,LOSS,Sorti en légère perte avant le SL ❌
+1368,messages2.html,2023-05-26T18:53:03+00:00,EUR/USD,EURUSD,LOSS,TP1 ✅ 50% de la position et SL au point 
+1405,messages2.html,2023-06-03T18:08:06+00:00,NZD/CAD,NZDCAD,LOSS,SL ❌
+1405,messages2.html,2023-06-03T18:08:06+00:00,CAD/CHF,CADCHF,WIN,TP2 ✅
+1405,messages2.html,2023-06-03T18:08:06+00:00,ETH/USDT,ETHUSD,LOSS,SL ❌
+1405,messages2.html,2023-06-03T18:08:06+00:00,Pétrole,USOIL,LOSS,TP1 ✅ 50% de la position et SL au point 
+1405,messages2.html,2023-06-03T18:08:06+00:00,EUR/AUD,EURAUD,LOSS,SL ❌
+1405,messages2.html,2023-06-03T18:08:06+00:00,Nasdaq,US100,WIN,TP2 ✅ +110 points
+1405,messages2.html,2023-06-03T18:08:06+00:00,Nasdaq,US100,LOSS,SL ❌ -21 points
+1405,messages2.html,2023-06-03T18:08:06+00:00,Nasdaq,US100,LOSS,TP1 ✅ 50% de la position et SL au point 
+1405,messages2.html,2023-06-03T18:08:06+00:00,CAD/JPY,CADJPY,WIN,TP2 ✅ sorti en gains avant TP1 personnel
+1405,messages2.html,2023-06-03T18:08:06+00:00,EUR/USD,EURUSD,BE,Trade en cours au point d’entrée
+1487,messages2.html,2023-06-16T16:34:12+00:00,Nasdaq,US100,LOSS,SL ❌ -19 points
+1487,messages2.html,2023-06-16T16:34:12+00:00,Nasdaq,US100,LOSS,SL ❌ -14 points
+1487,messages2.html,2023-06-16T16:34:12+00:00,AUD/JPY,AUDJPY,BE,Sorti BE
+1487,messages2.html,2023-06-16T16:34:12+00:00,AUD/CHF,AUDCHF,LOSS,SL ❌
+1487,messages2.html,2023-06-16T16:34:12+00:00,GER,,LOSS,TP1 ✅ +35 points : 50% de la position et
+1487,messages2.html,2023-06-16T16:34:12+00:00,Nasdaq,US100,LOSS,TP1 ✅ +61 points : 50% de la position et
+1487,messages2.html,2023-06-16T16:34:12+00:00,Nasdaq,US100,WIN,TP2 ✅ +110 points
+1487,messages2.html,2023-06-16T16:34:12+00:00,AUD/CAD,AUDCAD,LOSS,TP1 ✅ 50% de la position et SL au point 
+1487,messages2.html,2023-06-16T16:34:12+00:00,Nasdaq,US100,LOSS,SL ❌ -32 points
+1487,messages2.html,2023-06-16T16:34:12+00:00,Nasdaq,US100,WIN,TP2 ✅ +64 points
+1487,messages2.html,2023-06-16T16:34:12+00:00,GBP/CHF,GBPCHF,WIN,TP3 ✅
+1487,messages2.html,2023-06-16T16:34:12+00:00,EUR/USD,EURUSD,WIN,TP3 ✅
+1487,messages2.html,2023-06-16T16:34:12+00:00,USD/CHF,USDCHF,BE,TP2 ✅ Sorti BE après avoir encaissé 50%
+1521,messages2.html,2023-06-22T21:32:58+00:00,EUR/CHF,EURCHF,WIN,TP1 touché ✅ 20% de la position encaissé
+1521,messages2.html,2023-06-22T21:32:58+00:00,AUD/CHF,AUDCHF,LOSS,SL ❌
+1521,messages2.html,2023-06-22T21:32:58+00:00,EUR/USD,EURUSD,BE,Sorti au point d’entrée
+1521,messages2.html,2023-06-22T21:32:58+00:00,USD/CHF,USDCHF,BE,TP1 touché ✅ 50% de la position et encai
+1521,messages2.html,2023-06-22T21:32:58+00:00,Gold,XAUUSD,LOSS,SL ❌
+1521,messages2.html,2023-06-22T21:32:58+00:00,Nasdaq,US100,BE,"TP1 ✅ 50% de la position encaissée, sort"
+1521,messages2.html,2023-06-22T21:32:58+00:00,Nasdaq,US100,WIN,TP2 ✅ +100 points
+1521,messages2.html,2023-06-22T21:32:58+00:00,AUD/CAD,AUDCAD,WIN,TP2 ✅
+1563,messages2.html,2023-07-08T18:43:19+00:00,GBP/AUD,GBPAUD,BE,Sorti BE
+1563,messages2.html,2023-07-08T18:43:19+00:00,Nasdaq,US100,BE,"TP1 ✅ 50% de la position encaissée, sort"
+1563,messages2.html,2023-07-08T18:43:19+00:00,Nasdaq,US100,WIN,TP2 ✅ +74 points
+1563,messages2.html,2023-07-08T18:43:19+00:00,GBP/CHF,GBPCHF,BE,Sorti BE
+1563,messages2.html,2023-07-08T18:43:19+00:00,EUR/CAD,EURCAD,WIN,TP1 en approche ✅
+1563,messages2.html,2023-07-08T18:43:19+00:00,Nasdaq,US100,BE,TP2 ✅ +79 points (sorti au point d’entré
+1563,messages2.html,2023-07-08T18:43:19+00:00,Nasdaq,US100,LOSS,"SL, -30 points"
+1563,messages2.html,2023-07-08T18:43:19+00:00,Nasdaq,US100,BE,"TP1 ✅ 50% de la position encaissée, sort"
+1563,messages2.html,2023-07-08T18:43:19+00:00,Gold/USD,XAUUSD,WIN,TP3 ✅
+1598,messages2.html,2023-07-15T09:40:06+00:00,Nasdaq,US100,WIN,TP2 ✅ +100 points
+1598,messages2.html,2023-07-15T09:40:06+00:00,Gold,XAUUSD,BE,TP1 ✅ Sorti BE personnellement
+1598,messages2.html,2023-07-15T09:40:06+00:00,Nasdaq,US100,BE,Sorti BE
+1598,messages2.html,2023-07-15T09:40:06+00:00,Nasdaq,US100,BE,Sorti BE
+1598,messages2.html,2023-07-15T09:40:06+00:00,ATOM/USDT,ATOMUSDT,WIN,"TP2 ✅ 50% de la position encaissée, trad"
+1598,messages2.html,2023-07-15T09:40:06+00:00,Nasdaq,US100,LOSS,SL : -53 points
+1598,messages2.html,2023-07-15T09:40:06+00:00,Nasdaq,US100,WIN,TP1 ✅ 100% de la position encaissée : +1
+1598,messages2.html,2023-07-15T09:40:06+00:00,EUR/GBP,EURGBP,LOSS,TP1 ✅ puis SL ❌
+1598,messages2.html,2023-07-15T09:40:06+00:00,GBP/CHF,GBPCHF,WIN,TP2 ✅
+1598,messages2.html,2023-07-15T09:40:06+00:00,EUR/CAD,EURCAD,WIN,TP2 ✅
+1630,messages2.html,2023-07-22T14:41:59+00:00,EUR/USD,EURUSD,WIN,TP2 ✅
+1630,messages2.html,2023-07-22T14:41:59+00:00,GBP/CAD,GBPCAD,WIN,TP2 ✅
+1630,messages2.html,2023-07-22T14:41:59+00:00,Nasdaq,US100,BE,"TP1 ✅ 50% de la position encaissée, sort"
+1630,messages2.html,2023-07-22T14:41:59+00:00,Nasdaq,US100,BE,Sorti BE ✔️
+1663,messages2.html,2023-07-28T21:14:29+00:00,NZD/JPY,NZDJPY,BE,Sorti BE
+1663,messages2.html,2023-07-28T21:14:29+00:00,AUD/USD,AUDUSD,BE,TP1 ✅ 50% de la position encaissée et so
+1663,messages2.html,2023-07-28T21:14:29+00:00,Nasdaq,US100,WIN,TP2 ✅ +55 points
+1663,messages2.html,2023-07-28T21:14:29+00:00,Jones,,WIN,TP2 ✅ 50% de la position encaissée : +25
+1663,messages2.html,2023-07-28T21:14:29+00:00,Jones,,WIN,TP1 ✅ 50% de la position encaissée : +15
+1702,messages2.html,2023-08-04T17:28:20+00:00,EUR/GBP,EURGBP,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+1702,messages2.html,2023-08-04T17:28:20+00:00,Nasdaq,US100,BE,"TP1 ✅ 50% de la position encaissée, sort"
+1702,messages2.html,2023-08-04T17:28:20+00:00,ETH/USDT,ETHUSD,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+1702,messages2.html,2023-08-04T17:28:20+00:00,GBP/JPY,GBPJPY,LOSS,"Trade en cours, SL au point d’entrée"
+1702,messages2.html,2023-08-04T17:28:20+00:00,Nasdaq,US100,BE,"TP1 ✅ 50% de la position encaissée, sort"
+1702,messages2.html,2023-08-04T17:28:20+00:00,Gold,XAUUSD,WIN,"TP1 ✅ 20% de la position encaissée, trad"
+1744,messages2.html,2023-08-11T20:35:29+00:00,AUD/NZD,AUDNZD,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+1744,messages2.html,2023-08-11T20:35:29+00:00,EUR/NZD,EURNZD,LOSS,"Trade en positif, SL au point d’entrée"
+1744,messages2.html,2023-08-11T20:35:29+00:00,NZD/USD,NZDUSD,WIN,TP2 ✅100% de la position encaissée
+1744,messages2.html,2023-08-11T20:35:29+00:00,Gold,XAUUSD,WIN,"TP2 ✅ 50% de la position encaissée, trad"
+1744,messages2.html,2023-08-11T20:35:29+00:00,EUR/GBP,EURGBP,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+1744,messages2.html,2023-08-11T20:35:29+00:00,Nasdaq,US100,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+1744,messages2.html,2023-08-11T20:35:29+00:00,GBP/JPY,GBPJPY,BE,Repris BE
+1769,messages2.html,2023-08-18T19:13:14+00:00,EUR/CHF,EURCHF,BE,Sorti BE
+1769,messages2.html,2023-08-18T19:13:14+00:00,EUR/CHF,EURCHF,BE,"TP1 ✅ 50% de la position encaissée, sort"
+1769,messages2.html,2023-08-18T19:13:14+00:00,GBP/USD,GBPUSD,BE,Trade en cours au point d’entrée
+1769,messages2.html,2023-08-18T19:13:14+00:00,Jones,,WIN,"TP1 ✅ 50% de la position encaissé, trade"
+1769,messages2.html,2023-08-18T19:13:14+00:00,Gold,XAUUSD,WIN,"TP2 ✅ 50% de la position encaissée, trad"
+1769,messages2.html,2023-08-18T19:13:14+00:00,EUR/GBP,EURGBP,BE,"TP1 ✅ 50% de la position encaissée, sort"
+1769,messages2.html,2023-08-18T19:13:14+00:00,Nasdaq,US100,WIN,"TP2 ✅ 100% de la position encaissée, tra"
+1769,messages2.html,2023-08-18T19:13:14+00:00,EUR/NZD,EURNZD,WIN,"TP1 ✅ 50% de la position encaissé, trade"
+1769,messages2.html,2023-08-18T19:13:14+00:00,AUD/NZD,AUDNZD,WIN,"TP1 ✅ 50% de la position encaissé, trade"
+1807,messages2.html,2023-08-25T16:57:23+00:00,Gold,XAUUSD,WIN,"TP2 ✅ 50% de la position encaissée, trad"
+1807,messages2.html,2023-08-25T16:57:23+00:00,USD/CAD,USDCAD,BE,"TP1 ✅ 50% de la position encaissé, sorti"
+1807,messages2.html,2023-08-25T16:57:23+00:00,ETH/USD,ETHUSD,BE,"TP1 ✅ 50% de la position encaissé, sorti"
+1807,messages2.html,2023-08-25T16:57:23+00:00,Nasdaq,US100,WIN,TP2 ✅ +300 points
+1807,messages2.html,2023-08-25T16:57:23+00:00,Nasdaq,US100,BE,Sorti BE
+1807,messages2.html,2023-08-25T16:57:23+00:00,EUR/NZD,EURNZD,WIN,"TP1 ✅ 50% de la position encaissé, trade"
+1807,messages2.html,2023-08-25T16:57:23+00:00,AUD/NZD,AUDNZD,WIN,"TP1 ✅ 50% de la position encaissé, trade"
+1841,messages2.html,2023-09-01T20:32:29+00:00,GBP/CHF,GBPCHF,WIN,"TP1 ✅ Trade en cours, 20% de la position"
+1841,messages2.html,2023-09-01T20:32:29+00:00,EUR/GBP,EURGBP,BE,"TP1 ✅ 50% de la position encaissé, sorti"
+1841,messages2.html,2023-09-01T20:32:29+00:00,CAD/CHF,CADCHF,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+1841,messages2.html,2023-09-01T20:32:29+00:00,Nasdaq,US100,BE,"TP1 ✅ 50% de la position encaissée, sort"
+1841,messages2.html,2023-09-01T20:32:29+00:00,EUR/NZD,EURNZD,WIN,"TP1 ✅ 50% de la position encaissé, trade"
+1841,messages2.html,2023-09-01T20:32:29+00:00,AUD/NZD,AUDNZD,WIN,"TP1 ✅ 50% de la position encaissé, trade"
+1841,messages2.html,2023-09-01T20:32:29+00:00,Gold,XAUUSD,WIN,TP3 ✅ Trade clôturé
+1868,messages2.html,2023-09-08T18:06:48+00:00,AUD/JPY,AUDJPY,BE,au point d’entrée
+1868,messages2.html,2023-09-08T18:06:48+00:00,GBP/NZD,GBPNZD,WIN,TP2 ✅ 100% de la position encaissé
+1868,messages2.html,2023-09-08T18:06:48+00:00,CAD/CHF,CADCHF,WIN,"TP1 ✅ 20% de la position encaissée, trad"
+1868,messages2.html,2023-09-08T18:06:48+00:00,CHF/JPY,CHFJPY,BE,au point d’entrée
+1868,messages2.html,2023-09-08T18:06:48+00:00,EUR/NZD,EURNZD,WIN,"TP1 ✅ 50% de la position encaissé, trade"
+1868,messages2.html,2023-09-08T18:06:48+00:00,AUD/NZD,AUDNZD,WIN,"TP1 ✅ 50% de la position encaissé, trade"
+1903,messages2.html,2023-09-15T20:07:24+00:00,GBP/JPY,GBPJPY,BE,sorti au point d’entrée
+1903,messages2.html,2023-09-15T20:07:24+00:00,Jones,,BE,au point d’entrée
+1903,messages2.html,2023-09-15T20:07:24+00:00,AUD/JPY,AUDJPY,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+1903,messages2.html,2023-09-15T20:07:24+00:00,Nasdaq,US100,WIN,TP1 ✅ 50% de la position encaissée
+1903,messages2.html,2023-09-15T20:07:24+00:00,CAD/CHF,CADCHF,WIN,TP2 ✅ 100% de la position encaissé (Trad
+1903,messages2.html,2023-09-15T20:07:24+00:00,CAD/CHF,CADCHF,WIN,"TP2 ✅ 50% de la position encaissée, trad"
+1903,messages2.html,2023-09-15T20:07:24+00:00,EUR/NZD,EURNZD,BE,"TP1 ✅ 50% de la position encaissé, sorti"
+1903,messages2.html,2023-09-15T20:07:24+00:00,AUD/NZD,AUDNZD,WIN,"TP1 ✅ 50% de la position encaissé, trade"
+1903,messages2.html,2023-09-15T20:07:24+00:00,AUD/JPY,AUDJPY,WIN,"TP1 ✅ 50% de la position encaissé, trade"
+1932,messages2.html,2023-09-22T20:27:13+00:00,Nasdaq,US100,WIN,TP1 ✅ 50% de la position encaissée : +60
+1932,messages2.html,2023-09-22T20:27:13+00:00,Nasdaq,US100,BE,TP2 ✅ +231 points (sorti BE personnellem
+1932,messages2.html,2023-09-22T20:27:13+00:00,Nasdaq,US100,WIN,TP1 ✅ 50% de la position encaissée : +80
+1932,messages2.html,2023-09-22T20:27:13+00:00,CAD/CHF,CADCHF,WIN,"TP3 ✅ 100% de la position encaissée, tra"
+1932,messages2.html,2023-09-22T20:27:13+00:00,AUD/NZD,AUDNZD,WIN,"TP1 ✅ 50% de la position encaissé, trade"
+1932,messages2.html,2023-09-22T20:27:13+00:00,AUD/JPY,AUDJPY,WIN,"TP1 ✅ 50% de la position encaissé, trade"
+1932,messages2.html,2023-09-22T20:27:13+00:00,NZD/CHF,NZDCHF,WIN,"TP1 ✅ 50% de la position encaissé, trade"
+1960,messages2.html,2023-09-29T18:55:43+00:00,Nasdaq,US100,WIN,TP1 ✅ 50% de la position encaissée : +70
+1960,messages2.html,2023-09-29T18:55:43+00:00,GBP/CHF,GBPCHF,WIN,"TP1 ✅ 50% de la position encaissé, trade"
+1960,messages2.html,2023-09-29T18:55:43+00:00,GBP/CHF,GBPCHF,WIN,"TP1 ✅ 50% de la position encaissé, trade"
+1960,messages2.html,2023-09-29T18:55:43+00:00,AUD/JPY,AUDJPY,WIN,"TP1 ✅ 50% de la position encaissé, trade"
+1960,messages2.html,2023-09-29T18:55:43+00:00,AUD/JPY,AUDJPY,WIN,"TP1 ✅ 50% de la position encaissé, trade"
+1960,messages2.html,2023-09-29T18:55:43+00:00,NZD/CHF,NZDCHF,WIN,TP2 ✅ 100% de la position encaissée
+1987,messages2.html,2023-10-06T17:18:54+00:00,EUR/JPY,EURJPY,WIN,TP2 ✅ 100% de la position encaissée (tra
+1987,messages2.html,2023-10-06T17:18:54+00:00,EUR/GBP,EURGBP,BE,Trade en cours en positif (sorti BE pers
+1987,messages2.html,2023-10-06T17:18:54+00:00,Nasdaq,US100,BE,"TP1 ✅ 50% de la position encaissée, sort"
+1987,messages2.html,2023-10-06T17:18:54+00:00,Nasdaq,US100,BE,"TP1 ✅ 50% de la position encaissée, sort"
+1987,messages2.html,2023-10-06T17:18:54+00:00,GBP/NZD,GBPNZD,BE,Trade en cours au point d’entrée
+1987,messages2.html,2023-10-06T17:18:54+00:00,AVAX/USDT,AVAXUSDT,WIN,TP2 ✅ 100% de la position encaissée
+1987,messages2.html,2023-10-06T17:18:54+00:00,CAD/CHF,CADCHF,WIN,"TP1 ✅ 50% de la position encaissé, trade"
+1987,messages2.html,2023-10-06T17:18:54+00:00,GBP/CHF,GBPCHF,BE,"TP1 ✅ 50% de la position encaissée, repr"
+1987,messages2.html,2023-10-06T17:18:54+00:00,GBP/CHF,GBPCHF,BE,"TP1 ✅ 50% de la position encaissée, repr"
+1987,messages2.html,2023-10-06T17:18:54+00:00,AUD/JPY,AUDJPY,BE,"TP1 ✅ 50% de la position encaissé, repri"
+1987,messages2.html,2023-10-06T17:18:54+00:00,AUD/JPY,AUDJPY,BE,"TP1 ✅ 50% de la position encaissé, repri"
+1987,messages2.html,2023-10-06T17:18:54+00:00,NZD/CHF,NZDCHF,WIN,TP2 ✅ 100% de la position encaissée
+1987,messages2.html,2023-10-06T17:18:54+00:00,EUR/JPY,EURJPY,WIN,Trade sécurisé en cours en positif (trad
+2023,messages2.html,2023-10-13T17:38:14+00:00,Nasdaq,US100,WIN,TP3 ✅ +300 points
+2023,messages2.html,2023-10-13T17:38:14+00:00,AUD/USD,AUDUSD,BE,"TP1 ✅ 50% de la position encaissée, sort"
+2023,messages2.html,2023-10-13T17:38:14+00:00,CAD/CHF,CADCHF,WIN,TP2 ✅ 100% de la position encaissée
+2023,messages2.html,2023-10-13T17:38:14+00:00,GBP/NZD,GBPNZD,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2055,messages2.html,2023-10-20T17:58:13+00:00,GBP/NZD,GBPNZD,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2055,messages2.html,2023-10-20T17:58:13+00:00,Nasdaq,US100,BE,Sorti BE
+2055,messages2.html,2023-10-20T17:58:13+00:00,Nasdaq,US100,WIN,TP1 ✅ 100% de la position encaissée
+2055,messages2.html,2023-10-20T17:58:13+00:00,GBP/CAD,GBPCAD,BE,Trade en cours au point d’entrée
+2055,messages2.html,2023-10-20T17:58:13+00:00,BTC/USDT,BTCUSD,BE,"20% de la position encaissée, sorti BE"
+2055,messages2.html,2023-10-20T17:58:13+00:00,Nasdaq,US100,BE,"TP1 ✅ 50% de la position encaissée, sort"
+2055,messages2.html,2023-10-20T17:58:13+00:00,EUR/AUD,EURAUD,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2055,messages2.html,2023-10-20T17:58:13+00:00,GBP/NZD,GBPNZD,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2080,messages3.html,2023-10-27T20:25:41+00:00,Nasdaq,US100,BE,"TP1 ✅ 50% de la position encaissée, sort"
+2080,messages3.html,2023-10-27T20:25:41+00:00,GBP/JPY,GBPJPY,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2080,messages3.html,2023-10-27T20:25:41+00:00,AUD/NZD,AUDNZD,BE,"TP1 ✅ 50% de la position encaissée, sort"
+2080,messages3.html,2023-10-27T20:25:41+00:00,EUR/USD,EURUSD,BE,"TP1 ✅ 50% de la position encaissée, sort"
+2080,messages3.html,2023-10-27T20:25:41+00:00,EUR/USD,EURUSD,BE,"TP1 ✅ 50% de la position encaissée, sort"
+2080,messages3.html,2023-10-27T20:25:41+00:00,GBP/NZD,GBPNZD,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2080,messages3.html,2023-10-27T20:25:41+00:00,GBP/NZD,GBPNZD,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2119,messages3.html,2023-11-03T18:29:26+00:00,AUD/NZD,AUDNZD,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2119,messages3.html,2023-11-03T18:29:26+00:00,Gold,XAUUSD,BE,Sorti BE
+2119,messages3.html,2023-11-03T18:29:26+00:00,Pétrole,USOIL,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2119,messages3.html,2023-11-03T18:29:26+00:00,EUR/JPY,EURJPY,BE,"50% de la position encaissée, sorti BE ("
+2119,messages3.html,2023-11-03T18:29:26+00:00,GBP/JPY,GBPJPY,BE,"50% de la position encaissée, sorti BE"
+2119,messages3.html,2023-11-03T18:29:26+00:00,GBP/NZD,GBPNZD,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2119,messages3.html,2023-11-03T18:29:26+00:00,GBP/NZD,GBPNZD,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2145,messages3.html,2023-11-10T23:24:41+00:00,GBP/AUD,GBPAUD,BE,Sorti BE
+2145,messages3.html,2023-11-10T23:24:41+00:00,Nasdaq,US100,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2145,messages3.html,2023-11-10T23:24:41+00:00,AVAX/USDT,AVAXUSDT,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2145,messages3.html,2023-11-10T23:24:41+00:00,GBP/NZD,GBPNZD,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2145,messages3.html,2023-11-10T23:24:41+00:00,GBP/NZD,GBPNZD,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2145,messages3.html,2023-11-10T23:24:41+00:00,Pétrole,USOIL,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2145,messages3.html,2023-11-10T23:24:41+00:00,CAD/CHF,CADCHF,BE,Sorti BE après avoir encaissé 20% de la 
+2145,messages3.html,2023-11-10T23:24:41+00:00,AUD/NZD,AUDNZD,WIN,TP2 ✅ 100% de la position encaissé
+2184,messages3.html,2023-11-19T20:11:05+00:00,LINK,,BE,TP1 touché ✅ Sorti BE personnellement
+2184,messages3.html,2023-11-19T20:11:05+00:00,GBP/CHF,GBPCHF,BE,Sorti BE
+2184,messages3.html,2023-11-19T20:11:05+00:00,FET/USDT,FETUSDT,WIN,TP2 ✅ 100% de la position encaissée
+2184,messages3.html,2023-11-19T20:11:05+00:00,GBP/NZD,GBPNZD,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2184,messages3.html,2023-11-19T20:11:05+00:00,GBP/NZD,GBPNZD,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2184,messages3.html,2023-11-19T20:11:05+00:00,Pétrole,USOIL,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2184,messages3.html,2023-11-19T20:11:05+00:00,Nasdaq,US100,WIN,"TP2 ✅ 50% de ma position encaissée, +700"
+2184,messages3.html,2023-11-19T20:11:05+00:00,Gold,XAUUSD,BE,Sorti BE après avoir encaissé 50% de la 
+2184,messages3.html,2023-11-19T20:11:05+00:00,EUR/CAD,EURCAD,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2184,messages3.html,2023-11-19T20:11:05+00:00,USD/CHF,USDCHF,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2203,messages3.html,2023-11-25T10:10:10+00:00,ETH/USDT,ETHUSD,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2203,messages3.html,2023-11-25T10:10:10+00:00,GBP/NZD,GBPNZD,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2203,messages3.html,2023-11-25T10:10:10+00:00,GBP/NZD,GBPNZD,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2203,messages3.html,2023-11-25T10:10:10+00:00,Pétrole,USOIL,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2203,messages3.html,2023-11-25T10:10:10+00:00,Nasdaq,US100,WIN,"TP3 ✅ 100% de la position encaissée, +80"
+2203,messages3.html,2023-11-25T10:10:10+00:00,FET/USDT,FETUSDT,WIN,TP2 ✅ 100% de la position encaissée
+2203,messages3.html,2023-11-25T10:10:10+00:00,EUR/CAD,EURCAD,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2203,messages3.html,2023-11-25T10:10:10+00:00,USD/CHF,USDCHF,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2203,messages3.html,2023-11-25T10:10:10+00:00,EUR/CHF,EURCHF,BE,Trade en cours au point d’entrée
+2235,messages3.html,2023-12-01T16:32:43+00:00,GALA/USDT,GALAUSDT,BE,Trade en cours au point d’entrée
+2235,messages3.html,2023-12-01T16:32:43+00:00,NZD/USD,NZDUSD,WIN,TP2 ✅ 100% de la position encaissée
+2235,messages3.html,2023-12-01T16:32:43+00:00,STX/USDT,STXUSDT,BE,Trade au point d’entrée
+2235,messages3.html,2023-12-01T16:32:43+00:00,GAL/USDT,GALUSDT,BE,Trade en cours au point d’entrée
+2235,messages3.html,2023-12-01T16:32:43+00:00,GBP/NZD,GBPNZD,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2235,messages3.html,2023-12-01T16:32:43+00:00,GBP/NZD,GBPNZD,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2235,messages3.html,2023-12-01T16:32:43+00:00,Pétrole,USOIL,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2235,messages3.html,2023-12-01T16:32:43+00:00,Nasdaq,US100,WIN,"TP3 ✅ 100% de la position encaissée, +80"
+2235,messages3.html,2023-12-01T16:32:43+00:00,EUR/CAD,EURCAD,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2235,messages3.html,2023-12-01T16:32:43+00:00,USD/CHF,USDCHF,WIN,"TP3 ✅ 100% de la position encaissée, tra"
+2235,messages3.html,2023-12-01T16:32:43+00:00,APT/USDT,APTUSDT,BE,Trade en cours au point d’entrée
+2287,messages3.html,2023-12-17T14:34:02+00:00,RNDR/USDT,RNDRUSDT,WIN,TP2 ✅
+2287,messages3.html,2023-12-17T14:34:02+00:00,AVAX/USDT,AVAXUSDT,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2287,messages3.html,2023-12-17T14:34:02+00:00,USD/CAD,USDCAD,WIN,TP2 ✅
+2287,messages3.html,2023-12-17T14:34:02+00:00,Nasdaq,US100,BE,TP1 ✅ Sorti BE après avoir encaissé 50% 
+2326,messages3.html,2023-12-30T12:40:16+00:00,Nasdaq,US100,WIN,TP2 ✅ 100% de la position encaissée : +1
+2326,messages3.html,2023-12-30T12:40:16+00:00,Nasdaq,US100,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2345,messages3.html,2024-01-05T20:35:34+00:00,Jones,,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2345,messages3.html,2024-01-05T20:35:34+00:00,USD/CHF,USDCHF,BE,Sorti BE
+2345,messages3.html,2024-01-05T20:35:34+00:00,Nasdaq,US100,WIN,"TP 2✅ 100% de la position encaissée, tra"
+2367,messages3.html,2024-01-13T12:40:24+00:00,Nasdaq,US100,WIN,TP2 ✅ 100% de la position encaissée : +1
+2367,messages3.html,2024-01-13T12:40:24+00:00,DOT/USDT,DOTUSDT,BE,Trade en cours au point d’entrée
+2393,messages3.html,2024-01-20T13:52:25+00:00,GRT/USDT,GRTUSDT,BE,Trade en cours au point d’entrée
+2393,messages3.html,2024-01-20T13:52:25+00:00,Nasdaq,US100,WIN,TP1 ✅ 50% de la position encaissée : +11
+2393,messages3.html,2024-01-20T13:52:25+00:00,THETA/USDT,,BE,Trade en cours au point d’entrée
+2421,messages3.html,2024-01-26T22:50:40+00:00,Nasdaq,US100,WIN,TP1 ✅ 50% de la position encaissée : +58
+2434,messages3.html,2024-02-04T11:50:44+00:00,Gold,XAUUSD,BE,"TP1 ✅ 20% de la position encaissée, sort"
+2451,messages3.html,2024-02-11T14:37:25+00:00,Nasdaq,US100,WIN,TP2 ✅ 100% de la position encaissée
+2467,messages3.html,2024-02-18T18:32:23+00:00,ORDI/USDT,ORDIUSDT,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2483,messages3.html,2024-02-25T20:54:27+00:00,FTM/USDT,FTMUSDT,BE,Trade en cours au point d’entrée
+2483,messages3.html,2024-02-25T20:54:27+00:00,GBP/AUD,GBPAUD,BE,Trade en cours au point d’entrée
+2499,messages3.html,2024-03-03T22:22:33+00:00,FTM/USDT,FTMUSDT,WIN,TP2 ✅
+2514,messages3.html,2024-03-10T16:11:11+00:00,MATIC/USDT,,WIN,TP1 ✅ Trade en cours
+2514,messages3.html,2024-03-10T16:11:11+00:00,JASMY/USDT,,WIN,TP1 ✅ Trade en cours
+2529,messages3.html,2024-03-17T22:58:37+00:00,FTM/USDT,FTMUSDT,BE,"TP1 ✅ 50% de la position encaissée, sort"
+2529,messages3.html,2024-03-17T22:58:37+00:00,CAD/CHF,CADCHF,BE,Trade en cours au point d’entrée
+2529,messages3.html,2024-03-17T22:58:37+00:00,COMP/USDT,COMPUSDT,BE,Trade en cours au point d’entrée
+2561,messages3.html,2024-04-01T16:04:49+00:00,Pétrole,USOIL,WIN,TP1 ✅ Trade en cours sécurisé en positif
+2582,messages3.html,2024-04-06T20:47:59+00:00,CAKE/USDT,CAKEUSDT,BE,"TP1 ✅ 50% de la position encaissée, sort"
+2582,messages3.html,2024-04-06T20:47:59+00:00,Nasdaq,US100,BE,"TP1 ✅ 50% de la position encaissée, sort"
+2582,messages3.html,2024-04-06T20:47:59+00:00,ATOM/USDT,ATOMUSDT,BE,au point d’entrée
+2600,messages3.html,2024-04-15T13:21:53+00:00,Nasdaq,US100,BE,"TP1 ✅ 50% de la position encaissée, sort"
+2620,messages3.html,2024-04-22T14:15:23+00:00,BTC/USDT,BTCUSD,BE,Sorti BE
+2620,messages3.html,2024-04-22T14:15:23+00:00,MATIC/USDT,,BE,TP1 ✅ Repris BE
+2620,messages3.html,2024-04-22T14:15:23+00:00,CKB/USDT,CKBUSDT,BE,TP1 ✅ Repris BE (sorti au point d’entrée
+2633,messages3.html,2024-04-29T16:12:53+00:00,LTC/USDT,LTCUSDT,BE,Trade en cours au point d’entrée
+2633,messages3.html,2024-04-29T16:12:53+00:00,Nasdaq,US100,WIN,TP1 ✅ +363 points
+2633,messages3.html,2024-04-29T16:12:53+00:00,MATIC/USDT,,BE,Trade en cours au point d’entrée
+2633,messages3.html,2024-04-29T16:12:53+00:00,AAVE/USDT,AAVEUSDT,BE,Trade en cours au point d’entrée
+2654,messages3.html,2024-05-05T22:10:50+00:00,Nasdaq,US100,WIN,TP2 ✅ +200 points
+2654,messages3.html,2024-05-05T22:10:50+00:00,AUD/CHF,AUDCHF,WIN,TP2 ✅
+2654,messages3.html,2024-05-05T22:10:50+00:00,POLYX/USDT,,WIN,TP2 ✅
+2672,messages3.html,2024-05-13T13:36:56+00:00,Gold,XAUUSD,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2721,messages3.html,2024-06-03T13:00:11+00:00,Gold,XAUUSD,BE,Trade repris BE
+2735,messages3.html,2024-06-09T13:08:24+00:00,Jones,,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2735,messages3.html,2024-06-09T13:08:24+00:00,POLYX/USDT,,BE,"TP1 ✅ 50% de la position encaissée, trad"
+2761,messages3.html,2024-06-23T21:29:32+00:00,BTC/USDT,BTCUSD,WIN,"TP1 ✅ 20% de la position encaissée, trad"
+2761,messages3.html,2024-06-23T21:29:32+00:00,BTC/USDT,BTCUSD,WIN,"TP1 ✅ 20% de la position encaissée, trad"
+2778,messages3.html,2024-07-01T13:33:21+00:00,Nasdaq,US100,BE,"TP1 ✅ 50% de la position encaissée, trad"
+2778,messages3.html,2024-07-01T13:33:21+00:00,DOT/USDT,DOTUSDT,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2778,messages3.html,2024-07-01T13:33:21+00:00,FTM/USDT,FTMUSDT,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2792,messages3.html,2024-07-08T13:24:24+00:00,JASMY/USDT,,WIN,TP2 ✅ 100% de la position encaissée
+2802,messages3.html,2024-07-14T22:55:37+00:00,ETH/USDT,ETHUSD,WIN,TP2 ✅ 100% de la position encaissée
+2802,messages3.html,2024-07-14T22:55:37+00:00,EUR/NZD,EURNZD,WIN,TP2 ✅ 100% de la position encaissée
+2821,messages3.html,2024-07-21T20:49:34+00:00,USD/CHF,USDCHF,WIN,TP2 ✅ 100% de la position encaissée
+2821,messages3.html,2024-07-21T20:49:34+00:00,NOT/USDT,NOTUSDT,BE,Sorti BE
+2821,messages3.html,2024-07-21T20:49:34+00:00,FTM/USDT,FTMUSDT,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2839,messages3.html,2024-07-29T13:27:36+00:00,THETA/USDT,,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2889,messages3.html,2024-08-26T16:56:09+00:00,BTC/USDT,BTCUSD,WIN,TP2 ✅ 100% de la position encaissée
+2889,messages3.html,2024-08-26T16:56:09+00:00,GRT/USDT,GRTUSDT,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2889,messages3.html,2024-08-26T16:56:09+00:00,BTC/USDT,BTCUSD,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2935,messages3.html,2024-09-16T13:21:28+00:00,BTC/USDT,BTCUSD,WIN,TP2 ✅ 100% de la position encaissée
+2935,messages3.html,2024-09-16T13:21:28+00:00,ETH/USDT,ETHUSD,BE,"TP1 ✅ 50% de la position encaissée, repr"
+2987,messages3.html,2024-10-13T19:01:13+00:00,SHIB/USDT,SHIBUSDT,BE,Trade en cours au point d’entrée
+2987,messages3.html,2024-10-13T19:01:13+00:00,Nasdaq,US100,WIN,"TP1 ✅ 50% de la position encaissée, trad"
+2998,messages3.html,2024-10-18T17:59:48+00:00,Jones,,BE,"TP1 ✅ 50% de la position encaissée, repr"

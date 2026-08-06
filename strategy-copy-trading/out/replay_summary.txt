@@ -1,0 +1,32 @@
+=== REPLAY SUMMARY — Trading Family VIP (H1, XTB costs) ===
+replayed trades: 225   (skipped/no-data/closed-market: 23)
+
+--- policy: tp1 ---
+  n=225  win_rate=0.4533  mean_R=-0.1242  median_R=-0.2172  total_R=-27.94  std_R=1.0602  profit_factor=0.77  max_dd_R=-50.402  best_R=2.745  worst_R=-2.667
+  outcomes: {'TP1': 116, 'SL': 109}
+
+--- policy: scaleout ---
+  n=225  win_rate=0.4711  mean_R=-0.1128  median_R=-0.183  total_R=-25.372  std_R=1.1448  profit_factor=0.789  max_dd_R=-48.195  best_R=4.861  worst_R=-2.667
+  outcomes: {'TP3': 11, 'SL': 109, 'TP2': 29, 'BE': 72, 'TIMEOUT': 4}
+
+--- policy: hold ---
+  n=225  win_rate=0.3244  mean_R=-0.0858  median_R=-1.0168  total_R=-19.302  std_R=1.6432  profit_factor=0.885  max_dd_R=-30.966  best_R=8.291  worst_R=-2.667
+  outcomes: {'TP3': 16, 'SL': 152, 'TP2': 48, 'TIMEOUT': 9}
+
+--- per-asset (scaleout policy): n, win_rate, mean_R, total_R ---
+  XAUUSD   n=44   wr=0.3636 meanR=-0.2853  totR=-12.555
+  ETHUSD   n=39   wr=0.5641 meanR=0.1952   totR=7.615
+  BTCUSD   n=21   wr=0.2857 meanR=-0.6815  totR=-14.312
+  US30     n=21   wr=0.5714 meanR=0.0337   totR=0.707
+  US500    n=17   wr=0.4706 meanR=-0.2815  totR=-4.785
+  AUDJPY   n=15   wr=0.6667 meanR=0.0481   totR=0.722
+  USDCHF   n=15   wr=0.5333 meanR=0.3131   totR=4.696
+  EURUSD   n=13   wr=0.6154 meanR=0.3537   totR=4.598
+  GBPJPY   n=12   wr=0.25   meanR=-0.5911  totR=-7.093
+  GBPUSD   n=9    wr=0.3333 meanR=-0.3197  totR=-2.877
+  GER30    n=9    wr=0.5556 meanR=0.0791   totR=0.712
+  EURJPY   n=8    wr=0.5    meanR=-0.2574  totR=-2.059
+  USDJPY   n=2    wr=0.5    meanR=-0.3703  totR=-0.741
+
+avg fill_gap_R (delay slippage, +adverse): -0.255  median 0.102  worst 1.0
+avg nights held: 6.93  max 65

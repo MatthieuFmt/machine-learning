@@ -1,0 +1,26 @@
+=== SETUP PROFILE — Trading Family VIP ===
+
+SESSION (Europe/Paris):
+   busiest hours: 16h(187), 15h(176), 17h(152), 14h(84), 18h(72), 19h(30)
+   weekdays: Monday:175, Tuesday:170, Wednesday:168, Friday:146, Thursday:131, Sunday:13, Saturday:7
+
+RISK/REWARD GEOMETRY:
+   reward(TP1)/risk : median 1.22  mean 1.35  (share < 1.0 : 30%)
+   reward(lastTP)/risk: median 3.20  mean 3.48
+   -> On paper the R:R is fine (TP1 ~1.2R, last TP ~3.2R). The problem is
+      NOT the geometry but that the TP1-hit rate (~47-53%) is too low to
+      monetise it once execution delay + XTB costs are paid: scaling 50% out
+      at TP1 then break-even gives small wins, while stops are full -1R.
+
+TP LADDER (number of take-profits per signal):
+   1TP:10, 2TP:628, 3TP:172
+
+TRADE TYPE (stated):
+   swing:272, (non précisé):205, intraday:168, intraday/swing:142, scalping:18, moyen/long terme:5
+
+ASSET MIX (top 12):
+   US100:124, ??:55, XAUUSD:44, ETHUSD:39, US30:23, USDCAD:22, USOIL:21, BTCUSD:21, EURAUD:19, GBPCHF:17, US500:17, GBPAUD:16
+
+REALISED HOLDING & EXCURSIONS (realistic+costs replay)
+   median nights held: 2   mean: 6.9   max: 65
+   trades whose price ran >= +1R in favour at some point: 104/225 (46%)
