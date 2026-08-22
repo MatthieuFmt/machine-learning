@@ -403,55 +403,106 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
     # v4: vrai XTB ~0.5 pts, slippage majeure 0.2×
     # ⚠️ pip_size = 0.1 (le S&P cote au dixième de point)
     "US500": AssetConfig(
-        # ✅ RELEVÉ XTB : spread 0.92 pt = 0.012 % (pip_size 0.1 -> 9.2 pips).
-        #    ⚠️ relevé en PRÉ-OUVERTURE = pire cas, donc conservateur. À raffiner
-        #    par un relevé EN SÉANCE.
-        #    L'ancienne valeur 0.5 cumulait DEUX erreurs : bug d'unité (l'audit
-        #    disait "0.5 pts" avec "Pip: 0.1 pt", soit 5 pips, pas 0.5) ET
-        #    sous-estimation x15 face au réel.
+        # ⚠️ RELEVÉ RÉEL app XTB, 2026-07-31 23:08 (heure FR, marché en PRÉ-OUVERTURE
+        # = heure creuse → spread au PIRE). Écran : spread 0.20 EUR, valeur du pip
+        # 0.22 EUR, valeur du contrat 1 636.33 EUR pour 0.005 lot, indice 7 503.
+        #   valeur d'1 POINT d'indice = 1636.33/7503 = 0.2181 EUR
+        #   → le « pip » affiché par XTB vaut 1 POINT d'indice (0.22/0.2181 ≈ 1.0)
+        #   → spread réel = 0.20/0.2181 = 0.92 POINT = 9.2 pips ici (pip_size=0.1)
+        # L'ancienne valeur (0.5) supposait 0.06 point : SOUS-ESTIMATION ×15.
+        # C'est ce qui rendait l'ORB M5 (≈257 A/R par an) faussement viable.
+        # 🔜 À raffiner : relevé en séance NY (15h30-22h) où le spread est plus
+        #    serré ; d'ici là on garde la mesure pire-cas (conservateur = correct).
         spread_pips=9.2,
-        slippage_pips=1.84,    # 0.2 x spread (majeure liquide)
-        commission_pips=0.0,
-        pip_size=0.1,          # 1 pt S&P = 0.1 (cotation au dixième)
-        pip_value_eur=0.092,   # 0.1 pt x 0.92 ≈ 0.092 EUR
-        tp_points=200,
-        sl_points=100,
+        slippage_pips=1.8,     # 0.2 × spread (règle projet, majeures)
+        commission_pips=0.0,   # ✅ confirmé à l'écran : « Commission 0.00 EUR »
+        pip_size=0.1,          # 1 pip interne = 0.1 point d'indice
+        # ⚠️ pip_value_eur est une constante de NORMALISATION (échelle € des
+        # rapports), pas un coût : le Sharpe/DSR n'en dépendent pas. Réel mesuré :
+        # 0.0218 EUR par 0.1 point pour 0.005 lot. Laissé à 0.092 pour ne pas
+        # casser la comparabilité des rapports historiques.
+        pip_value_eur=0.092,
+        # TP/SL par défaut RECALIBRÉS avec le vrai spread. L'ancien SL (100 pips
+        # = 10 points d'indice = 0.13 % d'un indice à 7 500) n'était « viable »
+        # que parce que le spread était sous-estimé ×15 : le garde-fou
+        # test_cost_vs_sl_ratio le rejette dès qu'on met le coût réel
+        # (11.0/100 = 11 % du stop > seuil 10 %). Nouvelles valeurs :
+        #   SL 400 pips = 40 pts = 0.53 %   TP 800 pips = 80 pts = 1.07 %
+        # → ordre de grandeur de l'ATR journalier du S&P (~1 %), ratio 2:1 conservé,
+        #   coût = 2.8 % du stop. (Les screens Phase 1 passent leur propre grille
+        #   TP/SL ; ces défauts ne servent qu'aux pipelines ML hérités.)
+        tp_points=800,
+        sl_points=400,
         window_hours=120,
-        min_lot=0.01,
-        max_lot=10.0,
-        # ⚠️ swap SHORT jamais relevé — cf. assert_costs_measured.
+        min_lot=0.005,         # ✅ relevé réel (l'ancien 0.01 était faux)
+        max_lot=52.0,          # ✅ relevé réel « Taille maximale de la position »
+        # ✅ SWAP CONFIRMÉ par relevé : Achat -0.021167 %/nuit, Vente -0.001056 %.
+        # -0.021167 % × 7503 = -1.59 point = -15.9 pips → l'estimation -16.0
+        # était juste à 1 % près. Aucun changement nécessaire.
         swap_long_pips_per_night=-16.0,
-        swap_short_pips_per_night=2.0,
-        # ✅ MESURÉS (% du notionnel) — priment sur les pips ci-dessus.
-        #    L'indice est passé de 1290 (2012) à 7493 (2026) : une constante en
-        #    pips sous-facture le début de l'échantillon d'un facteur ~5.7.
-        spread_pct=0.012,
-        swap_long_pct_per_night=-0.021,     # = -7.7 %/an sur 365 nuits
-        costs_measured=frozenset({"spread", "swap_long"}),
+        # 🔧 CORRIGÉ 2026-08-22 : valait +2.0 (= un CRÉDIT) alors que le relevé
+        #    ci-dessus mesure Vente -0.001056 %/nuit, soit un DÉBIT.
+        #    -0.001056 % x 7503 = -0.0792 point = -0.79 pip. Le SIGNE était faux —
+        #    exactement la classe d'erreur qui a tué le carry JPY (swap supposé
+        #    positif, réel négatif). Le short PAIE, il ne reçoit pas.
+        swap_short_pips_per_night=-0.79,
+        # ⚠️ US500 chez XTB est un CFD sur FUTURES (pas cash) : rollover
+        # trimestriel — dernier 17/06/2026, suivant 16/09/2026. Le rollover
+        # crée un saut de prix (compensé en cash). ⚠️ Le 16/09/2026 tombe le
+        # JOUR de la décision FOMC de septembre → collision avec la fenêtre
+        # du trade pre-FOMC. À vérifier avant de jouer cette date.
+        # ── Coûts MESURÉS en % du notionnel (priment sur les pips ci-dessus) ──
+        # Dérivés du relevé du 2026-07-31 ci-dessus. Un spread/swap EST un % du
+        # notionnel : une constante en pips n'est juste qu'à un seul niveau de
+        # prix, et US500 est passé de 1290 (2012) à 7493 (2026) — facteur 5.8.
+        spread_pct=0.0123,                    # 0.92 pt / 7503
+        swap_long_pct_per_night=-0.021167,    # relevé écran (= -7.7 %/an)
+        swap_short_pct_per_night=-0.001056,   # relevé écran (= -0.39 %/an)
+        costs_measured=frozenset(
+            {"spread", "swap_long", "swap_short", "commission", "min_lot"}
+        ),
     ),
     # ── GER30 (DAX 40 CFD) ───────────────────────────────────────────────
     # v3: spread=2.0 + slippage=3.0 = 5.0  ← surestimation × 4.2
     # v4: vrai XTB ~1.0 pt, slippage majeure 0.2×
     "GER30": AssetConfig(
-        # ✅ RELEVÉ XTB : spread 9.2 pts = 0.036 % (l'estimation 1.0 était x9.2 trop basse).
-        #    ⚠️ relevé en PRÉ-OUVERTURE = pire cas, conservateur. À raffiner en séance.
+        # ⚠️ RELEVÉ RÉEL app XTB (ticker « DE40 »), 2026-08-01 12:08 — marché en
+        # PRÉ-OUVERTURE (pire cas). Écran : spread 0.46 EUR / « 9.2 PIPS »,
+        # contrat 1 288.80 EUR pour 0.002 lot, indice 25 771.4, pip 0.05 EUR.
+        #   1 POINT d'indice = 1288.80/25771.4 = 0.05001 EUR → le pip XTB = 1 point
+        #   → spread réel = 0.46/0.05001 = 9.2 POINTS d'indice
+        # L'ancienne valeur (1.0) était SOUS-ESTIMÉE ×9.2 — même erreur que sur
+        # US500 (×15). 🔜 À raffiner par un relevé en séance (09h-17h30 FR).
         spread_pips=9.2,
-        slippage_pips=1.84,
-        commission_pips=0.0,
-        pip_size=1.0,          # 1 pt DAX = 1 EUR
-        pip_value_eur=1.0,
+        slippage_pips=1.8,     # 0.2 × spread (règle projet)
+        commission_pips=0.0,   # ✅ confirmé à l'écran
+        pip_size=1.0,          # 1 pip interne = 1 point DAX
+        pip_value_eur=1.0,     # normalisation (réel mesuré : 0.05 EUR à 0.002 lot)
+        # TP/SL recalibrés pour rester sous le garde-fou coût/SL (10 %) avec le
+        # vrai spread : 11.0/200 = 5.5 % ✅ — les valeurs 400/200 restent valides
+        # (200 pts = 0.78 % d'un DAX à 25 771, ordre de grandeur de l'ATR).
         tp_points=400,
         sl_points=200,
         window_hours=120,
-        min_lot=0.01,
+        min_lot=0.002,         # ✅ relevé réel (l'ancien 0.01 était faux)
         max_lot=10.0,
-        # ⚠️ swap SHORT jamais relevé — cf. assert_costs_measured.
-        swap_long_pips_per_night=-5.0,
-        swap_short_pips_per_night=0.5,
-        # ✅ MESURÉS (% du notionnel).
-        spread_pct=0.036,
-        swap_long_pct_per_night=-6.2 / 365.0,   # -6.2 %/an relevé
-        costs_measured=frozenset({"spread", "swap_long"}),
+        # ✅ SWAP CONFIRMÉ : réel Achat −0.22 EUR / Vente −0.06 EUR (0.002 lot)
+        # → long −4.4 points/nuit (−0.0171 %/nuit ≈ −6.2 %/an). Estimation −5.0
+        # juste à 12 % près. Comme sur US500 : le modèle de SWAP est bon, c'est
+        # l'estimation de SPREAD qui était systématiquement fausse.
+        swap_long_pips_per_night=-4.4,
+        swap_short_pips_per_night=-1.2,
+        # ⚠️ DE40 est lui aussi un CFD sur FUTURES (« DAX index futures contract »).
+        # Coût d'un trade pre-ECB (A/R + 1 nuit) = 22.8 pts = 0.088 % du notionnel,
+        # soit 1.9× le coût du même trade sur US500 → barre plus haute pour le
+        # screen pre-ECB (les frais mangent ~22 % d'un drift brut de 0.4 %).
+        # ── Coûts MESURÉS en % du notionnel (relevé DE40 du 2026-08-01) ──
+        spread_pct=0.0357,                    # 9.2 pts / 25 771.4
+        swap_long_pct_per_night=-0.0171,      # -0.22 EUR / 1288.80 (= -6.2 %/an)
+        swap_short_pct_per_night=-0.004656,   # -0.06 EUR / 1288.80 (= -1.70 %/an)
+        costs_measured=frozenset(
+            {"spread", "swap_long", "swap_short", "commission", "min_lot"}
+        ),
     ),
     # ── XAUUSD (Or spot) ─────────────────────────────────────────────────
     # v3: spread=25.0 + slippage=10.0 = 35.0  ← surestimation × 100
@@ -581,30 +632,50 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
     # Source : XTB.com → Crypto → BITCOIN — spread variable selon marché
     # ⚠️ PROVISOIRE — à valider en démo MT5 (Symbol Specifications)
     "BTCUSD": AssetConfig(
-        # ✅ RELEVÉ XTB : spread 0.302 % du notionnel (189.5 USD au prix du relevé).
-        #    L'estimation 30 USD était x6.3 trop basse.
+        # ☠️ RELEVÉ RÉEL app XTB, 2026-08-01 12:14, **marché OUVERT** (donc pas
+        # une anomalie d'heure creuse). Écran : bid 62 849.7 / ask 63 039.2,
+        # spread 0.99 EUR, contrat 329.93 EUR pour 0.006 lot,
+        # swap Vente −0.09 EUR / **Achat −0.32 EUR**, marge 163.85 EUR.
+        #
+        # SPREAD  : 189.5 USD = 0.302 % du prix (code : 30 → ×6.3 trop bas).
+        # SWAP LONG : −0.32/329.93 = −0.0970 %/nuit → sur 1 BTC : **−61 USD/nuit**
+        #             (code : −16 → ×3.8 trop bas).
+        #   ⇒ **−35.4 %/AN de portage** pour une position longue.
+        # SWAP SHORT : −0.09 EUR → −17.2 USD/nuit ≈ −10 %/an (code : −3).
+        #
+        # 🚫 CONSÉQUENCE — le suivi de tendance crypto via CFD XTB est MORT avant
+        # d'être codé. Seuil décidé AVANT le relevé : 10 %/an de financement.
+        # Réel : 35.4 %/an, soit 3.5× le seuil. Une stratégie longue exposée 70 %
+        # du temps devrait voir le BTC monter de **25 %/an rien que pour payer le
+        # financement**. Ne PAS écrire de screen crypto_trend long.
+        # (La détention réelle des coins sur une plateforme d'échange n'a aucun
+        #  financement — mais c'est hors périmètre XTB fixé par le mainteneur.)
         spread_pips=189.5,
-        slippage_pips=189.5,   # crypto : 1.0x spread (forte volatilité)
-        commission_pips=0.0,
+        slippage_pips=189.5,   # crypto : 1.0× spread (convention projet, volatilité)
+        commission_pips=0.0,   # ✅ confirmé à l'écran
         pip_size=1.0,          # 1 pip BTC = 1 USD (big figure)
         pip_value_eur=0.92,    # 1 USD ≈ 0.92 EUR
-        tp_points=2000,        # 2000 USD soit ~3-5% du prix BTC typique
-        sl_points=1000,
+        # TP/SL élargis : l'ancien SL (1 000 USD = 1.6 % du prix) est sous l'ATR
+        # journalier du BTC (~2-3 %) et ne passe plus le garde-fou coût/SL avec le
+        # vrai spread. 3 000 USD ≈ 4.8 % ⇒ ratio 379/3000 = 12.6 % < seuil 25 %.
+        tp_points=6000,
+        sl_points=3000,
         window_hours=120,
-        min_lot=0.01,
+        # 0.006 lot observé sélectionnable ⇒ le minimum réel est ≤ 0.006
+        # (valeur non mesurée précisément ; 0.01 était un majorant faux).
+        min_lot=0.006,
         max_lot=5.0,
-        # ⚠️ swap SHORT jamais relevé. C'est le chiffre le PLUS important encore
-        #    manquant du projet : les longs paient 35.4 %/an, donc le côté short
-        #    reçoit peut-être une part substantielle de ce financement. C'est le
-        #    seul endroit de tout le panier d'instruments où le carry pourrait
-        #    être POSITIF. Ne PAS estimer — relever.
-        swap_long_pips_per_night=-16.0,
-        swap_short_pips_per_night=-3.0,
-        # ✅ MESURÉS (% du notionnel). BTC est passé de 2 255 (2017) à 81 166
-        #    (2026) : une constante en pips est fausse d'un facteur ~36.
+        swap_long_pips_per_night=-61.0,
+        swap_short_pips_per_night=-17.2,
+        # ── Coûts MESURÉS en % du notionnel (relevé du 2026-08-01, marché ouvert) ──
+        # BTC est passé de 2 255 (2017) à 81 166 (2026) : une constante en pips
+        # se trompe d'un facteur ~36 selon l'endroit de l'échantillon.
+        # ⚠️ Le côté SHORT PAIE aussi (-9.96 %/an) : il n'existe donc AUCUN coin
+        #    à carry positif dans ce panier. XTB facture les deux sens.
         spread_pct=0.302,
-        swap_long_pct_per_night=-35.4 / 365.0,   # -35.4 %/an relevé
-        costs_measured=frozenset({"spread", "swap_long"}),
+        swap_long_pct_per_night=-0.0970,      # -0.32 EUR / 329.93 (= -35.4 %/an)
+        swap_short_pct_per_night=-0.02728,    # -0.09 EUR / 329.93 (= -9.96 %/an)
+        costs_measured=frozenset({"spread", "swap_long", "swap_short", "commission"}),
     ),
     # ── ETHUSD (Ethereum spot) — NOUVEAU C1, PROVISOIRE ──────────────────
     # ⚠️ PROVISOIRE — à valider en démo
@@ -656,6 +727,11 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
     # Le swap encode le carry : taux locaux 2026 ≈ AUD 4.35 %, GBP 4.5 %,
     # EUR 2.5 %, JPY 0.5 % → long cross = carry positif, short = fortement négatif.
     "AUDJPY": AssetConfig(
+        # ⚠️ RELEVÉ RÉEL 2026-07-31 23:07 (FR) : spread **26 pips** (1.44 EUR /
+        # 0.01 lot). C'est l'heure la PLUS creuse de la journée pour l'AUD
+        # (clôture NY, avant Sydney/Tokyo) — non représentatif d'une entrée en
+        # séance. Valeur conservée : estimation heures liquides.
+        # 🔜 Relevé requis en séance Tokyo (02h-09h FR) pour trancher.
         spread_pips=1.8,
         slippage_pips=0.4,     # mineure : ~0.2-0.5× spread
         commission_pips=0.0,
@@ -666,11 +742,18 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
         window_hours=120,
         min_lot=0.01,
         max_lot=10.0,
-        # Carry AUD(4.35%)-JPY(0.5%) ≈ +3.85 %/an, markup broker déduit
-        swap_long_pips_per_night=0.9,
-        swap_short_pips_per_night=-2.4,
+        # ✅ SWAP RELEVÉ 2026-07-31 : Achat +0.01 EUR / Vente −0.10 EUR (0.01 lot,
+        # pip = 0.0551 EUR) → long +0.18 pips, short −1.81 pips.
+        # ⚠️ L'estimation +0.9 était ×5 TROP OPTIMISTE côté long : le markup XTB
+        # absorbe l'essentiel du différentiel de taux. Carry réel : +0.60 %/an
+        # (sur 612 EUR de notionnel) au lieu des ~+3.85 %/an supposés.
+        swap_long_pips_per_night=0.18,
+        swap_short_pips_per_night=-1.81,
     ),
     "EURJPY": AssetConfig(
+        # ✅ RELEVÉ RÉEL 2026-07-31 23:08 (FR, heure creuse) : 2.9 pips
+        # (0.16 EUR / 0.01 lot). Estimation 1.6+0.3=1.9 → correcte à l'ordre de
+        # grandeur, légèrement optimiste. Commission 0.00 EUR confirmée.
         spread_pips=1.6,
         slippage_pips=0.3,
         commission_pips=0.0,
@@ -681,11 +764,17 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
         window_hours=120,
         min_lot=0.01,
         max_lot=10.0,
-        # Carry EUR(2.5%)-JPY(0.5%) ≈ +2 %/an, modeste
-        swap_long_pips_per_night=0.3,
-        swap_short_pips_per_night=-1.6,
+        # 🔴 SWAP RELEVÉ 2026-07-31 : Achat **−0.02 EUR** / Vente −0.09 EUR
+        # (0.01 lot, pip = 0.0551 EUR) → long −0.36 pips, short −1.63 pips.
+        # ⚠️ SIGNE INVERSE de l'estimation (+0.3) : être LONG EURJPY COÛTE de
+        # l'argent chaque nuit (−0.73 %/an). La prémisse même du carry
+        # (« le swap paie le portage ») est FAUSSE sur cette paire chez XTB.
+        swap_long_pips_per_night=-0.36,
+        swap_short_pips_per_night=-1.63,
     ),
     "GBPJPY": AssetConfig(
+        # ✅ RELEVÉ RÉEL 2026-07-31 23:08 (FR, heure creuse) : 3.1 pips
+        # (0.17 EUR / 0.01 lot) — l'estimation 2.5+0.6=3.1 tombe EXACTEMENT juste.
         spread_pips=2.5,       # cross volatile, spread plus large
         slippage_pips=0.6,
         commission_pips=0.0,
@@ -696,9 +785,12 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
         window_hours=120,
         min_lot=0.01,
         max_lot=10.0,
-        # Carry GBP(4.5%)-JPY(0.5%) ≈ +4 %/an
-        swap_long_pips_per_night=1.0,
-        swap_short_pips_per_night=-2.6,
+        # ✅ SWAP RELEVÉ 2026-07-31 : Achat +0.02 EUR / Vente −0.15 EUR (0.01 lot,
+        # pip = 0.0551 EUR) → long +0.36 pips, short −2.72 pips.
+        # ⚠️ L'estimation +1.0 était ×2.8 trop optimiste côté long.
+        # Carry réel : +0.62 %/an sur 1 175 EUR de notionnel.
+        swap_long_pips_per_night=0.36,
+        swap_short_pips_per_night=-2.72,
     ),
 }
 

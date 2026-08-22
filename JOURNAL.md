@@ -1001,6 +1001,623 @@ Puis : mettre à jour `signaux_reels_phase1.md` avec les chiffres honnêtes ;
 si ≥ 1 survivant → portefeuille combiné (session suivante) ; relevés démo XTB
 (`docs/checklist_couts_xtb.md`) quand possible.
 
+## 2026-07-31 — Re-verdict analytique des 3 signaux (sans bougies)
+
+### Contexte
+Mainteneur indisponible pour lancer les screens ; session cloud sans données
+(`data/` absent) et **sources bloquées par la politique réseau** : Dukascopy,
+Yahoo Finance et Stooq répondent tous 403 au CONNECT du proxy d'egress
+(vérifié via `$HTTPS_PROXY/__agentproxy/status`). Les 4 screens ne peuvent donc
+pas tourner ici.
+
+### Contournement : le bug corrigé était algébrique, pas dépendant des données
+Le fix « DSR ×√252 » portait uniquement sur `SR_pp = SR_ann / √(périodes/an)`.
+Le verdict corrigé est donc recalculable depuis les stats résumées publiées.
+→ **`scripts/recheck_signals_from_stats.py`** (nouveau) : re-juge les 3 signaux
+avec le `deflated_sharpe` canonique du repo + t-test unilatéral, avec balayage de
+sensibilité (skew/kurtosis gaussien vs queues épaisses ; n_trials ∈ {1, 15, 60}).
+
+### Résultats
+| Signal | SR/période | n_obs | t-test | Verdict |
+|---|---|---|---|---|
+| Pre-FOMC US500 | 0,2475 | 128 | **t=2,80 p=0,0030** | ✅ SURVIT |
+| Carry JPY | 0,0252 | 4 032 | t=1,60 p=0,055 | ❌ + DD 23 % > 15 % |
+| ORB US500 M5 | 0,0106 | 2 827 | t=0,56 p=0,287 | ❌ BRUIT |
+
+- **ORB confirmé mort** : p=0,287. Le « DSR +11,29 (p=0,000) » était bien un pur
+  artefact du bug — 3ᵉ artefact de l'histoire du projet, confirmé quantitativement.
+- **Carry mort** : t=1,60 sous le seuil, et le DD 17-30 % viole la constitution.
+- **Pre-FOMC seul survivant** : p=0,003 au t-test (preuve indépendante du
+  data-snooping). DSR z=+2,75 à n_trials=1, lecture défendable car hypothèse
+  pré-enregistrée (Lucca & Moench 2015, non data-minée par nous). Robuste au
+  scénario queues épaisses (z=+2,55).
+- Ne franchit toutefois PAS la barre constitution : Sharpe 0,70 < 1,0 et
+  8 trades/an < 30.
+
+### Reste à faire EN LOCAL (bloquant, exige les bougies)
+1. `python scripts/screen_pre_fomc.py --assets US500,US30 --tf H1`
+   → **le test `--split-year 2015` est le contrôle décisif** : l'effet a-t-il
+   décru après publication ? (destin classique des anomalies publiées)
+2. `python scripts/screen_trend_pullback.py --assets EURUSD,GBPUSD,USDJPY,XAUUSD`
+   (stratégie manuelle TradingView — jamais chiffrée)
+3. Carry et ORB : re-mesure devenue non prioritaire (verdict analytique sans appel).
+
+### Vérifications
+- `pytest tests/unit/test_dsr_sanity.py test_edge_validation.py test_trend_pullback.py`
+  → **61 passed** (pile statistique validée).
+
+## 2026-07-31 (suite) — Premiers RELEVÉS RÉELS de coûts XTB (captures app mobile)
+
+Le mainteneur a fourni 5 captures de l'app XTB (US500 ×2, AUDJPY, EURJPY, GBPJPY),
+relevées à 23:07-23:08 heure FR — **marché en pré-ouverture = spreads au pire**.
+
+### 🔴 Découverte : le spread US500 du code était sous-estimé ×15
+Déduction depuis l'écran (indépendante de la convention de pip) :
+```
+contrat 1 636,33 EUR pour 0,005 lot, indice 7 503
+→ 1 POINT d'indice = 1636.33/7503 = 0,2181 EUR
+→ « valeur du pip » affichée 0,22 EUR ⇒ le pip XTB = 1 POINT (pas 0,1)
+→ spread 0,20 EUR / 0,2181 = 0,92 POINT d'indice = 9,2 pips internes
+```
+Code : `spread_pips=0.5` avec `pip_size=0.1` ⇒ 0,06 point supposé. **×15 trop bas.**
+→ `ASSET_CONFIGS["US500"]` corrigé : spread 0.5→9.2, slippage 0.1→1.8,
+  min_lot 0.01→0.005 (réel), max_lot 10→52 (réel).
+
+**2ᵉ raison indépendante de la mort de l'ORB** : 257 A/R par an × 2 × 0,92 pt
+≈ **473 points d'indice de frais annuels** (~6 % du notionnel) — l'edge brut
+n'a jamais eu la moindre chance. Le bug DSR ET le spread pointaient au même endroit.
+**Le pre-FOMC, lui, résiste** : 8 A/R/an ≈ 15 pts de frais contre un drift brut
+de ~180-300 pts/an → les frais mangent ~5-8 % de l'edge. Sans effet sur le verdict.
+
+### ✅ Confirmations (l'estimation était bonne)
+- **Swap US500** : réel Achat −0,021167 %/nuit = −1,59 pt ; code −16 pips = −1,60 pt
+  → **juste à 1 %**. Le modèle de swap du projet est validé sur cet actif.
+- **Commission 0,00 EUR** confirmée sur les 4 instruments.
+- **GBPJPY** : réel 3,1 pips ; code 2,5+0,6 = 3,1 → exact.
+- EURJPY réel 2,9 vs code 1,9 (optimiste ×1,5) ; AUDJPY réel 26 pips mais à
+  l'heure la plus morte pour l'AUD → non représentatif, valeur conservée + commentaire.
+
+### ⚠️ US500 = CFD sur FUTURES, rollover le 16/09/2026
+Écran « Informations clés » : *S&P500 index futures contract*, rollover trimestriel
+(dernier 17/06/2026, **suivant 16/09/2026**), levier 1:20, lot min 0,005.
+🚨 **Le rollover tombe le jour de la décision FOMC de septembre (15-16/09)** →
+collision avec la fenêtre du trade pre-FOMC. À trancher avant de jouer la date.
+
+### 💰 Capital réel du compte : 139,97 EUR — contrainte bloquante
+Position US500 minimale = 0,005 lot → marge 81,38 EUR (58 % du compte),
+**notionnel 1 636 EUR = levier réel 11,7× sur le compte**.
+| mouvement S&P | impact sur le compte |
+|---|---|
+| 1 % | −11,7 % |
+| 2 % | −23,4 % |
+| 3 % | −35,1 % |
+Pour risquer 2 % du compte avec un stop à 1,5 %, le notionnel devrait être 187 EUR :
+le minimum imposé est **9× trop gros**. → **capital minimum pour un dimensionnement
+sain sur US500 : ~1 230 EUR.** En dessous, la taille de lot minimale impose le levier.
+
+### Effet de bord corrigé
+`test_cost_vs_sl_ratio[US500]` a échoué avec le vrai coût (11,0/100 = 11 % > 10 %).
+Le garde-fou avait raison : le SL par défaut (100 pips = 10 pts = 0,13 % d'un
+indice à 7 500) n'était tenable qu'avec le spread faux. Recalibré à
+**SL 400 pips (0,53 %) / TP 800 pips (1,07 %)** — ordre de grandeur de l'ATR
+journalier du S&P, ratio 2:1 conservé, coût = 2,8 % du stop. Ces défauts ne
+servent qu'aux pipelines ML hérités (les screens Phase 1 passent leur grille).
+
+### Vérifications
+- `pytest tests/unit/` → **908 passed, 14 failed** = les 13 pré-existants
+  (6 `test_instruments_costs` sur coûts JPY/crypto provisoires + 7 `test_regime`)
+  **+ 0 nouveau** après recalibrage (US500 repasse au vert).
+- ruff ✅ · mypy ✅ sur `instruments.py`.
+
+### Reste à relever (app XTB, 5 min)
+- [ ] **Swaps AUDJPY / GBPJPY / EURJPY** — derrière « Afficher les détails ».
+- [ ] Spread US500 en **séance NY** (15h30-22h FR) : 0,92 est un pire-cas.
+- [ ] Spread AUDJPY en séance Tokyo (02h-09h FR).
+
+## 2026-07-31 (fin) — Swaps JPY relevés : le carry est ENTERRÉ
+
+Captures app XTB 23:25-23:27 (0,01 lot ; 1 pip = 10 JPY/181,441 = 0,0551 EUR).
+
+| Paire | Swap ACHAT relevé | pips | Code | Carry réel /an |
+|---|---|---|---|---|
+| AUDJPY | +0,01 EUR | +0,18 | +0,9 (**×5 optimiste**) | +0,60 % |
+| EURJPY | **−0,02 EUR** | −0,36 | +0,3 (🔴 **SIGNE INVERSE**) | **−0,73 %** |
+| GBPJPY | +0,02 EUR | +0,36 | +1,0 (**×2,8 optimiste**) | +0,62 % |
+
+**Carry réel du panier : +0,16 %/an** vs +0,7 à +3 %/an supposés dans le projet.
+
+### Verdict : famille close
+La stratégie carry repose sur une seule prémisse — « le swap paie le portage ».
+Chez XTB le markup absorbe le différentiel de taux, et sur **EURJPY être long
+COÛTE** de l'argent. Il faudrait **~145 ans** de swap (+0,16 %/an) pour rembourser
+UNE mauvaise année (perte max mesurée 17-30 %). S'ajoute au verdict statistique
+indépendant du même jour (t=1,60, p=0,055). **Deux raisons indépendantes.**
+
+### 🔍 Le point méthodologique le plus intéressant
+Les swaps côté **VENTE** étaient bien estimés (−1,81 vs −2,4 ; −1,63 vs −1,6 ;
+−2,72 vs −2,6). Seul le côté **ACHAT** — celui qui portait l'edge supposé — était
+surestimé, jusqu'au signe. L'erreur d'estimation était **unilatérale et alignée
+sur l'hypothèse testée**. À retenir comme heuristique d'audit : quand une
+estimation favorise précisément ce qu'on cherche à prouver, c'est le premier
+endroit à mesurer.
+
+`ASSET_CONFIGS` mis à jour (AUDJPY/EURJPY/GBPJPY, long ET short).
+Tests : 6 échecs pré-existants sur `test_instruments_costs`, **0 nouveau**.
+
+### État des 3 signaux après cette session
+| Signal | Statut |
+|---|---|
+| **Pre-FOMC US500** | ✅ seul survivant (t=2,80, p=0,003) — reste le test de décroissance post-2015 |
+| Carry JPY | ☠️ mort (statistique + économique) |
+| ORB US500 M5 | ☠️ mort (bug DSR + spread ×15) |
+
+## 2026-07-31 (suite) — Nouvelle hypothèse testable : Pre-ECB drift
+
+### Question du mainteneur : « d'autres stratégies à tester ? l'ORB par exemple »
+L'ORB est précisément celle qu'on vient d'enterrer (bug DSR + spread ×15).
+Chiffrage avec le VRAI spread relevé : 257 A/R par an × 2 × 0,92 pt
+= **473 points d'indice/an ≈ 6,3 % du notionnel en frais**. Toute stratégie
+quotidienne sur US500 doit donc battre ~6 %/an AVANT de gagner un centime.
+→ **Heuristique à retenir : la fréquence est l'ennemi.** Le pre-FOMC (8 A/R/an
+= 15 pts = 0,2 % du notionnel) est **30× moins cher** à exploiter.
+
+### Proposition retenue : `scripts/screen_pre_ecb.py` (NOUVEAU)
+Hypothèse dérivée d'un MÉCANISME, pas d'un balayage : l'« announcement premium »
+(Ai & Bansal 2018) qui explique le pre-FOMC n'a rien de spécifiquement américain.
+Prédiction pré-enregistrée : le même effet doit apparaître sur un indice européen
+avant les décisions BCE. **Fenêtre figée à l'identique** (annonce−24 h → −1 h),
+zéro paramètre ajusté, GER30 (DAX, dispo chez XTB).
+
+Les deux issues sont informatives :
+- ✅ → ~8 trades/an de plus, faiblement corrélés au FOMC (banques centrales
+  distinctes) → panier FOMC+BCE ≈ 16 trades/an, Sharpe combiné amélioré ;
+- ❌ → **affaiblit le pre-FOMC lui-même** (l'effet serait un artefact US).
+C'est un test de falsification, pas une pêche.
+
+Le chargeur de calendrier était déjà générique (`event_name`) → coût d'implémentation
+quasi nul. Le script auto-découvre le libellé BCE (`--list-events` en filet de
+sécurité : « Main Refinancing Rate », « Minimum Bid Rate » selon l'époque),
+applique `--cost-margin 1.5` (GER30 non encore relevé sur l'app XTB) et
+`record_and_resolve_n_trials`.
+
+### Vérification
+Test bout-en-bout sur données SYNTHÉTIQUES (marche aléatoire, 6 ans H1 + calendrier
+BCE factice) : 48 trades / 8,1 par an détectés correctement, verdict **NO-GO**
+(t=−1,01, p=0,840) — la pile rend bien un résultat nul sur du bruit pur. ruff ✅.
+
+### Commande pour le mainteneur (dès qu'il a son PC)
+```bash
+python scripts/screen_pre_ecb.py --assets GER30 --tf H1
+# si le libellé BCE diffère dans ses CSV :
+python scripts/screen_pre_ecb.py --list-events
+```
+### À relever sur l'app XTB (leçon du jour : les coûts estimés mentent)
+- [ ] **GER30** : spread + swap (config actuelle = estimation non vérifiée).
+
+## 2026-08-01 — Relevé DE40 (GER30) : le schéma d'erreur se confirme
+
+Capture app XTB 12:08 (pré-ouverture) du ticker **DE40** (= GER30 dans nos configs).
+
+| Grandeur | Relevé réel | Config avant | Verdict |
+|---|---|---|---|
+| Spread | **9,2 points d'indice** (0,46 EUR / 0,002 lot) | 1,0 point | 🔴 **×9,2 trop bas** |
+| Swap long | −0,22 EUR = **−4,4 pts/nuit** (−6,2 %/an) | −5,0 pts | ✅ juste à 12 % |
+| Commission | 0,00 EUR | 0,0 | ✅ |
+| Lot min | **0,002** | 0,01 | corrigé |
+
+Déduction du spread (indépendante de la convention de pip) :
+`1288.80 / 25771.4 = 0,05001 EUR par point` ⇒ le « pip » XTB = 1 POINT ;
+`0,46 / 0,05001 = 9,2 points`.
+
+### 🔬 Schéma d'erreur maintenant confirmé sur 2 indices + 3 paires forex
+| | Estimations de SWAP | Estimations de SPREAD |
+|---|---|---|
+| US500 | ✅ juste à 1 % | 🔴 ×15 trop bas |
+| GER30 | ✅ juste à 12 % | 🔴 ×9,2 trop bas |
+| JPY (short) | ✅ juste | — |
+| JPY (long, = l'edge supposé) | 🔴 jusqu'au signe | — |
+
+➡️ **La méthode d'estimation des SPREADS du projet est structurellement fausse**
+(elle confondait « pip » interne et « pip » broker). Le modèle de SWAP, lui, est bon
+— sauf là où le swap PORTAIT l'hypothèse (carry long). Conclusion opérationnelle :
+**tout `spread_pips` non relevé doit être considéré comme faux jusqu'à mesure.**
+
+### Impact sur le screen pre-ECB (déjà écrit)
+Coût d'un trade pre-ECB sur DAX = 2×9,2 (A/R) + 4,4 (1 nuit) = **22,8 points
+= 0,088 % du notionnel**, soit **1,9× le coût du même trade sur US500** (0,046 %).
+Sur un drift brut attendu de ~0,4 %, les frais mangent ~22 % de l'edge.
+Le pre-ECB part donc avec une barre plus haute que le pre-FOMC. Le screen tourne
+avec `--cost-margin 1.5` par-dessus ces valeurs désormais réelles.
+
+Tests : 6 échecs pré-existants sur `test_instruments_costs`, **0 nouveau**
+(GER30 repasse : 11,0/200 = 5,5 % < 10 %). ruff ✅ mypy ✅.
+
+### Question ouverte : crypto ?
+`ASSET_CONFIGS` suppose BTCUSD swap_long −16 (≈ −0,016 %/nuit ≈ −4 %/an) et
+ETHUSD −80 — **PROVISOIRES, jamais relevés**. Or le suivi de tendance crypto est
+la famille la plus plausible restante (`docs/regime_analysis.md` : crypto = seule
+classe franchement tendancielle ; les 10 échecs de trend-following portaient sur
+forex/indices, qui sont en range). Mais c'est une stratégie à portage LONG
+(semaines) → **le swap décide tout**, exactement comme pour le carry.
+Seuil : si le financement dépasse ~10 %/an, la famille est morte avant d'être codée.
+- [ ] **Relever BTCUSD sur l'app** : `swap Achat ÷ valeur du contrat × 365`.
+
+## 2026-08-01 — Relevé BITCOIN : la piste crypto est close avant d'être codée
+
+Capture app XTB 12:14, **marché OUVERT** (donc pas une anomalie d'heure creuse).
+bid 62 849.7 / ask 63 039.2 · contrat 329.93 EUR pour 0.006 lot ·
+swap Vente −0.09 EUR / **Achat −0.32 EUR** · marge 163.85 EUR · commission 0.
+
+| Grandeur | Réel | Config avant | Verdict |
+|---|---|---|---|
+| Spread | **189,5 USD** (0,302 % du prix) | 30 USD | 🔴 ×6,3 trop bas |
+| Swap LONG | **−61 USD/nuit = −0,0970 %/nuit** | −16 | 🔴 ×3,8 trop bas |
+| **⇒ financement long** | **−35,4 %/AN** | ~−4 %/an | ☠️ |
+| Swap SHORT | −17,2 USD/nuit ≈ −10 %/an | −3 | ×5,7 trop bas |
+
+### Décision appliquée telle qu'annoncée AVANT le relevé
+Seuil pré-enregistré : **10 %/an de financement = limite de viabilité**.
+Réel **35,4 %/an = 3,5× le seuil** → **screen crypto_trend long NON écrit.**
+Une stratégie longue exposée 70 % du temps exigerait que le BTC monte de
+**25 %/an rien que pour payer le portage**. Le pari devient « le BTC fait mieux
+que +25 %/an », pas « ma stratégie a un edge ».
+
+⚠️ À noter : c'était la famille la plus plausible qui restait
+(`docs/regime_analysis.md` : la crypto est la seule classe franchement
+tendancielle ; les 10 échecs du trend-following portaient sur forex/indices, en
+range). Elle meurt sur le COÛT, pas sur le signal. La détention réelle des coins
+sur une plateforme d'échange n'a aucun financement — mais hors périmètre XTB.
+
+### Contrainte de capital, en dur
+Marge exigée au volume affiché (0,006) : **163,85 EUR** > fonds disponibles
+**139,97 EUR**. Le mainteneur **ne peut pas ouvrir** cette position. Levier crypto
+limité à 2× (marge 50 %) → classe d'actifs très gourmande en capital.
+
+### 🔧 Correction d'une erreur d'arithmétique de ma part (sessions précédentes)
+Un aller-retour coûte **UN** spread (achat à l'ask, revente au bid), pas deux.
+J'avais compté ×2 dans mes messages. Chiffres corrigés (verdicts INCHANGÉS) :
+| | annoncé | corrigé |
+|---|---|---|
+| ORB US500, frais annuels | 6,3 % | **3,2 %** |
+| pre-ECB DAX, coût/trade | 0,088 % | **0,053 %** |
+| pre-FOMC US500, coût/trade | — | 0,033 % |
+| surcoût DAX vs S&P | ×1,9 | **×1,6** |
+Le code, lui, était correct : `total_cost_pips` est déjà un coût aller-retour
+complet (cf. `edge_harness.run_honest_backtest`). Seule ma prose était fausse.
+
+### Bug d'unité corrigé dans les TESTS (même classe que le désastre des spreads)
+`test_btcusd_costs_realistic` / `test_ethusd_costs_realistic` comparaient
+`spread_pips` (en PIPS) à des bornes en USD, sans multiplier par `pip_size`.
+→ ETHUSD (300 pips × 0.01 = 3,00 USD) échouait à tort depuis des semaines.
+Corrigé : comparaison USD↔USD ; fourchette BTC ré-ancrée sur la mesure
+([60, 600] USD au lieu de [10, 60] inventés). **Échecs 6 → 5.**
+
+### Reste connu (non traité, hors périmètre du jour)
+5 échecs `test_cost_vs_sl_ratio` (XAGUSD, USDJPY, AUDJPY, EURJPY, GBPJPY) :
+même cause que US500/GER30 — `sl_points=10` est un stop absurdement serré face au
+spread réel. Familles concernées désormais mortes → priorité basse.
+
+## 2026-08-01 — « A-t-on testé TOUTES les stratégies crypto ? » → non, UNE seule
+
+### Réponse factuelle
+Une seule famille crypto a jamais été screenée : **`crypto_trend` / TSMOM**
+(time-series momentum D1, position continue long/short, momentum 100 j,
+vol-target 20 %). C'est exactement la famille que le portage tue. « Crypto » a
+donc été enterrée à tort sur la base d'un seul essai.
+
+### Nouvel outil : `scripts/crypto_cost_feasibility.py`
+Puisque les coûts sont désormais MESURÉS, on peut trancher analytiquement toutes
+les familles sans en coder aucune. Métrique retenue (après une première version
+fausse, cf. ci-dessous) : le **Sharpe annuel de seuil**, celui qu'il faut
+atteindre juste pour payer les frais.
+
+```
+coût(h)   = spread_A/R + h × swap_par_nuit
+σ(h)      = σ_journalier × √h
+SR_seuil  = coût(h)/σ(h) × √(trades par an)
+SR_net    = SR_brut_référence (0.6, optimiste) − SR_seuil
+```
+
+| Famille | testée | coût/trade | coût/an | SR seuil | SR net | verdict |
+|---|---|---|---|---|---|---|
+| Momentum D1 (TSMOM) | **oui** | 4,03 % | 24,2 % | 0,42 | 0,18 | ☠️ |
+| Tendance long-only | — | 4,67 % | 37,3 % | 0,66 | −0,06 | ☠️ |
+| Swing 3 jours | — | 0,49 % | 19,5 % | 0,59 | 0,01 | ☠️ |
+| Effet week-end | — | 0,59 % | 30,8 % | 0,82 | −0,22 | ☠️ |
+| Intraday quotidien | — | 0,30 % | 75,4 % | 1,59 | −0,99 | ☠️ |
+| Intraday hebdomadaire | — | 0,30 % | 15,7 % | 0,72 | −0,12 | ☠️ |
+| **Intraday rare (~1/mois)** | — | 0,30 % | 3,6 % | 0,35 | **0,25** | 🟢 |
+| **Tendance short-only** | — | 1,53 % | 12,2 % | 0,21 | **0,39** | 🟢 |
+
+Le verdict TSMOM (SR net 0,18, sous la barre 0,20) **converge avec la mesure
+empirique** — bon signe de cohérence entre l'analytique et le screen.
+
+### 🔑 Le résultat structurel
+Le coût croît en **h** (le swap s'accumule chaque nuit), l'amplitude en **√h**.
+Donc plus on tient, plus les frais mangent une grosse part du mouvement
+(13 % à 1 j → 20 % à 30 j → 32 % à 90 j). **Sur CFD crypto, tenir longtemps est
+mécaniquement perdant** — l'inverse exact de ce dont le trend-following a besoin.
+Ce n'est pas un accident de paramétrage, c'est la structure du produit.
+
+### Les 2 cases encore ouvertes (coût seul — aucun edge démontré)
+1. **Intraday rare (~12 trades/an, clôturé le jour même)** — zéro nuit de
+   portage, budget frais 3,6 %/an. ⚠️ Contrainte forte : il faut un signal qui se
+   déclenche ~1×/mois ET se résout dans la journée.
+2. **Tendance short-only** — le swap short est 3,5× moins cher que le long.
+   ⚠️ **Réserve majeure** : le coût est favorable mais le SIGNAL est adverse —
+   shorter en tendance de fond haussière est structurellement perdant. Le filtre
+   coût ne dit rien de ça. À ne PAS confondre avec une piste prometteuse.
+
+### 💡 Convergence intéressante
+La case 1 a **exactement la forme du pre-FOMC** : événementiel, rare, détention
+courte. Piste naturelle et principielle : le comportement de la crypto autour des
+annonces macro programmées (FOMC), qui l'affectent aussi. Une hypothèse dérivée
+d'un mécanisme déjà validé, pas un balayage. À arbitrer plus tard.
+
+### Correction interne (métrique)
+Première version du script : `coût/σ(h)` avec seuil 33 % → **toutes** les
+familles passaient, y compris TSMOM pourtant mort empiriquement. Erreur :
+comparer le coût à l'amplitude TOTALE suppose que la stratégie capture 100 % du
+mouvement. Corrigé en Sharpe de seuil (× √trades/an), qui reproduit le verdict
+empirique. ruff ✅.
+
+## 2026-08-01 — Contrainte de DÉPLOIEMENT (le mainteneur a aussi un compte Trade Republic)
+
+### Le point structurel, plus important que le prochain screen
+Même si le pre-FOMC est réel (t=2,80 · p=0,003), il n'expose le capital que
+**8 jours par an** → le compte dort **98 % de l'année**. Sur 140 EUR, l'espérance
+est de l'ordre de **~9 EUR/an**. Ce n'est pas un problème de qualité du signal,
+c'est un problème de **taux d'occupation du capital**.
+
+➡️ **Une stratégie à 8 trades/an ne peut pas être le MOTEUR d'un portefeuille.**
+Elle ne peut être qu'un complément posé à côté d'un socle qui travaille toute
+l'année. Conséquence pour la suite du projet : le bon critère n'est plus
+« cette stratégie a-t-elle un Sharpe ≥ 1 ? » mais **« que rapporte-t-elle EN PLUS
+d'un socle passif, pour le risque ajouté ? »** — un critère d'alpha, pas de Sharpe
+absolu. À intégrer au verdict portefeuille prévu en Phase 2.
+
+Benchmark de référence à battre : ETF actions monde, Sharpe ≈ 0,45, ~7 %/an,
+zéro travail, zéro maintenance. Toute stratégie du repo doit se juger CONTRE ça.
+
+### Second courtier disponible : Trade Republic
+Détention réelle (pas de CFD) → **aucun financement quotidien**. Résout le
+problème mesuré sur XTB (35,4 %/an) pour toute exposition de plusieurs mois.
+Comparatif détention 6 mois sur 140 EUR : CFD XTB ≈ **49 EUR** de frais vs
+détention à 0-2 %/an ≈ **0 à 1,4 EUR**.
+
+⚠️ Coûts Trade Republic **NON RELEVÉS** — ne pas les supposer (leçon du jour :
+5 estimations sur 5 étaient fausses, toujours dans le sens favorable).
+- [ ] Frais d'ordre par transaction
+- [ ] Écart achat/vente sur la crypto (souvent bien plus large que sur actions)
+- [ ] Frais annuels si l'exposition crypto passe par un ETP/ETN et non du spot
+
+### Répartition des rôles (à valider)
+| Besoin | Outil | Pourquoi |
+|---|---|---|
+| Trades courts, événementiels (pre-FOMC/BCE) | XTB | coût proportionnel très bas (0,03 % du notionnel), lot fractionnable |
+| Détention de plusieurs mois | Trade Republic | zéro portage ; le CFD est disqualifié |
+| Socle passif de référence | Trade Republic | ETF, benchmark que le reste doit battre |
+
+## 2026-08-01 — Outillage : recoupement externe + déblocage des données
+
+### Ce qui a été INSTALLÉ / AJOUTÉ
+- **QuantStats 0.0.81** (`requirements-dev.txt`) → implémentation TIERCE des
+  métriques de performance. **`scripts/crosscheck_metrics_quantstats.py`** compare
+  nos calculs aux siens sur une série synthétique à queues épaisses (Student(4),
+  10 ans) :
+
+  | Métrique | NOUS | QuantStats | écart |
+  |---|---|---|---|
+  | Sharpe annualisé | 0,5039 | 0,5039 | 0,00 % |
+  | Sortino annualisé | 0,7461 | 0,7481 | 0,27 % |
+  | Max drawdown | 0,4231 | 0,4231 | 0,00 % |
+  | Volatilité annualisée | 0,1746 | 0,1746 | 0,00 % |
+
+  ✅ **Nos métriques de base sont désormais recoupées par une source externe.**
+  Portée limitée : ne couvre PAS le DSR (absent de QuantStats) ni le simulateur.
+
+- **`data/vendor/FOMC_dates_tobiasi.csv`** — 768 réunions FOMC depuis 1940,
+  scrape du site de la Fed (github.com/tobiasi/FOMCscrape). Récupéré via
+  `raw.githubusercontent.com`, **seul hôte externe joignable** de cette session.
+- **`scripts/verify_fomc_calendar.py`** — compare le calendrier local aux dates de
+  référence (manquants / en trop / doublons). Comble un angle mort réel : si le
+  scrape Forex Factory a des dates fausses, le backtest pre-FOMC mesure autre
+  chose et **aucun test statistique ne peut le détecter**. 2010-2018 = 72 dates
+  VÉRIFIÉES ; 2019-2026 = indicatives (federalreserve.gov inaccessible).
+
+### 🔓 `.gitignore` — les données peuvent enfin être versionnées
+Piège git corrigé au passage : `/data/` (le dossier) empêchait toute ré-inclusion,
+git ne descendant jamais dans un dossier exclu. Remplacé par `/data/*` répété à
+chaque niveau. Vérifié par `git check-ignore` :
+suivis → `data/vendor/**`, `data/raw/economic_calendar/**`,
+`US500_H1.csv`, `US30_H1.csv`, `GER30_H1.csv` ;
+ignorés → tout le reste (`US500_M5.csv`, `EURUSD_H4.csv`, …).
+
+➡️ **Le mainteneur n'a plus qu'à committer 2 fichiers (~6 Mo pièce) pour que les
+screens tournent EN SESSION, sans dépendre de son PC.**
+
+### Réseau : cartographie définitive
+| Hôte | Statut |
+|---|---|
+| `raw.githubusercontent.com` | ✅ **200** — seule porte d'entrée |
+| Dukascopy · Yahoo · Stooq | ❌ 403 |
+| FRED · federalreserve.gov · ECB | ❌ 403 |
+| PyPI | ✅ (pip fonctionne) |
+| Tavily extract sur federalreserve.gov | ❌ 403 |
+
+### MCP / plugins — état honnête
+- **MCP pertinents** (non installés, à connecter depuis claude.ai) : **Alpha
+  Vantage** et **FMP** (données de marché + calendrier économique). ⚠️ Leurs
+  offres gratuites plafonnent l'historique intraday à ~2 ans — insuffisant pour
+  16 ans de US500 H1. Utiles en recoupement, pas en remplacement.
+- **Plugins** : le catalogue ne contient que `finance` (comptabilité/clôture),
+  `data` (analyse statistique générique) et `marketing`. **Aucun n'est pertinent**
+  pour la recherche d'edge quantitatif. Ne rien installer.
+- `mlfinlab` (code de référence López de Prado : DSR, PSR, CPCV) n'est **plus
+  distribué sur PyPI** — c'était le plus intéressant pour recouper le DSR.
+  Le DSR reste couvert par `tests/unit/test_dsr_sanity.py` (valeurs à la main).
+
+## 2026-08-06 — Les 2 derniers screens ont tourné. Verdict : NO-GO (avec une réserve)
+
+Données versionnées (US500_H1, US30_H1, GER30_H1, `economic_calendar/` 2010-2025,
+~19,5 Mo) → **les screens tournent désormais en session**. `.gitignore` inchangé :
+les exceptions écrites le 2026-08-01 visaient déjà les bons chemins.
+
+### 1. Vérification du calendrier FOMC — ✅ le calendrier est SAIN
+
+`python scripts/verify_fomc_calendar.py` → **0 doublon, 0 date manquante sur la
+période VÉRIFIÉE (2010-2018)**. Les 11 écarts signalés s'expliquent tous, et
+aucun n'est un défaut du scrape :
+
+| Écart | Explication | Action |
+|---|---|---|
+| 2020-03-18 manquante en local | La réunion programmée du 17-18 mars 2020 a été **ANNULÉE** (COVID) et remplacée par la décision d'urgence du dimanche 15 mars | ✅ **le local a raison, c'est la liste de référence du script qui est fausse** |
+| 2020-03-03 et 2020-03-15 « en trop » | Ce sont les 2 baisses d'urgence COVID — réelles, mais **NON PROGRAMMÉES** | ⚠️ voir §3 : contaminent le backtest |
+| 8 dates de 2026 manquantes | Le calendrier local **s'arrête au 2025-12-31** (pas de `2026.csv`) | ⚠️ aucun événement 2026 testable |
+
+➡️ **Le calendrier n'est pas le problème.** L'angle mort qu'on craignait n'existe pas.
+➡️ En revanche : les prix vont jusqu'à 2026-05 mais le calendrier s'arrête fin 2025
+   → **l'OOS vierge ≥2026 est INUTILISABLE** pour tout screen événementiel.
+
+### 2. Résultats bruts (une seule exécution, comme prévu)
+
+```
+python scripts/screen_pre_fomc.py --assets US500,US30 --tf H1
+python scripts/screen_pre_ecb.py  --assets GER30      --tf H1
+```
+
+| | trades | Sharpe | **t/trade (preuve primaire)** | p_bootstrap | DSR | médiane/trade |
+|---|---|---|---|---|---|---|
+| **US500** pre-FOMC | 112 | 0,57 | **2,11 · p=0,018** | 0,028 | 0,16 (p=0,436) | **−16,2 pips** |
+| **US30** pre-FOMC | 109 | 0,73 | **2,48 · p=0,007** | 0,012 | 0,93 (p=0,177) | +13,4 pips |
+| **GER30** pre-ECB | 117 | 0,14 | **0,53 · p=0,298** | 0,216 | −1,72 (p=0,957) | — |
+
+**Pre-ECB : ❌ NO-GO net et définitif.** Coûts DE40 mesurés, t=0,53. L'« announcement
+premium » ne se généralise pas à la BCE. Cohérent avec la mort de l'effet US.
+
+### 3. Le pre-FOMC : le t-test passe, mais il ne veut rien dire ici
+
+C'est le point délicat. Par la règle du projet (t-test = preuve primaire),
+US500 et US30 « passent » à p<0,05. **Ils ne devraient pas être crus, pour cinq
+raisons mesurées :**
+
+**a) La médiane US500 est NÉGATIVE (−16,2 pips).** Plus d'un trade sur deux perd
+de l'argent. WR 48 %. La moyenne n'est positive que grâce à quelques coups.
+
+**b) Le gain est porté par une poignée de trades.**
+
+| | 1 meilleur | 3 meilleurs | 5 meilleurs |
+|---|---|---|---|
+| US500 | 20,0 % du gain | **50,9 %** | **75,9 %** |
+| US30 | 22,3 % du gain | 42,4 % | 57,4 % |
+
+**c) Le trade n°1 des DEUX actifs est une réunion NON PROGRAMMÉE** : le
+**2020-03-03** (baisse d'urgence COVID) → +1 096 pips US500 / +1 074 pips US30,
+soit 20-22 % du gain total. Une réunion surprise n'a **par construction aucune
+fenêtre d'anticipation** : ce n'est pas du « pre-FOMC drift », c'est un rebond de
+krach. En la retirant : **US500 t 2,10 → 1,84** · US30 t 2,68 → 2,55.
+
+> ⚙️ Note de réconciliation : ces `t` (2,10 / 2,68) sont calculés sur les **pips
+> bruts, chaque trade à poids égal**. Le screen affiche 2,11 / 2,48 car
+> `validate_edge` teste `equity.pct_change()` — les rendements **en %** d'un
+> compte qui capitalise. Sur US500 l'equity bouge peu (10 000 → 10 503) : les
+> deux coïncident. Sur US30 elle monte de 44 % (→ 14 439), donc les trades
+> tardifs pèsent moins en % et le `t` descend à 2,48. Les deux sont corrects,
+> ils ne pondèrent simplement pas pareil. Aucun n'échappe aux points (a)-(e).
+
+**d) Les queues sont trop épaisses pour que le t-test soit calibré.**
+US500 skew 1,39 / kurtosis 4,46 ; US30 skew 2,20 / **kurtosis 10,82**. Sur ce
+type de distribution, le t de Student **sur-rejette** : le p=0,018 nominal est
+optimiste. C'est la même famille d'erreur que le bug « DSR ×√252 ».
+
+**e) US500 et US30 ne sont PAS deux confirmations indépendantes** (corrélation
+~0,95). C'est essentiellement UN test, pas deux.
+
+### 4. Le test de décroissance ne peut PAS être fait sur ces données
+
+Résultat affiché : −26,6 pips avant 2015 (24 tr) → **+69,4 après** (88 tr).
+Soit l'inverse de Kurov, Wolfe & Gilbert (2021).
+
+**Il ne faut pas y lire un démenti de la littérature.** Nos prix US500 commencent
+le **2012-01-16**. L'échantillon de Lucca & Moench était 1994-2011. Le bloc
+« avant 2015 » ne fait donc que **3 ans, entièrement POSTÉRIEURS à l'étude
+d'origine** : il n'y a aucune période pré-publication dans nos données.
+**Le test `--split-year 2015` est structurellement incapable de répondre à la
+question.** (Le mémo du 2026-08-01 anticipait « ~40 trades avant 2015 » : il y en
+a 24, et ils perdent.)
+
+Ce que le découpage ANNÉE PAR ANNÉE montre (descriptif, aucun test dessus) :
+
+```
+US500  2012:-7  2013:-25  2014:-48  2015:-24  2016:-10  2017:-0  2018:+42  2019:-47
+       2020:+256  2021:-41  2022:+298  2023:+65  2024:+173  2025:+52
+```
+
+**2012→2019 (8 ans, à cheval sur la césure de 2015) : plat à négatif.** Tout le
+gain vient de 2020, 2022 et 2024 — des années de forte volatilité. Lu ainsi, le
+résultat est **compatible** avec « effet mort depuis longtemps », l'apparente
+force post-2015 étant un phénomène 2020+.
+
+### 5. Test placebo — la fenêtre bat le hasard, mais de peu
+
+Contrôle absent du screen : la stratégie est **toujours longue** sur des indices
+qui ont beaucoup monté. Comparaison à 20 000 tirages de fenêtres de 23 h prises
+au hasard sur la même période, mêmes coûts :
+
+| | pre-FOMC | fenêtre au hasard | p empirique |
+|---|---|---|---|
+| US500 | +48,9 pips | −10,8 pips | **0,041** |
+| US30 | +44,3 pips | −2,5 pips | **0,036** |
+
+Donc ce n'est pas QUE du beta de marché. Mais p≈0,04 sur un effet dont 20 % vient
+d'une réunion surprise, ce n'est pas une base pour engager de l'argent.
+
+### 6. 🚨 US30 : verdict IMPOSSIBLE à rendre — le spread n'a jamais été relevé
+
+`ASSET_CONFIGS["US30"]` porte `spread_pips=1.5`, commentaire « v4: vrai XTB
+Standard ~1.5 pts ». **Aucun relevé, aucune date, aucune capture.** C'est
+exactement la classe d'estimation qui s'est révélée fausse ×15 sur US500 et ×9,2
+sur GER30. Sensibilité calculée :
+
+| | coût/trade EN PLUS qui ramène t à 1,66 | facteur de spread correspondant |
+|---|---|---|
+| US500 (coût **mesuré**, pire cas) | 10,3 pips | ×2,1 |
+| US500 hors réunion d'urgence | 3,8 pips | ×1,4 |
+| **US30 (coût ESTIMÉ)** | 16,8 pips | **×12,2** |
+| **US30 hors réunion d'urgence** | 12,1 pips | **×9,1** |
+
+➡️ **Une erreur de ×9,1 suffirait à annuler le résultat US30. L'erreur constatée
+sur GER30 était de ×9,2.** Le meilleur chiffre du projet repose sur le seul coût
+des trois qui n'a jamais été vérifié.
+
+Note en faveur d'US500 : son spread a été relevé en **pré-ouverture = pire cas**,
+et le swap mesuré (−0,021167 %/nuit) confirme l'estimation à 1 % près. Le chiffre
+US500 est donc honnête côté coûts — c'est sa **statistique** qui est fragile.
+
+### 7. Verdict
+
+| Signal | Verdict | Motif |
+|---|---|---|
+| **Pre-ECB GER30** | ❌ **NO-GO définitif** | t=0,53 (p=0,30), coûts mesurés. Rien. |
+| **Pre-FOMC US500** | ❌ **NO-GO** | médiane négative, 76 % du gain sur 5 trades, t→1,84 hors réunion surprise, Sharpe 0,57, DSR non significatif (n_trials=43), 8 trades/an |
+| **Pre-FOMC US30** | ⏸️ **SUSPENDU — non concluable** | le résultat tient à un spread jamais mesuré ; ×9,1 d'erreur l'annule |
+
+**Aucun des 4 candidats du projet n'est validé. Le compte reste à zéro stratégie.**
+
+Et même si US30 survivait à un relevé de coût : Sharpe 0,73 < 1,0 et **8 trades/an**
+— la contrainte de déploiement du 2026-08-01 (« 8 trades/an ne peut pas être un
+moteur ») s'applique telle quelle. Ce ne serait au mieux qu'un complément.
+
+### 8. Ce qu'il faut pour débloquer
+
+- [ ] **Capture app XTB du US30** (ticker « US30 » / « DJI30 ») : spread affiché,
+      valeur du pip, valeur du contrat, swap Achat/Vente, commission.
+      Sans ça, US30 reste non concluable — **ne pas ré-estimer**.
+- [ ] `data/raw/economic_calendar/2026.csv` si un jour un screen événementiel doit
+      toucher l'OOS 2026.
+- [ ] Corriger la liste de référence de `verify_fomc_calendar.py` : retirer
+      2020-03-18 (réunion annulée), ajouter 2020-03-03 et 2020-03-15 comme
+      **non programmées**, et les EXCLURE du screen pre-FOMC.
 ---
 
 ## 2026-08-22 — Audit externe : verdict NOTHING TESTABLE + réparation des fondations

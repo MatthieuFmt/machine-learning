@@ -75,16 +75,24 @@ def test_usdchf_present_and_correct() -> None:
 
 
 def test_btcusd_costs_realistic() -> None:
-    """BTCUSD : spread RELEVÉ 0.302 % du notionnel (189.5 USD au prix du relevé).
+    """BTCUSD : spread dans [60, 600] USD, slippage ≥ spread × 0.3.
 
-    L'ancienne fourchette [10, 60] USD encodait l'ESTIMATION (30 USD), qui
-    s'est révélée x6.3 trop basse. Un test qui valide une estimation fausse
-    est pire qu'aucun test.
+    ⚠️ FIX 2026-08-01 (double correction) :
+    1. La fourchette [10, 60] USD était une ESTIMATION jamais mesurée. Relevé
+       réel sur l'app XTB (marché ouvert) : bid 62 849.7 / ask 63 039.2 →
+       **189.5 USD**, soit 0.30 % du prix. Nouvelle fourchette ancrée sur la
+       mesure : 0.1 % à 1 % d'un BTC autour de 60 k$ → [60, 600] USD.
+    2. Le test comparait `spread_pips` (en PIPS) à une borne en USD, sans
+       multiplier par `pip_size` — même confusion d'unité que celle qui a rendu
+       tous les spreads du projet ×6 à ×15 trop bas. On compare désormais des USD
+       à des USD.
     """
     assert "BTCUSD" in ASSET_CONFIGS, "BTCUSD manquant dans ASSET_CONFIGS v4"
     cfg = ASSET_CONFIGS["BTCUSD"]
-    assert 150.0 <= cfg.spread_pips <= 250.0, (
-        f"BTCUSD spread {cfg.spread_pips} incompatible avec le relevé 189.5 USD"
+    spread_usd = cfg.spread_pips * cfg.pip_size
+    assert 60.0 <= spread_usd <= 600.0, (
+        f"BTCUSD spread {spread_usd} USD hors fourchette réaliste [60, 600] "
+        f"(relevé XTB 2026-08-01 : 189.5 USD)"
     )
     assert cfg.slippage_pips >= 0.3 * cfg.spread_pips, (
         f"BTCUSD slippage {cfg.slippage_pips} < 0.3 × spread {cfg.spread_pips}"
@@ -95,15 +103,20 @@ def test_btcusd_costs_realistic() -> None:
 
 
 def test_ethusd_costs_realistic() -> None:
-    """ETHUSD : spread dans [1, 10] USD, slippage ≥ spread × 0.3."""
+    """ETHUSD : spread dans [1, 10] USD, slippage ≥ spread × 0.3.
+
+    ⚠️ FIX 2026-08-01 : le test comparait `spread_pips` (300 pips) à une borne en
+    USD, alors que `pip_size=0.01` → le vrai spread vaut 300 × 0.01 = 3.00 USD,
+    bien DANS la fourchette. L'échec était un bug d'unité du test, pas de la
+    config. Même classe d'erreur que le « pip interne vs pip broker » qui a
+    faussé tous les spreads du projet.
+    ⚠️ Valeurs ETHUSD encore NON RELEVÉES sur l'app XTB (contrairement à BTCUSD).
+    """
     assert "ETHUSD" in ASSET_CONFIGS, "ETHUSD manquant dans ASSET_CONFIGS v4"
     cfg = ASSET_CONFIGS["ETHUSD"]
-    # ⚠️ 300 pips x pip_size 0.01 = 3.0 USD. L'ancienne borne [1, 10] comparait
-    #    des USD à des PIPS — c'est ce mélange d'unités qui a produit les bugs
-    #    x100 sur XAGUSD/ETHUSD puis x100 sur USOIL. On teste en USD, explicitement.
     spread_usd = cfg.spread_pips * cfg.pip_size
     assert 1.0 <= spread_usd <= 10.0, (
-        f"ETHUSD spread {spread_usd} USD hors fourchette réaliste [1, 10] USD"
+        f"ETHUSD spread {spread_usd} USD hors fourchette réaliste [1, 10]"
     )
     assert cfg.slippage_pips >= 0.3 * cfg.spread_pips, (
         f"ETHUSD slippage {cfg.slippage_pips} < 0.3 × spread {cfg.spread_pips}"
@@ -171,7 +184,7 @@ _COST_SL_THRESHOLDS: dict[str, float] = {
 #    faux edges au projet. La correction est de revoir sl_points — décision de
 #    stratégie, à prendre explicitement par le mainteneur.
 _COST_SL_NOT_VIABLE: frozenset[str] = frozenset(
-    {"XAGUSD", "USDJPY", "AUDJPY", "EURJPY", "GBPJPY", "US500", "BTCUSD"}
+    {"XAGUSD", "USDJPY", "AUDJPY", "EURJPY", "GBPJPY"}
 )
 
 
@@ -270,9 +283,13 @@ from app.config.instruments import (
 # Valeurs RELEVÉES sur la plateforme XTB. Toute modification de ASSET_CONFIGS
 # qui s'en écarte doit casser le test — c'est le but.
 _MEASURED: dict[str, dict[str, float]] = {
-    "US500":  {"spread_pct": 0.012, "swap_long_pct_per_year": -7.665},
-    "GER30":  {"spread_pct": 0.036, "swap_long_pct_per_year": -6.2},
-    "BTCUSD": {"spread_pct": 0.302, "swap_long_pct_per_year": -35.4},
+    # Captures app XTB : US500 2026-07-31 23:08, DE40 et BTCUSD 2026-08-01.
+    "US500":  {"spread_pct": 0.0123, "swap_long_pct_per_year": -7.726,
+               "swap_short_pct_per_year": -0.385},
+    "GER30":  {"spread_pct": 0.0357, "swap_long_pct_per_year": -6.2415,
+               "swap_short_pct_per_year": -1.699},
+    "BTCUSD": {"spread_pct": 0.302, "swap_long_pct_per_year": -35.405,
+               "swap_short_pct_per_year": -9.957},
 }
 
 
@@ -382,18 +399,41 @@ def test_guard_passes_on_measured_cost() -> None:
     assert assert_costs_measured("US500", "spread", "swap_long") is None
 
 
-def test_guard_short_swap_unmeasured_everywhere() -> None:
-    """Le swap SHORT n'est relevé sur AUCUN actif — verrou explicite.
+def test_short_swap_is_measured_and_never_positive() -> None:
+    """Le carry SHORT est mesuré sur 3 actifs — et il est NÉGATIF partout.
 
-    C'est le seul endroit du panier où le carry pourrait être POSITIF, et il
-    n'a jamais été mesuré. Ce test tombera le jour où quelqu'un le relève :
-    c'est le signal attendu.
+    Ce test remplace un verrou « swap_short jamais relevé nulle part » qui était
+    FAUX : les captures du 2026-08-01 mesurent bien les deux sens. Le résultat
+    compte : on avait supposé que le côté short pouvait RECEVOIR une part du
+    financement payé par les longs (35.4 %/an sur BTC). Il n'en reçoit rien —
+    **XTB facture les deux sens**. Il n'existe donc AUCUN coin à carry positif
+    dans ce panier d'instruments, ce qui ferme la piste « récolter le
+    financement en étant short ».
     """
-    measured = [a for a, c in _CFG.items() if "swap_short" in c.costs_measured]
-    assert measured == [], (
-        f"swap_short désormais relevé pour {measured} — mettre à jour _MEASURED "
-        f"et retirer ce verrou."
-    )
+    for asset, exp in _MEASURED.items():
+        cfg = _CFG[asset]
+        assert "swap_short" in cfg.costs_measured, f"{asset}: swap_short relevé"
+        assert cfg.swap_short_pct_per_night is not None
+        per_year = cfg.swap_short_pct_per_night * 365.0
+        assert per_year < 0, (
+            f"{asset}: carry short {per_year:+.2f} %/an > 0 — si un jour c'est "
+            f"vrai, c'est une PISTE, pas un bug : vérifier la capture."
+        )
+        assert per_year == _pytest.approx(exp["swap_short_pct_per_year"], rel=1e-2)
+
+
+def test_long_financing_exceeds_short_on_every_measured_asset() -> None:
+    """Tenir LONG coûte systématiquement plus cher que tenir SHORT.
+
+    Asymétrie mesurée : US500 -7.73 %/an long contre -0.39 %/an short (x20).
+    C'est la raison structurelle pour laquelle toute stratégie qui DÉTIENT du
+    long sur indice se bat contre un handicap ~= à la prime de risque actions.
+    """
+    for asset in _MEASURED:
+        cfg = _CFG[asset]
+        assert cfg.swap_long_pct_per_night < cfg.swap_short_pct_per_night, (
+            f"{asset}: le portage long devrait être plus coûteux que le short"
+        )
 
 
 def test_guard_allow_estimated_bypasses() -> None:
@@ -408,8 +448,8 @@ def test_price_aware_spread_scales_with_price() -> None:
     """Le spread en pips doit croître avec le prix quand spread_pct est renseigné."""
     cfg = _CFG["US500"]
     assert cfg.spread_pips_at(7400) > cfg.spread_pips_at(1290)
-    # 0.012 % de 7400 = 0.888 pt = 8.88 pips (pip_size 0.1)
-    assert cfg.spread_pips_at(7400) == _pytest.approx(8.88, rel=1e-3)
+    # 0.0123 % de 7400 = 0.910 pt = 9.10 pips (pip_size 0.1)
+    assert cfg.spread_pips_at(7400) == _pytest.approx(9.102, rel=1e-3)
 
 
 def test_price_aware_falls_back_to_constant_when_unmeasured() -> None:

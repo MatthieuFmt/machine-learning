@@ -1,6 +1,7 @@
 # Projet : Bot de Trading ML — CFD XTB → Alerte Telegram
 
 **Dernière mise à jour** : 2026-08-22 (audit externe. **Verdict : (B) NOTHING TESTABLE** — les critères d'acceptation et la quantité de données OOS sont MATHÉMATIQUEMENT incompatibles, voir §2bis. Fondations réparées : données restaurées, coûts mesurés ENFIN écrits dans le code, garde anti-coût-estimé, sizing au risque, diagnostic de puissance OOS.)
+**Mise à jour précédente** : 2026-08-06 (re-mesure finale sur bougies des 2 derniers candidats : **pre-FOMC et pre-ECB = NO-GO**. Le projet n'a plus AUCUN signal survivant. Données H1 + calendrier économique désormais VERSIONNÉS → les screens tournent en session.)
 **Mainteneur** : matthieu.fremont12@gmail.com
 
 > ⚠️ **CE FICHIER REMPLACE l'ancien `CLAUDE.md` (daté 2026-05-12, « EURUSD H1 / roadmap 7 steps »), qui était OBSOLÈTE.**
@@ -34,11 +35,34 @@ Les TROIS seuls résultats « positifs » jamais affichés étaient des **artefa
 | Portfolio v4 — **Sharpe +4.97 / DSR 19.5 (p=0.000)** | Après fix F1/F2/F3 → **Sharpe −5.42 / DSR −18.3 (p=1.000)** |
 | ORB US500 M5 — **DSR +11.29 (p=0.000)** avec Sharpe 0.17 (2026-05-30) | Artefact du bug « DSR ×√252 » (corrigé 2026-06-09) : Sharpe/trade ≈ 0.011 → **z ≈ 0.6, p ≈ 0.27 = bruit** |
 
+**Les 4 candidats sont désormais tous tombés (2026-08-06)** — verdict complet dans `JOURNAL.md` §2026-08-06 et bandeau de `docs/signaux_reels_phase1.md` :
+
+| Candidat | Verdict | Cause de mort |
+|---|---|---|
+| ORB US500 M5 | ☠️ MORT | t = 0.56 · p = 0.287 → bruit (artefact « DSR ×√252 ») |
+| Carry JPY | ☠️ MORT | swap réel **+0.16 %/an** au lieu de +0.7 à +3 % supposés |
+| Tendance crypto | ☠️ MORTE | financement XTB **mesuré à 35.4 %/an** (seuil de viabilité : 10 %) |
+| **Pre-FOMC US500** | ❌ **NO-GO** | t = 2.11 (p=0.018) MAIS **médiane/trade négative (−16.2 pips)**, 76 % du gain sur 5 trades, kurtosis 4.46 ; le meilleur trade est le **2020-03-03 = réunion d'URGENCE COVID non programmée** (20 % du gain) → hors elle, t = 1.84 |
+| **Pre-FOMC US30** | ⏸️ **NON CONCLUABLE** | repose sur `spread_pips=1.5` **jamais relevé** ; une erreur ×9.1 annule le résultat, et l'erreur mesurée sur GER30 était ×9.2 → **capture app XTB requise, ne PAS ré-estimer** |
+| **Pre-ECB GER30** | ❌ **NO-GO** | t = 0.53 · p = 0.298, coûts DE40 mesurés → rien |
+
+⚠️ **Le test de décroissance pré/post-2015 du pre-FOMC est STRUCTURELLEMENT impossible sur ces données** : les prix commencent en 2012-01, l'étude d'origine (Lucca & Moench) portait sur 1994-2011 → aucune période pré-publication dans l'échantillon. Le résultat affiché (−26.6 → +69.4 pips) n'est donc PAS une validation : année par année, **2012-2019 est plat à négatif** et tout le gain vient de 2020/2022/2024 (années très volatiles).
+
+✅ **Contrôle ajouté** (absent des screens) : test **placebo** contre 20 000 fenêtres de 23 h tirées au hasard — la stratégie étant *toujours longue*, il fallait vérifier qu'elle ne capture pas que du beta. Elle bat le hasard (p = 0.041 US500 / 0.036 US30), mais trop faiblement pour engager du capital. **À reproduire pour toute future stratégie directionnelle.**
+
+✅ **Calendrier FOMC vérifié** (`scripts/verify_fomc_calendar.py`) : 0 doublon, 0 manquant sur 2010-2018. Les écarts s'expliquent — la réunion du 2020-03-18 a été **annulée** (COVID), donc **le calendrier local a raison et c'est la liste de référence du script qui est fausse**. L'angle mort redouté n'existe pas.
+
 > 🚨 **`prompts/00_constitution.md` §1 affirme que la base « a trouvé un edge réel (Donchian +8.84) ». C'EST FAUX.** Voir le bloc de correction en tête de ce fichier. Toute décision bâtie sur cette prémisse est à reconsidérer.
 
 **Ce qui reste vrai :** l'infrastructure (features, métriques, DSR, coûts XTB) est de bonne facture *en isolation*. Ce qui est cassé, c'est la **chaîne de validation** (fuites + data-snooping) et **l'absence totale de l'étage temps réel**. Voir le backlog §6.
 
-**État de la recherche (2026-06-09)** : 10 familles testées honnêtement en local (2026-05-29→06-01) → mortes, sauf 3 signaux retenus dans `docs/signaux_reels_phase1.md` (pre-FOMC US500, carry JPY, ORB M5). **Leurs DSR sont CADUCS** (bug « DSR ×√252 ») → statuts **SUSPENDUS** ; re-mesure en local avec la pile corrigée = prochaine étape obligatoire. Candidat le plus crédible : **pre-FOMC** (effet documenté). Carry = dépend des swaps réels XTB (provisoires → `docs/checklist_couts_xtb.md`). La **stratégie manuelle** TradingView (`strategie-forex/`) est portée en module backtestable (`app/strategies/trend_pullback.py` + `scripts/screen_trend_pullback.py`) — NO-GO attendu (famille morte 10×), l'objectif est de donner un CHIFFRE au mainteneur.
+**État de la recherche (2026-08-06)** : 10 familles testées honnêtement (2026-05-29→06-01) → mortes. Les 3 « signaux réels » qui avaient survécu ont été re-mesurés avec la pile corrigée → **tous tombés** (tableau ci-dessus). Le pre-ECB, dernier test de généralisation, est également NO-GO. ➡️ **Le projet est à ZÉRO stratégie validée, et cette fois les mesures sont propres** (coûts XTB relevés à l'écran, DSR canonique, t-test primaire, registre n_trials, calendrier vérifié).
+
+**Seul point encore ouvert** : le verdict US30 attend une **capture de l'app XTB** (spread, valeur du pip, valeur du contrat + taille de lot, swap Achat/Vente, commission). Même s'il survivait : Sharpe 0.73 < 1.0 et **~8 trades/an** → la contrainte de déploiement du 2026-08-01 (« 8 trades/an ne peut pas être un moteur ») s'applique telle quelle. Ce serait au mieux un complément, jamais un socle.
+
+**Leçon transverse la plus coûteuse du projet** : sur 5 estimations de coût confrontées à un relevé réel, **5 étaient fausses, toujours dans le sens qui arrangeait l'hypothèse testée** (spreads US500 ×15, GER30 ×9.2, BTCUSD ×6.3 ; swap crypto ×3.8 ; swap carry JPY jusqu'au **signe inverse**). ➡️ **Tout `spread_pips`/`swap_*` non relevé à l'écran doit être traité comme FAUX jusqu'à mesure.** Ne jamais estimer un coût : demander la capture.
+
+La **stratégie manuelle** TradingView (`strategie-forex/`) est portée en module backtestable (`app/strategies/trend_pullback.py` + `scripts/screen_trend_pullback.py`) — NO-GO attendu (famille morte 10×), l'objectif est de donner un CHIFFRE au mainteneur.
 
 ---
 
@@ -131,10 +155,25 @@ tests/              # unit/ integration/  (pytest installé à la demande)
 
 ## 4. Contraintes d'environnement (session cloud)
 
-- **Aucune donnée dans le repo** (`data/` absent du repo). Les données complètes
-  (Dukascopy 2010→2026-05, dont US500 M5 ~704k bougies) sont **sur la machine
-  locale du mainteneur** → les screens empiriques tournent CHEZ LUI, pas ici.
+- ✅ **Les données des screens événementiels sont VERSIONNÉES depuis 2026-08-06**
+  (~19.5 Mo) → **`screen_pre_fomc` et `screen_pre_ecb` tournent EN SESSION**,
+  sans dépendre du PC du mainteneur :
+  `data/raw/US500/US500_H1.csv` · `data/raw/US30/US30_H1.csv` ·
+  `data/raw/GER30/GER30_H1.csv` (tous 2012 → 2026-05-19, ~80k barres) et
+  `data/raw/economic_calendar/2010..2025.csv` + `data/vendor/`.
+  Les exceptions `.gitignore` correspondantes sont écrites en dur — **ne pas les
+  casser** (piège : git ne descend jamais dans un dossier exclu, d'où le
+  `/data/*` répété à chaque niveau plutôt que `/data/`).
+- ⚠️ **Le calendrier économique s'arrête au 2025-12-31** alors que les prix vont
+  jusqu'à 2026-05 → **aucun événement 2026 n'est testable**, donc l'OOS vierge
+  ≥2026 est INUTILISABLE pour tout screen événementiel. Il faudrait un
+  `data/raw/economic_calendar/2026.csv`.
+- **Le RESTE des données reste hors repo** (US500 M5 ~704k bougies, EURUSD_H4, …)
+  → les screens qui en dépendent (ORB M5, carry, pairs) tournent chez le mainteneur.
 - **`app/data/` est COMMITÉ et fonctionnel** depuis 2026-05-29 (loader + registry).
+- ⚠️ **Format des CSV de prix : séparateur TABULATION**, colonnes
+  `Time Open High Low Close Volume` (`load_asset` le gère ; un `pd.read_csv`
+  naïf en virgule renvoie une seule colonne et des dates NaT).
 - **PyPI accessible** (pip install OK) ; **Dukascopy/Yahoo en 403** sur appel direct depuis le cloud.
 - Format de données : `data/raw/<ASSET>/<*>_<TF>.csv` (ex. `EURUSD_H4.csv`), index UTC tz-aware.
 - `TEST_SET_LOCK.json` (registre anti-snooping) est **local et gitignoré** : le
@@ -152,6 +191,7 @@ Les règles ci-dessous existaient déjà (constitution) mais ont été **violée
 3. **Labels calculés PAR FOLD**, jamais sur le dataset entier (sinon fuite train→test).
 4. **Embargo + purge ≥ horizon de la cible, des DEUX côtés** du test.
 5. **Une seule définition de Sharpe** : sur retours quotidiens (`equity.pct_change()`), annualisé `√252`. Jamais `Sharpe_per_trade × √n`.
+   - ℹ️ **Corollaire pour le t-test** (constaté 2026-08-06) : `validate_edge` teste `equity.pct_change()`, donc des rendements **en % d'un compte qui capitalise** — les trades tardifs pèsent moins quand l'equity a monté. Un t-test sur les **pips bruts à poids égal** donne un chiffre différent (US30 : 2.48 vs 2.68 ; US500 : 2.11 vs 2.10, l'equity ayant peu bougé). Les deux sont corrects mais ne répondent pas à la même question — **toujours préciser lequel est cité.**
 6. **Anti-look-ahead testé** : pour chaque feature, `feature(df[:n])[-1] == feature(df)[n-1]`. Le décorateur `look_ahead_safe` doit *vérifier*, pas juste marquer.
 7. **Résolution intrabar conservatrice** : si TP et SL touchés dans la même barre → **SL gagne** (pas TP).
 8. **Un seul regard par hypothèse OOS.** Réagir au résultat = data-snooping = nouvelle hypothèse.
@@ -160,9 +200,37 @@ Critères GO (constitution §2, maintenus) : Sharpe WF ≥ 1.0 · DSR > 0 (p<0.0
 
 ---
 
-## 6. Backlog de bugs CRITIQUES (audits 2026-05-29 et 2026-06-09)
+## 6. Backlog de bugs CRITIQUES (audits 2026-05-29, 2026-06-09 et 2026-08-06)
 
 Priorité décroissante. Chacun fausse les résultats ou casse le pipeline.
+
+**Données d'événements (audit 2026-08-06)**
+- 🔴 **Réunions FOMC NON PROGRAMMÉES incluses dans le screen pre-FOMC.**
+  `load_fomc_announcement_times` filtre sur `event == "FOMC Statement"` sans
+  distinguer les réunions **programmées** des décisions d'**urgence**. Les 2
+  baisses COVID (**2020-03-03** et **2020-03-15**) passent donc dans le backtest
+  alors qu'elles n'ont, par construction, **aucune fenêtre d'anticipation**.
+  Impact mesuré : le 2020-03-03 est le **meilleur trade des DEUX actifs**
+  (+1096 pips US500 / +1074 US30) = **20-22 % du gain total** ; hors elle,
+  US500 passe de t=2.10 à **t=1.84**. ➜ ajouter un filtre `scheduled`.
+- 🔴 **Liste de référence de `scripts/verify_fomc_calendar.py` fausse** :
+  elle contient `2020-03-18` (réunion **annulée**) et omet les 2 réunions
+  d'urgence. Le calendrier LOCAL a raison, le script signale un faux positif.
+- ⚠️ **Aucun test placebo dans les screens directionnels.** Une stratégie
+  *toujours longue* sur un indice haussier gagne sans aucun edge. Contrôle à
+  généraliser : comparer à N tirages de fenêtres de même durée prises au hasard
+  sur la même période, mêmes coûts (fait à la main le 2026-08-06 :
+  p=0.041 US500 / 0.036 US30).
+
+**Coûts (la cause de mort n°1 du projet)**
+- 🔴 **`ASSET_CONFIGS["US30"].spread_pips = 1.5` n'a JAMAIS été relevé.**
+  C'est le dernier coût estimé qui porte encore un verdict. Sensibilité mesurée :
+  une erreur **×9.1** annule le résultat pre-FOMC US30 — l'erreur constatée sur
+  GER30 était **×9.2**. ➜ **capture app XTB requise** (spread, valeur du pip,
+  valeur du contrat + taille de lot, swap Achat/Vente, commission).
+  **Interdiction de ré-estimer.** Voir `docs/checklist_couts_xtb.md`.
+- ⚠️ US500 et GER30 : spreads relevés en **pré-ouverture** (= pire cas, donc
+  conservateur et acceptable). 🔜 raffiner par un relevé **en séance**.
 
 **Statistique (verdicts faussés)**
 - ✅ **« DSR ×√252 » (2026-06-09)** — `validate_edge` passait le Sharpe ANNUALISÉ
