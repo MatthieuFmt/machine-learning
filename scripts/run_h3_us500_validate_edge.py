@@ -38,7 +38,15 @@ TP_MULT = 2.0
 SL_MULT = 1.0
 
 CAPITAL_EUR = 10_000.0
-N_TRIALS_CUMUL = 61
+# ⚠️ CORRIGÉ 2026-08-22 — valait 61 EN DUR, ce que le protocole §5.2 interdit
+# explicitement (« n_trials du DSR = compteur automatique cumulé, jamais une
+# constante en dur »). Résolu depuis le registre anti-snooping.
+def _n_trials_cumul() -> int:
+    from app.testing.snooping_guard import n_unique_hypotheses
+    return max(1, n_unique_hypotheses())
+
+
+N_TRIALS_CUMUL = _n_trials_cumul()
 
 
 def _build_daily_equity(
@@ -88,6 +96,16 @@ def _print_section(title: str, scope: str, n_trials: int, report, equity: pd.Ser
 
 def main() -> int:
     set_global_seeds()
+    print("=" * 70)
+    print("⚠️  LIRE AVANT D'INTERPRÉTER LE DSR CI-DESSOUS")
+    print("   L'equity est QUOTIDIENNE : validate_edge voit ~865 observations")
+    print("   alors que la stratégie ne fait que ~65 TRADES. n_obs est donc")
+    print("   gonflé d'un facteur ~13, et le DSR qui en sort est trop favorable.")
+    print("   Même classe d'erreur que le bug « DSR ×√252 » corrigé le 2026-06-09.")
+    print("   Mesure honnête (DSR par TRADE, n_trials du registre) : z=+1.3 a +1.5,")
+    print("   p=0.06 a 0.10 -> ÉCHOUE. Voir JOURNAL.md §2026-08-22.")
+    print("   La section [2/2] « Train+OOS combiné » inclut les données")
+    print("   d'entraînement : ce n'est PAS une preuve, ne pas la citer.")
     print("=" * 70)
     print(f"PHASE H3 — validate_edge {ASSET} NR{LOOKBACK} {TF}")
     print(f"TP={TP_MULT}×range, SL={SL_MULT}×range, capital={CAPITAL_EUR} EUR")

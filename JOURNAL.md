@@ -1735,3 +1735,71 @@ La suite de coûts était déjà **rouge sur 7 actifs** avant cette session.
    données réelles) et NR7 `volatility_breakout` (⏸️ SUSPENDU, jamais re-mesuré
    depuis le fix DSR — son `p=0.0197` est caduc). Les deux sont des
    RE-MESURES sur données déjà vues, pas de nouvelles hypothèses.
+
+### 2026-08-22 (suite) — Étape 5 : les deux certificats de décès manquants
+
+Deux RE-MESURES sur données déjà vues (pas de nouvelles hypothèses). Comptées
+honnêtement au registre : n_reads 88 → 93.
+
+**1. `trend_pullback` — la stratégie MANUELLE du mainteneur, jamais lancée.**
+Elle a enfin un CHIFFRE. Coûts réels, fill honnête, ×1.5 de marge de sécurité :
+
+| actif | Sharpe | t/trade | net/trade | PnL | WR | trades/an |
+|---|---|---|---|---|---|---|
+| EURUSD H4 | −0.22 | 0.38 (p=0.35) | −4.4 pips | −10 507 € | 32 % | 14.5 |
+| GBPUSD H4 | −0.73 | −0.55 (p=0.71) | −17.7 pips | −30 118 € | 28 % | 11.3 |
+| USDJPY H4 | −0.26 | 1.18 (p=0.12) | −7.1 pips | −7 881 € | 31 % | 11.6 |
+| XAUUSD H4 | −0.60 | −2.26 (p=0.99) | −4.7 pips | −880 € | 33 % | 12.2 |
+
+**❌ NO-GO sur les 4.** Espérance NÉGATIVE par trade partout, sorties dominées
+par le SL (≈ 2 SL pour 1 TP), et 11–15 trades/an contre un plancher de 30.
+Stable avant/après 2020 — ce n'est pas une dégradation de régime, la règle n'a
+simplement jamais eu d'edge. **Certificat de décès délivré.**
+
+**2. NR7 / `volatility_breakout` US500 D1 — ⏸️ SUSPENDU depuis le fix DSR.**
+Le script `run_h3_us500_validate_edge.py` affiche « DSR +2.09 (p=0.0183) ».
+**Ce chiffre est faux, pour la même raison que le bug « DSR ×√252 ».** Il
+construit une equity QUOTIDIENNE (n_obs = 864 jours civils) pour une stratégie
+qui ne fait que **65 trades** : n_obs est gonflé d'un facteur ~13. De plus
+`N_TRIALS_CUMUL = 61` était **codé en dur**, ce que le protocole §5.2 interdit.
+Les deux défauts sont corrigés dans le script.
+
+DSR honnête, PAR TRADE, selon le compteur :
+
+| n_trials | source | DSR z | p | |
+|---|---|---|---|---|
+| 61 | codé en dur (script) | +1.44 | 0.075 | ❌ |
+| 49 | registre, hypothèses uniques | +1.52 | 0.064 | ❌ |
+| 92 | registre, lectures brutes | +1.29 | 0.098 | ❌ |
+
+**Mais la preuve primaire est la plus solide jamais vue sur ce projet**, et sur
+le coût MESURÉ (12.8 pips A/R = 1.28 pt d'indice) :
+
+- moyenne **+142.6 pips/trade**, **médiane +55.5 pips — POSITIVE**
+- **t = 3.53, p = 0.0004** · WR 64.6 %
+- kurtosis **2.62** (quasi-normale) · skew 0.51
+- les 5 meilleurs trades = **44 %** du PnL
+
+À comparer au pre-FOMC, mort malgré p=0.018 : médiane **−16.2** pips,
+kurtosis 4.46, **76 %** du gain sur 5 trades. NR7 réussit les trois contrôles
+que le pre-FOMC avait échoués. Mécanique vérifiée sans look-ahead (ordres stop
+placés au soir du jour J pour J+1, entrée à l'open ou au niveau du stop si gap,
+SL prioritaire).
+
+**Verdict : NI VIVANT NI MORT — et c'est précisément le problème.**
+1. La seule fenêtre où il est mesuré (≥2024) est **BRÛLÉE**, et NR7 y a été en
+   partie sélectionné.
+2. Il échoue le DSR sous toute comptabilité honnête de n_trials.
+3. 27.5 trades/an < plancher de 30.
+4. `MaxDD 0.5 %` est **dénué de sens** : equity à 1.00 lot en dur (0.37 % du
+   capital risqué par trade). Ce gate ne mesure rien ici.
+5. `oos_power_report` : sur 65 trades à n_trials=92, il faudrait un Sharpe RÉEL
+   de **2.72** pour franchir le DSR. **Cette fenêtre peut réfuter, pas confirmer.**
+6. La section « Train+OOS combiné : GO ✅ » du script inclut l'entraînement.
+   Ce n'est PAS une preuve. Ne pas la citer.
+
+➡️ NR7 est l'illustration exacte du verdict §2bis : une hypothèse dont la
+preuve est sérieuse mais **inconfirmable avec les données disponibles**. La
+réponse n'est pas de la déclarer vivante, c'est de constater qu'il faudrait
+~474 observations là où on en a 65 — soit **plusieurs années de données
+vierges** qui n'existent pas encore.

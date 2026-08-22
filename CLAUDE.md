@@ -109,6 +109,30 @@ où le financement ne taxe pas la position.
 
 ---
 
+## 2ter. Les deux derniers certificats de décès (2026-08-22)
+
+- **`trend_pullback` (stratégie MANUELLE du mainteneur)** — lancée pour la
+  PREMIÈRE fois sur données réelles. ❌ **NO-GO sur les 4 actifs**, espérance
+  NÉGATIVE par trade partout (−4.4 à −17.7 pips), 11–15 trades/an contre un
+  plancher de 30, stable avant/après 2020. Ce n'est pas une dégradation de
+  régime : la règle n'a jamais eu d'edge. Dossier clos.
+
+- **NR7 / `volatility_breakout` US500 D1** — ⚠️ **NI VIVANT NI MORT.**
+  Le « DSR +2.09 (p=0.0183) » de `run_h3_us500_validate_edge.py` est FAUX :
+  equity quotidienne (864 obs) pour 65 trades → n_obs gonflé ×13, et
+  `N_TRIALS_CUMUL` codé en dur. Corrigé. DSR honnête PAR TRADE : z=+1.3 à
+  +1.5, p=0.06–0.10 → **échoue**.
+  MAIS la preuve primaire est la plus solide du projet, au coût MESURÉ :
+  **t=3.53 (p=0.0004)**, médiane **+55.5 pips POSITIVE**, kurtosis 2.62,
+  5 meilleurs trades = 44 % du PnL, WR 64.6 % — il réussit les trois contrôles
+  que le pre-FOMC avait échoués.
+  ➡️ Inconfirmable : la fenêtre ≥2024 est brûlée, il faudrait ~474 observations
+  là où il y en a 65, et `MaxDD 0.5 %` ne mesure rien (equity à 1 lot en dur).
+  **Ne PAS le déclarer vivant. Ne PAS le déclarer mort.** C'est l'illustration
+  exacte du §2bis.
+
+---
+
 ## 3. Architecture RÉELLE
 
 ```
