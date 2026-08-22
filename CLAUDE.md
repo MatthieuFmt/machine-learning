@@ -1,6 +1,6 @@
 # Projet : Bot de Trading ML — CFD XTB → Alerte Telegram
 
-**Dernière mise à jour** : 2026-06-09 (audit indépendant : bug « DSR ×√252 » découvert et CORRIGÉ ; les 3 « signaux réels » de `docs/signaux_reels_phase1.md` sont SUSPENDUS en attente de re-mesure ; stratégie manuelle TradingView portée en backtestable)
+**Dernière mise à jour** : 2026-08-22 (audit externe. **Verdict : (B) NOTHING TESTABLE** — les critères d'acceptation et la quantité de données OOS sont MATHÉMATIQUEMENT incompatibles, voir §2bis. Fondations réparées : données restaurées, coûts mesurés ENFIN écrits dans le code, garde anti-coût-estimé, sizing au risque, diagnostic de puissance OOS.)
 **Mainteneur** : matthieu.fremont12@gmail.com
 
 > ⚠️ **CE FICHIER REMPLACE l'ancien `CLAUDE.md` (daté 2026-05-12, « EURUSD H1 / roadmap 7 steps »), qui était OBSOLÈTE.**
@@ -39,6 +39,49 @@ Les TROIS seuls résultats « positifs » jamais affichés étaient des **artefa
 **Ce qui reste vrai :** l'infrastructure (features, métriques, DSR, coûts XTB) est de bonne facture *en isolation*. Ce qui est cassé, c'est la **chaîne de validation** (fuites + data-snooping) et **l'absence totale de l'étage temps réel**. Voir le backlog §6.
 
 **État de la recherche (2026-06-09)** : 10 familles testées honnêtement en local (2026-05-29→06-01) → mortes, sauf 3 signaux retenus dans `docs/signaux_reels_phase1.md` (pre-FOMC US500, carry JPY, ORB M5). **Leurs DSR sont CADUCS** (bug « DSR ×√252 ») → statuts **SUSPENDUS** ; re-mesure en local avec la pile corrigée = prochaine étape obligatoire. Candidat le plus crédible : **pre-FOMC** (effet documenté). Carry = dépend des swaps réels XTB (provisoires → `docs/checklist_couts_xtb.md`). La **stratégie manuelle** TradingView (`strategie-forex/`) est portée en module backtestable (`app/strategies/trend_pullback.py` + `scripts/screen_trend_pullback.py`) — NO-GO attendu (famille morte 10×), l'objectif est de donner un CHIFFRE au mainteneur.
+
+---
+
+## 2bis. ⛔ LE VERROU MATHÉMATIQUE (audit 2026-08-22) — À LIRE AVANT DE PROPOSER UNE HYPOTHÈSE
+
+**Le goulot d'étranglement n'est PAS le manque d'hypothèses. C'est le manque de
+temps hors-échantillon.**
+
+En résolvant `SR_période × √(n_obs−1) − z_mix ≥ 1.645` pour un Sharpe annualisé
+de exactement 1.0 (le critère GO), le nombre d'observations OOS nécessaires pour
+franchir `DSR > 0 (p<0.05)` est :
+
+| n_trials | obs. requises | années de données OOS |
+|---|---|---|
+| 1 — comptabilité la plus généreuse possible | 683 | **2.7** |
+| 88 — registre mécanique actuel | 4 300 | **17.1** |
+| ~1500 — compte honnête (la seule Phase G = 1 404 backtests) | 6 335 | **25.1** |
+
+**La fenêtre encore vierge (2026-01-01 → 2026-05-19) fait 0.38 an.** Même à
+n_trials = 1 elle est **7× trop courte** — le constat ne dépend donc d'aucune
+convention de comptage.
+
+Deux corollaires :
+1. **Le gate DSR est infranchissable par construction.** Il n'a jamais
+   discriminé quoi que ce soit. (La plupart des 45 morts échouaient AUSSI sur
+   Sharpe < 1.0 : le cimetière reste largement réel.)
+2. `deflated_sharpe` renvoie NaN si `n_obs < 30`, et `n_obs = n_trades − 1`.
+   Obtenir un DSR non-NaN sur la fenêtre vierge exige **> 82 trades/an** — or à
+   ce rythme la friction dépasse tout edge brut plausible. **Puissance et coût
+   tirent en sens opposés, et il n'existe aucun N où les deux tiennent.**
+
+➡️ **Avant de consommer une fenêtre OOS, appeler
+`app.analysis.edge_validation.oos_power_report(n_obs, n_trials)`.** Une fenêtre
+sous-puissante ne peut que RÉFUTER, jamais CONFIRMER — et la lire coûte quand
+même un essai, ce qui durcit définitivement le seuil suivant.
+
+**Second verrou, structurel** : swap long US500 mesuré = −0.021 %/nuit × 365 =
+**−7.7 %/an**, contre ~8 %/an de rendement prix du S&P. **Le CFD confisque la
+prime de risque actions.** « Multi-day mort », « crypto trend mort » et « carry
+mort » ne sont pas trois résultats mais trois instances de ce seul fait. Toute
+stratégie viable doit donc soit tenir très peu de temps, soit être short, soit
+porter sur un instrument à carry neutre — le forex est le seul coin du panier
+où le financement ne taxe pas la position.
 
 ---
 

@@ -1000,3 +1000,121 @@ python scripts/screen_trend_pullback.py --assets EURUSD,GBPUSD,USDJPY,XAUUSD
 Puis : mettre à jour `signaux_reels_phase1.md` avec les chiffres honnêtes ;
 si ≥ 1 survivant → portefeuille combiné (session suivante) ; relevés démo XTB
 (`docs/checklist_couts_xtb.md`) quand possible.
+
+---
+
+## 2026-08-22 — Audit externe : verdict NOTHING TESTABLE + réparation des fondations
+
+> ⚠️ Ce fichier s'arrêtait au 2026-06-09. La session du **2026-08-06** (re-mesure
+> des 4 derniers candidats → tous morts) n'y a JAMAIS été écrite ; son seul
+> vestige était `TEST_SET_LOCK.json` (3 lectures) et la mémoire du projet.
+> Voir le tableau des verdicts dans `CLAUDE.md` §2.
+
+### Mission
+
+Déterminer si un edge TESTABLE existe dans les contraintes dures (CFD XTB,
+OHLCV + macro quotidienne 2005→2026, exécution manuelle, capital porté à
+5 000 €). Six hypothèses passées au crible de 4 portes (cause économique,
+coût d'abord, exécutabilité, preuve fraîche).
+
+### Verdict : (B) NOTHING TESTABLE
+
+Non parce que les six hypothèses sont mauvaises — trois meurent sur
+l'arithmétique du financement, une n'a aucune contrepartie perdante, une n'a
+aucun décalage à exploiter, et la meilleure franchit proprement 3 portes sur 4.
+Elles meurent TOUTES à la porte 4, pour une raison qui ne tient à aucune d'elles.
+
+**Les critères d'acceptation et la quantité de données OOS sont
+mathématiquement incompatibles.** En résolvant
+`SR_période × √(n_obs−1) − z_mix ≥ 1.645` pour un Sharpe annualisé de 1.0 :
+
+| n_trials | observations requises | années |
+|---|---|---|
+| 1 (comptabilité la plus généreuse) | 683 | **2.7** |
+| 88 (registre mécanique actuel) | 4 300 | **17.1** |
+| ~1500 (honnête — la seule Phase G a lancé 1 404 backtests) | 6 335 | **25.1** |
+
+La fenêtre encore vierge (2026-01-01 → 2026-05-19) fait **0.38 an**. Même à
+n_trials = 1 elle est **7× trop courte** — le constat ne dépend donc PAS de la
+convention de comptage. Corollaire rétrospectif : **le gate DSR était
+infranchissable par construction**, il n'a jamais discriminé quoi que ce soit ;
+les 45 morts enregistrées portent moins d'information que leur colonne DSR ne
+le suggère (la plupart échouaient aussi sur Sharpe < 1.0, donc le cimetière
+reste largement réel).
+
+Second constat structurel : le swap long mesuré sur US500 (−0.021 %/nuit ×
+365) fait **−7.7 %/an**, contre ~8 %/an de rendement prix du S&P. **Le CFD
+confisque la prime de risque actions.** « Multi-day CFD mort », « crypto trend
+mort » et « carry mort » ne sont pas trois résultats mais trois instances d'un
+seul fait.
+
+Ces chiffres sont désormais CALCULÉS et verrouillés par des tests
+(`app/analysis/edge_validation.oos_power_report`, `tests/unit/test_oos_power.py`)
+plutôt qu'affirmés.
+
+### Corrections apportées au dépôt (aucun nouveau backtest)
+
+**Données** — L'arbre de travail avait perdu 20 fichiers présents dans le commit
+`65828d6` : les 3 séries H1 d'indices ET **tout** `data/raw/economic_calendar/`
+(le `.gitignore` de `main` était revenu à un `/data/` global). Restaurés ;
+négations `.gitignore` rétablies, plus `data/raw/macro/` (seul jeu non-prix
+couvrant 2026, et Yahoo répond 403 depuis le cloud).
+`USOIL_D1` : le `.bak` contenait **9.4 années de plus** (depuis 2000-08-23),
+bit-à-bit identique sur le recouvrement → promu. Idem `BTCUSD_H4` (+7 mois).
+`GER30_D1` était l'indice **cash** yfinance `^GDAXI`, pas le CFD (closes
+17942.04 vs 17901.50 le 2024-03-14) → déplacé en `data/vendor/`, pour que
+`load_asset("GER30","D1")` échoue BRUYAMMENT au lieu de rendre le mauvais
+instrument. `data/raw/BUND/` (vide) supprimé.
+Vérifié au passage : H1 et H4 sont bien la MÊME série courtier (les barres H4
+agrègent exactement les H1, volumes compris).
+
+**Coûts** — Les coûts mesurés n'avaient **jamais été écrits dans le code** :
+`instruments.py` portait encore US500 à 0.05 pt (mesuré 0.92 → ×18), GER30 à
+1.0 (mesuré 9.2), BTCUSD à 30 USD (mesuré 189.5). Corrigé. Bug d'unité ×100 sur
+USOIL corrigé (l'audit dit « 0.05 USD » avec « pip 0.01 USD » = 5 pips).
+Ajout de champs **en % du notionnel** (`spread_pct`, `swap_*_pct_per_night`) :
+un spread est un pourcentage, et une constante en pips sur une série où US500
+passe de 1290 à 7493 se trompe d'un facteur ~5.7.
+Ajout de `costs_measured` + `assert_costs_measured()` : **un coût jamais relevé
+fait désormais ÉCHOUER un screen** au lieu de le biaiser en silence.
+
+**Découverte** : `min_lot`/`pip_value_eur` n'encodent PAS la taille minimale
+réelle. La config implique ~68 € de notionnel minimum sur US500 ; le relevé
+mainteneur donne **1 636 €**, soit ×24 — encore dans le sens favorable, qui
+fait paraître viables des comptes qui ne le sont pas. Verrouillé en xfail.
+
+**Harnais** — `entry_on_next_open` passe à **True** par défaut (seul
+`edge_harness` le forçait ; ~25 autres appels remplissaient au close du signal).
+`backtest_with_config` comptait la commission **deux fois** et ignorait le fill
+honnête → corrigé.
+`build_equity_curve` remplace le « 1.00 lot en dur » par un sizing au risque
+(2 %, borné min/max lot), avec plancher à zéro : `MaxDD < 15 %` mesure enfin la
+stratégie et non un levier arbitraire.
+`snooping_guard.LOCK_PATH` était **relatif au CWD** — lancer un screen d'ailleurs
+forkait le registre en silence (donc n_trials sous-évalué, DSR trop favorable) ;
+ancré à la racine. `read_oos()` applique désormais le verrou : `check_unlocked()`
+existait mais n'était appelé par AUCUN screen.
+Le scan anti-look-ahead avait le MÊME bug (`Path("app/features")` relatif) : hors
+racine il découvrait 0 module et ne testait plus rien, en silence.
+
+**Tests** — Les tests de coûts n'étaient que des **plafonds** : ils ne pouvaient
+détecter que la SUR-estimation, jamais la sous-estimation qui a réellement tué
+le projet. Rendus bilatéraux, plus un détecteur générique d'erreur d'unité.
+La suite de coûts était déjà **rouge sur 7 actifs** avant cette session.
+
+### Ce qui reste ouvert
+
+1. **Relever le swap SHORT** — jamais mesuré, sur aucun actif, d'aucun côté.
+   Seul endroit du panier où le carry pourrait être POSITIF (les longs crypto
+   paient 35.4 %/an : la contrepartie short en reçoit peut-être une part).
+2. **Relever le spread US30** — dernier coût estimé portant encore un verdict.
+3. **Relever contract_size + lot minimum en euros de notionnel** (facteur 24).
+4. **Décider** : les critères actuels étant insatisfiables, soit mutualiser un
+   test unique sur 10+ instruments (seul multiplicateur de puissance
+   disponible sans attendre), soit abaisser la barre vers un t-test primaire
+   accompagné des 3 contrôles que le pre-FOMC avait échoués (médiane > 0,
+   concentration du P&L, placebo).
+5. **Deux certificats de décès manquants** : `trend_pullback` (jamais lancé sur
+   données réelles) et NR7 `volatility_breakout` (⏸️ SUSPENDU, jamais re-mesuré
+   depuis le fix DSR — son `p=0.0197` est caduc). Les deux sont des
+   RE-MESURES sur données déjà vues, pas de nouvelles hypothèses.

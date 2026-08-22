@@ -15,8 +15,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from learning_machine_learning.core.exceptions import DataValidationError
-from learning_machine_learning.core.logging import get_logger
+from app.core.exceptions import DataValidationError
+from app.core.logging import get_logger
 
 logger = get_logger(__name__)
 

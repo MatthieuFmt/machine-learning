@@ -646,3 +646,124 @@ def validate_edge(
 # (vérification grep 2026-05-18). Si vous avez besoin du DSR distributionnel
 # CPCV, utiliser `deflated_sharpe(sr, n_trials, n_obs, skew, kurtosis)` au-dessus
 # avec n_trials = nombre de splits CPCV.
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Puissance statistique de la fenêtre OOS (ajouté 2026-08-22)
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Constat qui motive ce bloc : les critères d'acceptation du projet
+# (Sharpe >= 1.0 ET DSR > 0 avec p < 0.05) et la quantité de données OOS
+# disponibles sont MATHÉMATIQUEMENT INCOMPATIBLES.
+#
+# En résolvant  SR_période x sqrt(n_obs - 1) - z_mix >= 1.645  pour n_obs, avec
+# un Sharpe annualisé de exactement 1.0 (SR_période = 1/sqrt(252)) :
+#
+#     n_trials = 1     -> ~683 observations   (~2.7 ans)
+#     n_trials = 88    -> ~4 304 observations (~17.1 ans)   <- registre actuel
+#     n_trials = 1500  -> ~6 336 observations (~25.1 ans)   <- compte honnête,
+#                         la seule Phase G ayant lancé 1 404 backtests
+#
+# La fenêtre encore vierge (2026-01-01 -> 2026-05-19) fait 0.38 an. Même sous
+# la comptabilité la plus généreuse possible (n_trials = 1) elle est 7x trop
+# courte. Corollaire rétrospectif : le gate DSR était INFRANCHISSABLE par
+# construction, il n'a donc jamais discriminé quoi que ce soit.
+#
+# Ces fonctions servent à le CONSTATER AVANT de consommer une fenêtre OOS,
+# plutôt qu'à en débattre après.
+
+
+def required_observations_for_dsr(
+    target_annual_sharpe: float,
+    n_trials: int,
+    periods_per_year: float = 252.0,
+    alpha: float = 0.05,
+) -> float:
+    """Nombre d'observations requis pour que `target_annual_sharpe` passe le DSR.
+
+    Args:
+        target_annual_sharpe: Sharpe annualisé visé (ex: 1.0, le critère GO).
+        n_trials: nombre cumulé d'essais (registre anti-snooping).
+        periods_per_year: 252 pour des retours quotidiens ; pour un equity par
+            trade, passer le nombre de trades par an.
+        alpha: seuil de significativité (0.05 -> z = 1.645).
+
+    Returns:
+        Nombre d'observations (float, à arrondir au supérieur). `inf` si le
+        Sharpe visé est <= 0.
+    """
+    if target_annual_sharpe <= 0:
+        return float("inf")
+    sr_period = target_annual_sharpe / np.sqrt(periods_per_year)
+    if n_trials <= 1:
+        z_mix = 0.0
+    else:
+        euler = 0.5772156649015328606
+        z_mix = float(
+            (1.0 - euler) * scipy_stats.norm.ppf(1.0 - 1.0 / n_trials)
+            + euler * scipy_stats.norm.ppf(1.0 - 1.0 / (n_trials * np.e))
+        )
+    z_alpha = float(scipy_stats.norm.ppf(1.0 - alpha))
+    return ((z_mix + z_alpha) / sr_period) ** 2 + 1.0
+
+
+def oos_power_report(
+    n_obs: int,
+    n_trials: int,
+    target_annual_sharpe: float = 1.0,
+    periods_per_year: float = 252.0,
+) -> dict[str, float | bool | str]:
+    """Diagnostique si une fenêtre OOS peut PORTER un verdict.
+
+    À appeler AVANT de consommer la fenêtre. Une fenêtre sous-puissante ne
+    peut que *réfuter* une hypothèse, jamais la confirmer — et la lire coûte
+    quand même un essai, ce qui durcit définitivement le seuil pour la suivante.
+
+    Returns:
+        dict avec `n_obs`, `n_obs_required`, `has_power`, `min_detectable_sharpe`
+        (le Sharpe annualisé qu'il faudrait RÉELLEMENT atteindre sur cette
+        fenêtre) et `verdict` (message lisible).
+    """
+    required = required_observations_for_dsr(
+        target_annual_sharpe, n_trials, periods_per_year
+    )
+    # Sharpe minimal réellement détectable avec n_obs observations
+    if n_obs >= 2:
+        if n_trials <= 1:
+            z_mix = 0.0
+        else:
+            euler = 0.5772156649015328606
+            z_mix = float(
+                (1.0 - euler) * scipy_stats.norm.ppf(1.0 - 1.0 / n_trials)
+                + euler * scipy_stats.norm.ppf(1.0 - 1.0 / (n_trials * np.e))
+            )
+        z_alpha = float(scipy_stats.norm.ppf(0.95))
+        mds = (z_mix + z_alpha) / np.sqrt(n_obs - 1) * np.sqrt(periods_per_year)
+    else:
+        mds = float("inf")
+
+    has_power = n_obs >= required
+    if n_obs < 31:
+        verdict = (
+            f"INEXPLOITABLE : n_obs={n_obs} < 31, `deflated_sharpe` renvoie NaN "
+            f"-> NO-GO automatique quelle que soit la stratégie."
+        )
+    elif not has_power:
+        verdict = (
+            f"SOUS-PUISSANTE : il faudrait {required:.0f} observations pour qu'un "
+            f"Sharpe de {target_annual_sharpe:.2f} passe le DSR a n_trials={n_trials}, "
+            f"or on en a {n_obs}. Sur cette fenetre il faudrait un Sharpe reel de "
+            f"{mds:.2f} — cette fenetre peut REFUTER, jamais CONFIRMER."
+        )
+    else:
+        verdict = (
+            f"SUFFISANTE : {n_obs} >= {required:.0f} observations requises "
+            f"(Sharpe minimal detectable {mds:.2f})."
+        )
+    return {
+        "n_obs": float(n_obs),
+        "n_obs_required": float(required),
+        "has_power": bool(has_power),
+        "min_detectable_sharpe": float(mds),
+        "verdict": verdict,
+    }

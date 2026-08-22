@@ -26,6 +26,7 @@ from app.backtest.metrics import sharpe_daily_from_trades
 
 if TYPE_CHECKING:
     from app.config.instruments import AssetConfig
+from app.backtest.sizing import compute_position_size
 
 DEFAULT_CAPITAL_EUR = 10_000.0
 
@@ -105,18 +106,106 @@ def _split_trades(trades: list[dict], oos_start: pd.Timestamp) -> tuple[list[dic
     return is_tr, oos_tr
 
 
+def build_equity_curve(
+    trades: list[dict],
+    cfg: AssetConfig,
+    capital: float,
+    *,
+    sl_pips: float | None = None,
+    risk_pct: float = 0.02,
+    sizing: str = "risk",
+) -> tuple[pd.Series, pd.DataFrame]:
+    """Construit (equity €, trades_df['pnl']) pour `validate_edge`.
+
+    ⚠️ CORRECTIF 2026-08-22 — l'ancienne version faisait
+    ``pips_net x pip_value_eur``, c'est-à-dire **1.00 lot en dur**, quels que
+    soient la distance du stop et le capital. Conséquences :
+
+    * `MaxDD < 15 %` ne mesurait PAS la stratégie mais un levier arbitraire.
+      Sur la grille BTCUSD du registre (TP 2000 pips x 0.92 € = 1840 €/trade
+      sur 10 000 € de capital), le seuil était mathématiquement inatteignable.
+    * DSR, PSR et t-stat sont calculés sur ``equity.pct_change()`` : ils
+      dépendent donc aussi de ce levier implicite.
+    * L'equity pouvait passer sous zéro, après quoi `pct_change` change de
+      signe et toutes les métriques deviennent du bruit — sans aucune alerte.
+
+    Le sizing "risk" dimensionne chaque trade pour risquer `risk_pct` du
+    capital COURANT sur la distance du stop, borné par [min_lot, max_lot]. La
+    borne `min_lot` est essentielle : sous un certain capital elle force un
+    sur-risque, ce qui rend la ruine possible — c'est précisément la question
+    "140 € vs 5 000 €" et elle doit rester mesurable, pas être gommée.
+
+    Le moteur ne tient qu'UNE position à la fois : l'ordre de sortie est donc
+    l'ordre d'entrée, et composer séquentiellement est correct.
+
+    Args:
+        trades: trades de `run_deterministic_backtest` (clés `entry_price`,
+            `exit_time`, `pips_net`, `signal`).
+        cfg: config de l'actif (pip_size, pip_value_eur, min_lot, max_lot).
+        capital: capital initial en euros.
+        sl_pips: distance du stop en pips, requise pour `sizing="risk"`.
+        risk_pct: fraction du capital risquée par trade (défaut 2 %).
+        sizing: "risk" (défaut) ou "fixed_lot" (comportement hérité, 1.00 lot).
+
+    Returns:
+        (equity indexée par date de sortie, DataFrame colonne "pnl").
+    """
+    if not trades:
+        idx = pd.DatetimeIndex([], tz="UTC")
+        return pd.Series(dtype=float, index=idx), pd.DataFrame({"pnl": []}, index=idx)
+
+    exit_times = pd.to_datetime([t["exit_time"] for t in trades], utc=True)
+    order = np.argsort(exit_times.values)
+    exit_times = exit_times[order]
+    ordered = [trades[i] for i in order]
+
+    if sizing == "fixed_lot" or sl_pips is None or sl_pips <= 0:
+        pnl_eur = np.array([t["pips_net"] for t in ordered], dtype=float) * cfg.pip_value_eur
+        equity_vals = capital + np.cumsum(pnl_eur)
+    else:
+        pnl_list: list[float] = []
+        equity_list: list[float] = []
+        equity_now = float(capital)
+        for tr in ordered:
+            if equity_now <= 0.0:
+                # Compte ruiné : les trades suivants n'ont pas lieu.
+                pnl_list.append(0.0)
+                equity_list.append(0.0)
+                continue
+            entry_price = float(tr["entry_price"])
+            direction = 1 if int(tr.get("signal", 1)) >= 0 else -1
+            stop_price = entry_price - direction * sl_pips * cfg.pip_size
+            try:
+                lots = compute_position_size(
+                    entry_price=entry_price,
+                    stop_loss_price=stop_price,
+                    capital_eur=equity_now,
+                    risk_pct=risk_pct,
+                    asset_cfg=cfg,
+                )
+            except ValueError:
+                lots = cfg.min_lot
+            pnl = float(tr["pips_net"]) * cfg.pip_value_eur * lots
+            equity_now = max(0.0, equity_now + pnl)
+            pnl_list.append(pnl)
+            equity_list.append(equity_now)
+        pnl_eur = np.asarray(pnl_list, dtype=float)
+        equity_vals = np.asarray(equity_list, dtype=float)
+
+    equity = pd.Series(equity_vals, index=exit_times)
+    trades_df = pd.DataFrame({"pnl": pnl_eur}, index=exit_times)
+    return equity, trades_df
+
+
 def _equity_and_df(
     trades: list[dict], cfg: AssetConfig, capital: float
 ) -> tuple[pd.Series, pd.DataFrame]:
-    """Construit (equity €, trades_df['pnl']) pour `validate_edge`."""
-    exit_times = pd.to_datetime([t["exit_time"] for t in trades], utc=True)
-    pnl_eur = np.array([t["pips_net"] for t in trades], dtype=float) * cfg.pip_value_eur
-    order = np.argsort(exit_times.values)
-    exit_times = exit_times[order]
-    pnl_eur = pnl_eur[order]
-    equity = pd.Series(capital + np.cumsum(pnl_eur), index=exit_times)
-    trades_df = pd.DataFrame({"pnl": pnl_eur}, index=exit_times)
-    return equity, trades_df
+    """Alias hérité (1.00 lot fixe). Préférer `build_equity_curve`.
+
+    Conservé parce que 9 scripts de `scripts/screen_*.py` embarquent une copie
+    de cette fonction ; ils doivent migrer vers `build_equity_curve`.
+    """
+    return build_equity_curve(trades, cfg, capital, sizing="fixed_lot")
 
 
 def record_and_resolve_n_trials(
@@ -177,7 +266,7 @@ def evaluate_oos(
         )
 
     oos_sharpe = sharpe_daily_from_trades(oos_tr)
-    equity, trades_df = _equity_and_df(oos_tr, cfg, capital)
+    equity, trades_df = build_equity_curve(oos_tr, cfg, capital, sl_pips=sl_pips)
 
     if record_read:
         from app.testing.snooping_guard import read_oos

@@ -28,9 +28,13 @@ from app.testing.look_ahead_validator import assert_no_look_ahead
 
 def _discover_feature_modules() -> list[str]:
     """Retourne les noms de modules Python dans app/features/ (hors __init__)."""
-    features_dir = Path("app/features")
+    # ⚠️ Chemin ANCRÉ au dépôt. Avec un Path("app/features") relatif au CWD,
+    #    lancer pytest depuis un autre dossier renvoyait [] : la liste
+    #    paramétrée devenait vide et le scan anti-look-ahead ne couvrait plus
+    #    RIEN, en silence. Un scan qui ne teste rien passe toujours.
+    features_dir = Path(__file__).resolve().parents[2] / "app" / "features"
     if not features_dir.exists():
-        return []
+        raise RuntimeError(f"app/features introuvable a {features_dir}")
     modules = []
     for f in sorted(features_dir.glob("*.py")):
         if f.stem.startswith("_"):

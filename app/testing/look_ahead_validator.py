@@ -44,8 +44,22 @@ def _at(out, n: int):
 
 
 def look_ahead_safe(fn: Callable) -> Callable:
-    """Décorateur de marquage. Toutes les fonctions de features doivent l'utiliser.
-    Le test pytest `test_indicators_are_marked_safe` vérifie la présence du marqueur."""
+    """MARQUEUR — ne vérifie RIEN à l'exécution.
+
+    ⚠️ Décorer une fonction n'est PAS une preuve qu'elle est causale. Ce
+    décorateur pose seulement l'attribut `_look_ahead_safe`, qui sert de
+    point d'entrée au scan.
+
+    La vérification RÉELLE est faite par
+    `tests/unit/test_indicators_look_ahead.py`, qui découvre dynamiquement
+    les modules de `app/features/` et exécute `assert_no_look_ahead` sur
+    données synthétiques — sauf pour les fonctions listées dans
+    `SKIP_AUTO_SCAN`, dont chacune renvoie vers un test dédié.
+
+    Autrement dit : la garantie vient du TEST, pas du décorateur. Si vous
+    ajoutez une fonction de feature, la décorer ne suffit pas — assurez-vous
+    qu'elle est réellement couverte par le scan ou par un test ciblé.
+    """
     @wraps(fn)
     def wrapper(*args, **kwargs):
         return fn(*args, **kwargs)

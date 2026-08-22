@@ -34,7 +34,7 @@ def run_deterministic_backtest(
     swap_long_pips_per_night: float = 0.0,
     swap_short_pips_per_night: float = 0.0,
     asset_config: AssetConfig | None = None,
-    entry_on_next_open: bool = False,
+    entry_on_next_open: bool = True,
 ) -> dict[str, Any]:
     """Backtest bar-by-bar avec TP/SL fixes, moteur stateful.
 
@@ -311,6 +311,8 @@ def backtest_with_config(
     cfg: AssetConfig,
     *,
     half_cost: float | None = None,
+    entry_on_next_open: bool = True,
+    use_measured_pct: bool = True,
 ) -> dict[str, Any]:
     """Wrapper de `run_deterministic_backtest` qui extrait tous les paramètres
     de coût depuis une AssetConfig — incluant les swaps overnight.
@@ -328,14 +330,37 @@ def backtest_with_config(
         cfg: AssetConfig de l'instrument (fournit pip_size, window_hours,
             commission_pips, slippage_pips, spread_pips, swap_long/short).
         half_cost: Optionnel — override pour `slippage_pips` (défaut :
-            cfg.total_cost_pips / 2). Permet de garder la convention
-            existante "half_cost appliqué à l'entrée ET à la sortie".
+            coût total / 2). Permet de garder la convention existante
+            "half_cost appliqué à l'entrée ET à la sortie".
+        entry_on_next_open: Fill honnête à l'open de la barre suivante
+            (défaut True). False = fill au close de la barre du signal, soit
+            un prix connu seulement à l'instant du calcul du signal.
+        use_measured_pct: Utilise les coûts MESURÉS en % du notionnel quand
+            ils existent (US500, GER30, BTCUSD), évalués au prix médian de la
+            fenêtre. Défaut True — un coût relevé prime toujours sur une
+            constante estimée.
 
     Returns:
         Même format que `run_deterministic_backtest`.
     """
     if half_cost is None:
-        half_cost = cfg.total_cost_pips / 2.0
+        if use_measured_pct and cfg.spread_pct is not None:
+            # Coût MESURÉ en % du notionnel, évalué au prix médian de la fenêtre
+            # testée. Une constante en pips n'est juste qu'à UN niveau de prix :
+            # sur US500 2012-2026 (1290 -> 7493) elle se trompe d'un facteur ~5.7.
+            ref_price = float(df["Close"].median())
+            total_cost = cfg.total_cost_pips_at(ref_price)
+        else:
+            total_cost = cfg.total_cost_pips
+        half_cost = total_cost / 2.0
+
+    if use_measured_pct and cfg.swap_long_pct_per_night is not None:
+        ref_price = float(df["Close"].median())
+        swap_long = cfg.swap_pips_per_night_at(ref_price, direction="long")
+        swap_short = cfg.swap_pips_per_night_at(ref_price, direction="short")
+    else:
+        swap_long = cfg.swap_long_pips_per_night
+        swap_short = cfg.swap_short_pips_per_night
 
     return run_deterministic_backtest(
         df=df,
@@ -343,9 +368,16 @@ def backtest_with_config(
         tp_pips=tp_pips,
         sl_pips=sl_pips,
         window_hours=cfg.window_hours,
-        commission_pips=cfg.commission_pips,
+        # ⚠️ commission_pips=0.0 VOULU : `half_cost` dérive de total_cost_pips,
+        #    qui INCLUT déjà la commission. Le moteur calcule
+        #    cost_per_side = commission + slippage, donc repasser
+        #    cfg.commission_pips ici la compterait DEUX FOIS (bug latent tant
+        #    que toutes les commissions valent 0 — il ne l'aurait pas été
+        #    longtemps sur un compte Pro).
+        commission_pips=0.0,
         slippage_pips=half_cost,
         pip_size=cfg.pip_size,
-        swap_long_pips_per_night=cfg.swap_long_pips_per_night,
-        swap_short_pips_per_night=cfg.swap_short_pips_per_night,
+        swap_long_pips_per_night=swap_long,
+        swap_short_pips_per_night=swap_short,
+        entry_on_next_open=entry_on_next_open,
     )

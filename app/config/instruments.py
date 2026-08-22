@@ -13,6 +13,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
+
 TargetMode = Literal[
     "triple_barrier",
     "forward_return",
@@ -211,6 +215,15 @@ class XauUsdConfig(InstrumentConfig):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
+_MEASURABLE_COSTS: frozenset[str] = frozenset(
+    {"spread", "swap_long", "swap_short", "pip_value", "min_lot", "commission"}
+)
+
+
+class UnmeasuredCostError(RuntimeError):
+    """Levée quand un backtest s'appuie sur un coût jamais relevé sur la plateforme."""
+
+
 @dataclass(frozen=True)
 class AssetConfig:
     """Coûts et paramètres spécifiques au backtest Donchian multi-actif.
@@ -248,6 +261,29 @@ class AssetConfig:
     swap_long_pips_per_night: float = 0.0
     swap_short_pips_per_night: float = 0.0
 
+    # ── Coûts MESURÉS, exprimés en % du notionnel ────────────────────────
+    # Un spread/swap est physiquement un POURCENTAGE du notionnel, pas un
+    # nombre de pips constant. Stocker des pips fixes sur une série où l'actif
+    # est passé de 1290 à 7493 (US500, 2012→2026) sous-facture le début de
+    # l'échantillon d'un facteur ~5.7. Ces champs, quand ils sont renseignés,
+    # PRIMENT sur les champs en pips ci-dessus.
+    #   spread_pct           : spread aller-simple, en % du prix (0.012 = 0.012 %)
+    #   swap_*_pct_per_night : charge par nuit, en % du notionnel (signé :
+    #                          < 0 = débit, > 0 = crédit)
+    spread_pct: float | None = None
+    swap_long_pct_per_night: float | None = None
+    swap_short_pct_per_night: float | None = None
+
+    # ── Provenance des coûts (leçon la plus coûteuse du projet) ──────────
+    # Sur 5 estimations de coût confrontées à un relevé réel, 5 étaient
+    # fausses, TOUJOURS dans le sens qui arrangeait l'hypothèse testée
+    # (spreads ×15, ×9.2, ×6.3 ; swap ×3.8 ; carry JPY jusqu'au signe
+    # inverse). Un coût non relevé à l'écran doit donc être traité comme FAUX.
+    # Ce champ liste les grandeurs effectivement RELEVÉES sur la plateforme.
+    # Noms reconnus : "spread", "swap_long", "swap_short", "pip_value",
+    # "min_lot", "commission".  Voir `assert_costs_measured`.
+    costs_measured: frozenset[str] = frozenset()
+
     def __post_init__(self) -> None:
         if self.spread_pips < 0:
             raise ValueError(f"spread_pips doit être >= 0, reçu {self.spread_pips}")
@@ -259,11 +295,68 @@ class AssetConfig:
             raise ValueError(f"sl_points doit être > 0, reçu {self.sl_points}")
         if self.window_hours <= 0:
             raise ValueError(f"window_hours doit être > 0, reçu {self.window_hours}")
+        if self.spread_pct is not None and self.spread_pct < 0:
+            raise ValueError(f"spread_pct doit être >= 0, reçu {self.spread_pct}")
+        unknown = self.costs_measured - _MEASURABLE_COSTS
+        if unknown:
+            raise ValueError(
+                f"costs_measured contient des noms inconnus : {sorted(unknown)}. "
+                f"Attendu parmi {sorted(_MEASURABLE_COSTS)}."
+            )
 
     @property
     def total_cost_pips(self) -> float:
-        """Coût total aller-retour (spread + slippage + commission)."""
+        """Coût total aller-retour (spread + slippage + commission).
+
+        ⚠️ Valeur CONSTANTE, héritée. Préférer `total_cost_pips_at(price)` dès
+        qu'un `spread_pct` mesuré existe : le spread est un % du notionnel, et
+        une constante en pips est fausse partout sauf au prix de référence.
+        """
         return self.spread_pips + self.slippage_pips + self.commission_pips
+
+    def spread_pips_at(self, price: float) -> float:
+        """Spread aller-simple en pips au niveau de prix `price`.
+
+        Utilise `spread_pct` (mesuré) s'il existe, sinon retombe sur la
+        constante `spread_pips`.
+        """
+        if self.spread_pct is None:
+            return self.spread_pips
+        return (self.spread_pct / 100.0) * price / self.pip_size
+
+    def total_cost_pips_at(self, price: float) -> float:
+        """Coût aller-retour en pips au niveau de prix `price`.
+
+        Le slippage reste proportionnel au spread (règle docs/cost_audit_v2.md
+        §2) : on conserve le ratio slippage/spread de la config héritée.
+        """
+        spread = self.spread_pips_at(price)
+        ratio = (self.slippage_pips / self.spread_pips) if self.spread_pips > 0 else 0.0
+        return spread + spread * ratio + self.commission_pips
+
+    def swap_pips_per_night_at(self, price: float, *, direction: str) -> float:
+        """Swap overnight en pips (signé) au niveau de prix `price`.
+
+        Args:
+            direction: "long" ou "short".
+        """
+        if direction not in ("long", "short"):
+            raise ValueError(f"direction doit être 'long' ou 'short', reçu {direction!r}")
+        pct = self.swap_long_pct_per_night if direction == "long" else self.swap_short_pct_per_night
+        if pct is None:
+            return (
+                self.swap_long_pips_per_night
+                if direction == "long"
+                else self.swap_short_pips_per_night
+            )
+        return (pct / 100.0) * price / self.pip_size
+
+    def unmeasured(self, *fields: str) -> tuple[str, ...]:
+        """Parmi `fields`, ceux qui n'ont JAMAIS été relevés sur la plateforme."""
+        unknown = set(fields) - _MEASURABLE_COSTS
+        if unknown:
+            raise ValueError(f"Grandeurs inconnues : {sorted(unknown)}")
+        return tuple(f for f in fields if f not in self.costs_measured)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -310,27 +403,40 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
     # v4: vrai XTB ~0.5 pts, slippage majeure 0.2×
     # ⚠️ pip_size = 0.1 (le S&P cote au dixième de point)
     "US500": AssetConfig(
-        spread_pips=0.5,
-        slippage_pips=0.1,
+        # ✅ RELEVÉ XTB : spread 0.92 pt = 0.012 % (pip_size 0.1 -> 9.2 pips).
+        #    ⚠️ relevé en PRÉ-OUVERTURE = pire cas, donc conservateur. À raffiner
+        #    par un relevé EN SÉANCE.
+        #    L'ancienne valeur 0.5 cumulait DEUX erreurs : bug d'unité (l'audit
+        #    disait "0.5 pts" avec "Pip: 0.1 pt", soit 5 pips, pas 0.5) ET
+        #    sous-estimation x15 face au réel.
+        spread_pips=9.2,
+        slippage_pips=1.84,    # 0.2 x spread (majeure liquide)
         commission_pips=0.0,
         pip_size=0.1,          # 1 pt S&P = 0.1 (cotation au dixième)
-        pip_value_eur=0.092,   # 0.1 pt × 0.92 ≈ 0.092 EUR
+        pip_value_eur=0.092,   # 0.1 pt x 0.92 ≈ 0.092 EUR
         tp_points=200,
         sl_points=100,
         window_hours=120,
         min_lot=0.01,
         max_lot=10.0,
-        # F6 — swaps estimés indices CFD (financement SOFR + ~5% = ~10%/an)
-        # US500 ≈ 6000 × 10%/an / 365 ≈ $1.64/jour = 16 pips (pip=$0.1)
+        # ⚠️ swap SHORT jamais relevé — cf. assert_costs_measured.
         swap_long_pips_per_night=-16.0,
         swap_short_pips_per_night=2.0,
+        # ✅ MESURÉS (% du notionnel) — priment sur les pips ci-dessus.
+        #    L'indice est passé de 1290 (2012) à 7493 (2026) : une constante en
+        #    pips sous-facture le début de l'échantillon d'un facteur ~5.7.
+        spread_pct=0.012,
+        swap_long_pct_per_night=-0.021,     # = -7.7 %/an sur 365 nuits
+        costs_measured=frozenset({"spread", "swap_long"}),
     ),
     # ── GER30 (DAX 40 CFD) ───────────────────────────────────────────────
     # v3: spread=2.0 + slippage=3.0 = 5.0  ← surestimation × 4.2
     # v4: vrai XTB ~1.0 pt, slippage majeure 0.2×
     "GER30": AssetConfig(
-        spread_pips=1.0,
-        slippage_pips=0.2,
+        # ✅ RELEVÉ XTB : spread 9.2 pts = 0.036 % (l'estimation 1.0 était x9.2 trop basse).
+        #    ⚠️ relevé en PRÉ-OUVERTURE = pire cas, conservateur. À raffiner en séance.
+        spread_pips=9.2,
+        slippage_pips=1.84,
         commission_pips=0.0,
         pip_size=1.0,          # 1 pt DAX = 1 EUR
         pip_value_eur=1.0,
@@ -339,10 +445,13 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
         window_hours=120,
         min_lot=0.01,
         max_lot=10.0,
-        # F6 — swaps estimés indices CFD (financement ESTR + ~5% = ~8%/an)
-        # DAX ≈ 23000 × 8%/an / 365 ≈ €5/jour = 5 pips (pip=€1)
+        # ⚠️ swap SHORT jamais relevé — cf. assert_costs_measured.
         swap_long_pips_per_night=-5.0,
         swap_short_pips_per_night=0.5,
+        # ✅ MESURÉS (% du notionnel).
+        spread_pct=0.036,
+        swap_long_pct_per_night=-6.2 / 365.0,   # -6.2 %/an relevé
+        costs_measured=frozenset({"spread", "swap_long"}),
     ),
     # ── XAUUSD (Or spot) ─────────────────────────────────────────────────
     # v3: spread=25.0 + slippage=10.0 = 35.0  ← surestimation × 100
@@ -396,8 +505,12 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
     # v3: spread=4.0 + slippage=3.0 = 7.0  ← surestimation × 100
     # v4: spread XTB ≈ 0.05 USD, slippage mineure 0.5× ≈ 0.02
     "USOIL": AssetConfig(
-        spread_pips=0.05,
-        slippage_pips=0.02,
+        # 🔧 BUG D'UNITÉ CORRIGÉ (x100) : docs/cost_audit_v2.md donne
+        #    "Spread moyen : 0.05 USD" avec "Pip : 0.01 USD" -> 5 pips, pas 0.05.
+        #    Même classe de bug que XAGUSD et ETHUSD, corrigés en leur temps.
+        #    ⚠️ TOUJOURS PAS RELEVÉ sur la plateforme : valeur d'audit, pas de mesure.
+        spread_pips=5.0,
+        slippage_pips=2.0,     # 0.02 USD / 0.01 = 2 pips (mineure, 0.5 x spread)
         commission_pips=0.0,
         pip_size=0.01,         # 1 pip WTI = 0.01 USD
         pip_value_eur=0.92,
@@ -468,8 +581,10 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
     # Source : XTB.com → Crypto → BITCOIN — spread variable selon marché
     # ⚠️ PROVISOIRE — à valider en démo MT5 (Symbol Specifications)
     "BTCUSD": AssetConfig(
-        spread_pips=30.0,      # ≈ 30 USD spread typique heures actives
-        slippage_pips=30.0,    # crypto : 1.0× spread (forte volatilité)
+        # ✅ RELEVÉ XTB : spread 0.302 % du notionnel (189.5 USD au prix du relevé).
+        #    L'estimation 30 USD était x6.3 trop basse.
+        spread_pips=189.5,
+        slippage_pips=189.5,   # crypto : 1.0x spread (forte volatilité)
         commission_pips=0.0,
         pip_size=1.0,          # 1 pip BTC = 1 USD (big figure)
         pip_value_eur=0.92,    # 1 USD ≈ 0.92 EUR
@@ -478,11 +593,18 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
         window_hours=120,
         min_lot=0.01,
         max_lot=5.0,
-        # F6 — swaps estimés (financement crypto CFD ~10%/an)
-        # BTC $60k × 10%/an / 365 ≈ $16/jour ≈ 16 pips/nuit (pip=$1)
-        # Short rebate généralement faible/négatif chez CFD broker
+        # ⚠️ swap SHORT jamais relevé. C'est le chiffre le PLUS important encore
+        #    manquant du projet : les longs paient 35.4 %/an, donc le côté short
+        #    reçoit peut-être une part substantielle de ce financement. C'est le
+        #    seul endroit de tout le panier d'instruments où le carry pourrait
+        #    être POSITIF. Ne PAS estimer — relever.
         swap_long_pips_per_night=-16.0,
         swap_short_pips_per_night=-3.0,
+        # ✅ MESURÉS (% du notionnel). BTC est passé de 2 255 (2017) à 81 166
+        #    (2026) : une constante en pips est fausse d'un facteur ~36.
+        spread_pct=0.302,
+        swap_long_pct_per_night=-35.4 / 365.0,   # -35.4 %/an relevé
+        costs_measured=frozenset({"spread", "swap_long"}),
     ),
     # ── ETHUSD (Ethereum spot) — NOUVEAU C1, PROVISOIRE ──────────────────
     # ⚠️ PROVISOIRE — à valider en démo
@@ -579,3 +701,54 @@ ASSET_CONFIGS: dict[str, AssetConfig] = {
         swap_short_pips_per_night=-2.6,
     ),
 }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Garde anti-coût-estimé
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Historique qui justifie ce garde-fou (memory/cost-estimates-always-wrong.md) :
+# sur 5 estimations de coût confrontées à un relevé réel, 5 étaient fausses,
+# TOUJOURS dans le sens qui arrangeait l'hypothèse testée —
+#   spread US500 ×15 · spread GER30 ×9.2 · spread BTCUSD ×6.3 ·
+#   swap crypto ×3.8 · carry JPY jusqu'au SIGNE INVERSE.
+# Trois verdicts « GO » ont été fabriqués par des coûts optimistes. Un coût non
+# relevé à l'écran doit donc faire ÉCHOUER le screen, pas le biaiser en silence.
+
+
+def assert_costs_measured(asset: str, *fields: str, allow_estimated: bool = False) -> None:
+    """Refuse de continuer si un coût requis n'a jamais été relevé sur XTB.
+
+    À appeler en tête de tout screen, AVANT le backtest.
+
+    Args:
+        asset: clé de `ASSET_CONFIGS`.
+        *fields: grandeurs requises ("spread", "swap_long", "swap_short",
+            "pip_value", "min_lot", "commission").
+        allow_estimated: si True, n'émet qu'un avertissement. À n'utiliser que
+            pour une exploration explicitement étiquetée non-concluante.
+
+    Raises:
+        UnmeasuredCostError: si `allow_estimated` est False et qu'au moins une
+            grandeur requise est estimée.
+    """
+    cfg = ASSET_CONFIGS.get(asset)
+    if cfg is None:
+        raise KeyError(f"{asset} absent de ASSET_CONFIGS")
+
+    missing = cfg.unmeasured(*fields)
+    if not missing:
+        return
+
+    msg = (
+        f"{asset} : coût(s) JAMAIS relevé(s) sur la plateforme -> {list(missing)}.\n"
+        f"  Les 5 dernières estimations confrontées au réel étaient fausses (x3.8 à x15,\n"
+        f"  toujours dans le sens favorable). Un verdict bâti là-dessus ne vaut rien.\n"
+        f"  -> Relever ces valeurs dans l'app XTB (voir docs/checklist_couts_xtb.md),\n"
+        f"    les écrire dans ASSET_CONFIGS['{asset}'] et ajouter leur nom à\n"
+        f"    costs_measured. Pour une exploration non-concluante : allow_estimated=True."
+    )
+    if allow_estimated:
+        logger.warning("COÛTS ESTIMÉS ACCEPTÉS — %s", msg)
+        return
+    raise UnmeasuredCostError(msg)

@@ -102,11 +102,16 @@ def test_deterministic_intraday_zero_nights() -> None:
 
 def test_deterministic_long_swap_debit_one_night() -> None:
     """Long avec swap débit -0.5 pip/nuit, 1 nuit → PnL diminué de 0.5."""
+    # NB fill honnête (entry_on_next_open=True, défaut depuis 2026-08-22) :
+    # le signal de la barre i entre à l'OPEN de la barre i+1. Les fixtures
+    # portent donc une barre de signal en tête, pour que l'entrée tombe bien
+    # sur la barre voulue et que la détention couvre encore la/les nuit(s).
     df = _build_df([
+        {"Time": "2024-01-01 22:00", "Open": 0.9995, "High": 0.9998, "Low": 0.9992, "Close": 0.9995},
         {"Time": "2024-01-01 23:00", "Open": 0.9995, "High": 1.0000, "Low": 0.9990, "Close": 1.0000},
         {"Time": "2024-01-02 01:00", "Open": 1.0000, "High": 1.0025, "Low": 0.9999, "Close": 1.0020},
     ])
-    signals = pd.Series([1, 0], index=df.index)
+    signals = pd.Series([1, 0, 0], index=df.index)
 
     result = run_deterministic_backtest(
         df=df, signals=signals,
@@ -124,7 +129,8 @@ def test_deterministic_long_swap_debit_one_night() -> None:
 def test_deterministic_long_swap_credit_five_nights() -> None:
     """Long timeout 5 jours, swap crédit +0.3 pip/nuit → PnL amélioré de +1.5."""
     rows = [
-        {"Time": f"2024-01-{day:02d} 00:00", "Open": 1.0000, "High": 1.0010, "Low": 0.9990, "Close": 1.0005}
+        # Open == Close : le PnL brut ne dépend alors pas de la convention de fill.
+        {"Time": f"2024-01-{day:02d} 00:00", "Open": 1.0005, "High": 1.0010, "Low": 0.9990, "Close": 1.0005}
         for day in range(1, 9)
     ]
     df = _build_df(rows)
@@ -148,11 +154,16 @@ def test_deterministic_long_swap_credit_five_nights() -> None:
 
 def test_deterministic_short_uses_short_swap() -> None:
     """Short doit utiliser swap_short_pips_per_night, pas swap_long."""
+    # NB fill honnête (entry_on_next_open=True, défaut depuis 2026-08-22) :
+    # le signal de la barre i entre à l'OPEN de la barre i+1. Les fixtures
+    # portent donc une barre de signal en tête, pour que l'entrée tombe bien
+    # sur la barre voulue et que la détention couvre encore la/les nuit(s).
     df = _build_df([
+        {"Time": "2024-01-01 22:00", "Open": 1.0005, "High": 1.0008, "Low": 1.0002, "Close": 1.0005},
         {"Time": "2024-01-01 23:00", "Open": 1.0005, "High": 1.0010, "Low": 0.9995, "Close": 1.0000},
         {"Time": "2024-01-02 01:00", "Open": 1.0000, "High": 1.0005, "Low": 0.9975, "Close": 0.9980},
     ])
-    signals = pd.Series([-1, 0], index=df.index)
+    signals = pd.Series([-1, 0, 0], index=df.index)
 
     result = run_deterministic_backtest(
         df=df, signals=signals,
@@ -171,11 +182,16 @@ def test_deterministic_short_uses_short_swap() -> None:
 
 def test_deterministic_nights_held_exposed_in_trade() -> None:
     """nights_held doit être présent dans le dict trade pour audit."""
+    # NB fill honnête (entry_on_next_open=True, défaut depuis 2026-08-22) :
+    # le signal de la barre i entre à l'OPEN de la barre i+1. Les fixtures
+    # portent donc une barre de signal en tête, pour que l'entrée tombe bien
+    # sur la barre voulue et que la détention couvre encore la/les nuit(s).
     df = _build_df([
+        {"Time": "2024-01-01 09:00", "Open": 0.9995, "High": 0.9998, "Low": 0.9992, "Close": 0.9995},
         {"Time": "2024-01-01 10:00", "Open": 0.9995, "High": 1.0000, "Low": 0.9990, "Close": 1.0000},
         {"Time": "2024-01-03 14:00", "Open": 1.0000, "High": 1.0025, "Low": 0.9999, "Close": 1.0020},
     ])
-    signals = pd.Series([1, 0], index=df.index)
+    signals = pd.Series([1, 0, 0], index=df.index)
 
     result = run_deterministic_backtest(
         df=df, signals=signals,

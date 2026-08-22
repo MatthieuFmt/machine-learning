@@ -2,11 +2,25 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import UTC, datetime
 from pathlib import Path
 
-LOCK_PATH = Path("TEST_SET_LOCK.json")
+# Racine du dépôt : app/testing/snooping_guard.py -> parents[2].
+# ⚠️ LOCK_PATH était relatif au CWD : lancer un screen depuis un autre dossier
+#    créait SILENCIEUSEMENT un second registre, donc un n_trials sous-évalué et
+#    un DSR trop favorable. Le registre doit être unique, quel que soit le CWD.
+#    Surcharge possible via TEST_SET_LOCK_PATH (tests, environnements isolés).
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+LOCK_PATH = Path(os.environ.get("TEST_SET_LOCK_PATH") or (_REPO_ROOT / "TEST_SET_LOCK.json"))
+
+# Début de l'ancien test set. ⚠️ BRÛLÉ : 88 lectures enregistrées, 45 hypothèses
+# distinctes. Conservé pour lecture de l'historique, PAS comme fenêtre valide.
 TEST_START = "2024-01-01"
+
+# Seule fenêtre encore vierge. Voir `oos_power_warning` : elle est trop courte
+# pour porter un verdict (~0.38 an, alors qu'un DSR non-NaN exige ≥ 31 trades).
+VIRGIN_OOS_START = "2026-01-01"
 
 
 class TestSetSnoopingError(Exception):
@@ -33,7 +47,15 @@ def read_oos(
     sharpe: float,
     n_trades: int | None = None,
 ) -> None:
-    """À appeler à CHAQUE lecture du test set OOS (≥ 2024)."""
+    """À appeler à CHAQUE lecture du test set OOS.
+
+    Raises:
+        TestSetSnoopingError: si le registre est verrouillé. Lire l'OOS après
+            le verrou EST exactement le data-snooping que le verrou interdit —
+            `check_unlocked()` existait mais n'était appelé par AUCUN screen,
+            donc le « garde » n'était qu'un carnet de bord.
+    """
+    check_unlocked()
     state = _load()
     state["n_reads"] += 1
     state["read_history"].append({
